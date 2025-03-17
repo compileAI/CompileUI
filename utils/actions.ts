@@ -1,0 +1,69 @@
+'use server';
+
+import { createClientForServer } from "@/utils/supabase/server";
+import { Provider } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
+
+interface AuthResponse {
+    status: string;
+    description: string;
+}
+
+const signInWithProvider = (provider: Provider) => async() => {
+    const supabase = await createClientForServer();
+
+    const auth_callback_url = `${process.env.SITE_URL}/auth/callback`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+            redirectTo: auth_callback_url,
+        }
+    })
+
+    if (error) {
+        console.error("Sign-in error:", error.message);
+    }
+    else {
+        console.log("Sign-in success");
+    }
+
+    if (data.url) {
+        redirect(data.url);
+    } else {
+        console.error("Sign-in error: No URL returned");
+    }
+}
+
+const signInWithMagicLink = async (formData: FormData): Promise<AuthResponse> => {
+    const supabase = await createClientForServer();
+    
+    const email = formData.get("email") as string;
+
+    const auth_callback_url = `${process.env.SITE_URL}/auth/callback`;
+
+    const { data, error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+            emailRedirectTo: auth_callback_url,
+        }
+    });
+
+    if (error) {
+        return { status: "error", description: error.message };
+    }
+    else {
+        return { status: "success", description: "Check your email for the magic link!" };
+    }
+
+}
+
+const signOut = async () => {
+    const supabase = await createClientForServer();
+    await supabase.auth.signOut();
+}
+
+const signInWithGoogle = signInWithProvider('google');
+const signInWithGithub = signInWithProvider('github');
+
+export { signInWithGoogle, signInWithGithub, signInWithMagicLink, signOut };
