@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import EmailValidator from "email-validator";
+import Image from "next/image";
 
 
 const AuthForm = () => {
@@ -55,14 +56,14 @@ const AuthForm = () => {
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                     className="w-full mb-5"
                 />
                 <Button variant="outline" formAction={handleMagicLinkSignIn} className="w-full">
-                    <img
+                    <Image
                         src="/supabase-logo-icon.png"
                         alt="Supabase"
-                        className="w-5 h-5" />
+                        width={15}
+                        height={15} />
                     <span>Sign in with MagicLink</span>
                 </Button>
                 <Button formAction={signInWithGoogle}>

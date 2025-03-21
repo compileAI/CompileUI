@@ -9,7 +9,7 @@ export default async function Home() {
 
   const user = (await supabase.auth.getUser()).data.user;
 
-  const { email, user_name, avatar_url } = user?.user_metadata || {};
+  const { avatar_url } = user?.user_metadata || {};
 
   return (
     <div>
