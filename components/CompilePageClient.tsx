@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Tabs,
   TabsList,
@@ -19,7 +20,7 @@ interface Article {
   id: number;
   title: string;
   body: string;
-  tags: string;
+  tags: string;           // e.g. "model_releases", "deals_investments", ...
   created_at: string;
   sources: string | null;
 }
@@ -28,50 +29,76 @@ interface Props {
   cardsData: Article[];
 }
 
+// 1) Define your tabs in one place, with the exact `value` coming from the DB,
+//    and the human label to show in the UI.
+const tabs = [
+  { value: "all",               label: "All" },
+  { value: "model_releases",    label: "Model Releases" },
+  { value: "deals_investments", label: "Deals & Investments" },
+  { value: "research_blogs",    label: "Research & Blogs" },
+  { value: "socials",           label: "Socials" },
+] as const;
+
+type TabValue = typeof tabs[number]["value"];
+
 export default function CompilePageClient({ cardsData }: Props) {
+  const [selectedTab, setSelectedTab] = useState<TabValue>("all");
+
+  // 2) Filter: if “all”, show everything; otherwise only items
+  //    whose item.tags exactly match the selectedTab.
+  const filtered = cardsData.filter((item) =>
+    selectedTab === "all" ? true : item.tags === selectedTab
+  );
+
+  // 3) Helper to look up a label by value
+  const lookupLabel = (value: TabValue) =>
+    tabs.find((t) => t.value === value)?.label ?? value;
+
   return (
     <div className="px-4 py-6 lg:px-8">
       <h1 className="text-3xl font-bold tracking-tight">Compile.</h1>
 
-      <Tabs defaultValue="all" className="mt-6">
+      <Tabs
+        value={selectedTab}
+        onValueChange={(v) => setSelectedTab(v as TabValue)}
+        className="mt-6"
+      >
         <div className="flex items-center border-b border-gray-200 dark:border-gray-700">
           <TabsList className="bg-transparent border-none px-0 py-2 space-x-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="trending">Trending</TabsTrigger>
-            <TabsTrigger value="modelReleases">Model Releases</TabsTrigger>
-            <TabsTrigger value="research">Research</TabsTrigger>
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
-        <TabsContent value="all" className="mt-6">
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {cardsData.map((item) => (
-              <Card key={item.id}>
-                <CardHeader className="space-y-1">
-                  <Badge variant="secondary">{item.tags}</Badge>
-                  <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>{item.body}</CardDescription>
-                </CardHeader>
-                {item.sources && (
-                  <CardFooter className="text-sm text-muted-foreground">
-                    {item.sources}
-                  </CardFooter>
-                )}
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="trending" className="mt-6">
-          <p className="text-sm text-muted-foreground">Trending posts go here...</p>
-        </TabsContent>
-
-        <TabsContent value="modelReleases" className="mt-6">
-          <p className="text-sm text-muted-foreground">Model releases go here...</p>
-        </TabsContent>
-
-        <TabsContent value="research" className="mt-6">
-          <p className="text-sm text-muted-foreground">Research posts go here...</p>
+        <TabsContent value={selectedTab} className="mt-6">
+          {filtered.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {filtered.map((item) => (
+                <Card key={item.id}>
+                  <CardHeader className="space-y-1">
+                    {/* map the raw tag to its label */}
+                    <Badge variant="secondary">
+                      {lookupLabel(item.tags as TabValue)}
+                    </Badge>
+                    <CardTitle>{item.title}</CardTitle>
+                    <CardDescription>{item.body}</CardDescription>
+                  </CardHeader>
+                  {item.sources && (
+                    <CardFooter className="text-sm text-muted-foreground">
+                      {item.sources}
+                    </CardFooter>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No items found for “{lookupLabel(selectedTab)}.”
+            </p>
+          )}
         </TabsContent>
       </Tabs>
     </div>
