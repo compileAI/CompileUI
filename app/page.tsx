@@ -37,7 +37,7 @@ export default async function Home() {
             </Link>
           )}
         </div>
-        <Link className='mt-10' href='/rss' passHref>
+        <Link className='mt-10' href='/compile' passHref>
           <Button className='cursor-pointer'>See Articles</Button>
         </Link>
       </main>

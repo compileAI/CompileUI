@@ -16,13 +16,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-interface Article {
-  id: number;
+export interface Article {
+  article_id: number;
+  date: Date;
   title: string;
-  body: string;
-  tags: string;           // e.g. "model_releases", "deals_investments", ...
-  created_at: string;
-  sources: string | null;
+  content: string;
+  fingerprint: string;
+  tag: string;           // e.g. "model_releases", "deals_investments", ...
+  // created_at: string;
+  // sources: string | null;
 }
 
 interface Props {
@@ -33,10 +35,10 @@ interface Props {
 //    and the human label to show in the UI.
 const tabs = [
   { value: "all",               label: "All" },
-  { value: "model_releases",    label: "Model Releases" },
-  { value: "deals_investments", label: "Deals & Investments" },
-  { value: "research_blogs",    label: "Research & Blogs" },
-  { value: "socials",           label: "Socials" },
+  { value: "Model Releases",    label: "Model Releases" },
+  { value: "Business",          label: "Deals & Investments" },
+  { value: "Research",          label: "Research & Blogs" },
+  { value: "Socials",           label: "Socials" },
 ] as const;
 
 type TabValue = typeof tabs[number]["value"];
@@ -47,7 +49,7 @@ export default function CompilePageClient({ cardsData }: Props) {
   // 2) Filter: if “all”, show everything; otherwise only items
   //    whose item.tags exactly match the selectedTab.
   const filtered = cardsData.filter((item) =>
-    selectedTab === "all" ? true : item.tags === selectedTab
+    selectedTab === "all" ? true : item.tag === selectedTab
   );
 
   // 3) Helper to look up a label by value
@@ -77,20 +79,20 @@ export default function CompilePageClient({ cardsData }: Props) {
           {filtered.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {filtered.map((item) => (
-                <Card key={item.id}>
+                <Card key={item.article_id}>
                   <CardHeader className="space-y-1">
                     {/* map the raw tag to its label */}
                     <Badge variant="secondary">
-                      {lookupLabel(item.tags as TabValue)}
+                      {lookupLabel(item.tag as TabValue)}
                     </Badge>
                     <CardTitle>{item.title}</CardTitle>
-                    <CardDescription>{item.body}</CardDescription>
+                    <CardDescription>{item.content}</CardDescription>
                   </CardHeader>
-                  {item.sources && (
+                  {/* {item.sources && (
                     <CardFooter className="text-sm text-muted-foreground">
                       {item.sources}
                     </CardFooter>
-                  )}
+                  )} */}
                 </Card>
               ))}
             </div>
