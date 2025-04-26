@@ -15,6 +15,7 @@ import {
   // CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
 
 export interface Article {
   article_id: number;
@@ -39,6 +40,7 @@ const tabs = [
   { value: "Business",          label: "Deals & Investments" },
   { value: "Research",          label: "Research & Blogs" },
   { value: "Socials",           label: "Socials" },
+  { value: "Gemini",            label: "Gemini" },
 ] as const;
 
 type TabValue = typeof tabs[number]["value"];
@@ -82,11 +84,11 @@ export default function CompilePageClient({ cardsData }: Props) {
                 <Card key={item.article_id}>
                   <CardHeader className="space-y-1">
                     {/* map the raw tag to its label */}
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" onClick={() => setSelectedTab(item.tag as TabValue)} className="cursor-pointer hover:bg-gray-200 transition-colors">
                       {lookupLabel(item.tag as TabValue)}
                     </Badge>
-                    <CardTitle>{item.title}</CardTitle>
-                    <CardDescription>{item.content}</CardDescription>
+                    <CardTitle><ReactMarkdown>{item.title}</ReactMarkdown></CardTitle>
+                    <CardDescription className="prose whitespace-pre-line"><ReactMarkdown>{item.content}</ReactMarkdown></CardDescription>
                   </CardHeader>
                   {/* {item.sources && (
                     <CardFooter className="text-sm text-muted-foreground">
