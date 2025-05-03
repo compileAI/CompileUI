@@ -13,14 +13,15 @@ interface Props {
     cardData: Article;
     onTagClick: (tag: string) => void;
     lookupLabel: (tag: TabValue) => string;
+    formattedDate: string;
 }
-export default function ArticleCard({ cardData, onTagClick, lookupLabel }: Props) {
+export default function ArticleCard({ cardData, onTagClick, lookupLabel, formattedDate }: Props) {
 
-    const formattedDate = new Date(cardData.date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
+    // const formattedDate = new Date(cardData.date).toLocaleDateString("en-US", {
+    //     year: "numeric",
+    //     month: "long",
+    //     day: "numeric",
+    // });
 
     return (
         <Card className="transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800" key={cardData.article_id}>

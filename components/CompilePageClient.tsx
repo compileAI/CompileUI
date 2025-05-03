@@ -111,36 +111,49 @@ export default function CompilePageClient({ cardsData }: Props) {
         <TabsContent value={selectedTab} className="mt-6 px-2 sm:px-4 lg:px-8">
           {filtered.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
-              {filtered.map((item) => (
-              <Dialog key={item.article_id}>
-                <DialogTrigger>
-                  <ArticleCard
-                    cardData={item}
-                    onTagClick={(tag) =>
-                      setSelectedTab((prev) => (prev === tag ? "all" : (tag as TabValue)))
-                    }
-                    lookupLabel={lookupLabel}
-                  />
-                </DialogTrigger>
-                <DialogContent className="w-full sm:max-w-screen-xl h-[80vh] flex flex-col">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-semibold">
-                      {item.title}
-                    </DialogTitle>
-                  </DialogHeader>
+              {filtered.map((item) => {
+                const formattedDate = new Date(item.date).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                });
 
-                  <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
-                    <ReactMarkdown>{item.content}</ReactMarkdown>
-                  </div>
+                return (
+                  <Dialog key={item.article_id}>
+                    <DialogTrigger>
+                      <ArticleCard
+                        cardData={item}
+                        formattedDate={formattedDate}
+                        onTagClick={(tag) =>
+                          setSelectedTab((prev) => (prev === tag ? "all" : (tag as TabValue)))
+                        }
+                        lookupLabel={lookupLabel}
+                      />
+                    </DialogTrigger>
+                    <DialogContent className="w-full sm:max-w-screen-xl h-[80vh] flex flex-col">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-semibold">
+                          {item.title}
+                        </DialogTitle>
+                      </DialogHeader>
 
-                  <DialogFooter className="border-t pt-4">
-                    <DialogClose asChild>
-                      <Button variant="secondary">Close</Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              ))}
+                      <div className="text-sm text-muted-foreground px-6">
+                        {formattedDate} 
+                      </div>
+
+                      <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+                        <ReactMarkdown>{item.content}</ReactMarkdown>
+                      </div>
+
+                      <DialogFooter className="border-t pt-4">
+                        <DialogClose asChild>
+                          <Button variant="secondary">Close</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
