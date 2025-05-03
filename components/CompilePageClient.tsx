@@ -93,7 +93,7 @@ export default function CompilePageClient({ cardsData }: Props) {
             className="accent-gray-600 w-4 h-4"
           />
           <label htmlFor="today-only" className="text-sm text-muted-foreground">
-            Show only today's articles
+            Show today only
           </label>
         </div>
           <div className="flex items-center border-b border-gray-200 dark:border-gray-700">
