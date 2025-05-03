@@ -74,11 +74,11 @@ export default function CompilePageClient({ cardsData }: Props) {
 
   return (
     
-    <div className="py-6">
+    <div className="pb-6">
       <Tabs
         value={selectedTab}
         onValueChange={(v) => setSelectedTab(v as TabValue)}
-        className="mt-6"
+        className="mt-3"
       >
       <div className="sticky top-0 z-50 bg-white dark:bg-zinc-900 pt-6 pb-2 lg:px-8 px-2 sm:px-4">
         <div>
