@@ -2,7 +2,6 @@ import {
     Card,
     CardHeader,
     CardTitle,
-    // CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
@@ -16,12 +15,6 @@ interface Props {
     formattedDate: string;
 }
 export default function ArticleCard({ cardData, onTagClick, lookupLabel, formattedDate }: Props) {
-
-    // const formattedDate = new Date(cardData.date).toLocaleDateString("en-US", {
-    //     year: "numeric",
-    //     month: "long",
-    //     day: "numeric",
-    // });
 
     return (
         <Card className="transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800" key={cardData.article_id}>
