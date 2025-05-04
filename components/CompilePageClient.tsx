@@ -78,9 +78,9 @@ export default function CompilePageClient({ cardsData }: Props) {
       <Tabs
         value={selectedTab}
         onValueChange={(v) => setSelectedTab(v as TabValue)}
-        className="mt-3"
+        className="mt-0"
       >
-      <div className="sticky top-0 z-50 bg-white dark:bg-zinc-900 pt-6 pb-2 lg:px-8 px-2 sm:px-4">
+      <div className="sticky top-0 z-50 bg-white dark:bg-zinc-900 pt-6 pb-2 lg:px-8 px-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Compile.</h1>
         </div>
@@ -132,16 +132,16 @@ export default function CompilePageClient({ cardsData }: Props) {
                     </DialogTrigger>
                     <DialogContent className="w-full sm:max-w-screen-xl h-[80vh] flex flex-col">
                       <DialogHeader>
-                        <DialogTitle className="text-2xl font-semibold">
+                        <DialogTitle className="text-left text-lg sm:text-2xl font-semibold pt-2 px-2 sm:px-4 sm:pt-4">
                           {item.title}
                         </DialogTitle>
                       </DialogHeader>
 
-                      <div className="text-sm text-muted-foreground px-6">
+                      <div className="text-sm text-muted-foreground px-2 sm:px-4">
                         {formattedDate} 
                       </div>
 
-                      <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+                      <div className="overflow-y-auto flex-1 px-2 sm:px-4 py-2 sm:py-4 space-y-4">
                         <ReactMarkdown>{item.content}</ReactMarkdown>
                       </div>
 
