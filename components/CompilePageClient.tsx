@@ -44,6 +44,8 @@ const tabs = [
   { value: "research_blogs_papers",     label: "Research & Blogs" },
   { value: "socials",                   label: "Socials" },
   { value: "Gemini",                    label: "Gemini" },
+  { value: "VDB",                       label: "General Vector" },
+  { value: "VDB_IMPROVED",              label: "Improved Vector" },
 ] as const;
 
 // Generate a type for a union of all the possible raw tab values
