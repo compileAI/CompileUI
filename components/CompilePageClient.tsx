@@ -96,7 +96,7 @@ export default function CompilePageClient({ cardsData }: Props) {
         {/* Main content area with article cards */}
         <TabsContent value={selectedTab} className="mt-6 px-2 sm:px-4 lg:px-8">
           {filtered.length > 0 ? (
-            <Accordion.Root type="multiple" className="flex flex-col gap-4">
+            <Accordion.Root type="multiple" className="flex flex-col gap-2">
               {filtered.map((item) => {
                 const formattedDate = new Date(item.date).toLocaleDateString("en-US", {
                   year: "numeric",

@@ -32,8 +32,12 @@ export default function ArticleAccordionItem({
       {/* TRIGGER ───────────────────────────────────────────── */}
       <Accordion.Trigger asChild>
         {/* this div itself receives data-state="open | closed" */}
-        <div className="w-full transition-shadow duration-200 data-[state=open]:shadow-md data-[state=open]:rounded-b-none">
-          <ArticleCard
+        <div className="
+            w-full cursor-pointer transition-shadow duration-200 
+            data-[state=open]:shadow-md data-[state=open]:rounded-b-none 
+            hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-t-xl
+        ">
+        <ArticleCard
             cardData={article}
             formattedDate={formattedDate}
             onTagClick={onTagClick}
@@ -47,22 +51,22 @@ export default function ArticleAccordionItem({
       {/* CONTENT ────────────────────────────────────────────── */}
       <Accordion.Content
         className="
-          px-6 pt-2 pb-4
+          px-6 pt-0 pb-2
           bg-white dark:bg-zinc-900
           data-[state=open]:animate-slideDown
           data-[state=closed]:animate-slideUp
           rounded-b-xl
         "
       >
-        <div className="prose max-w-none">
-          <ReactMarkdown>{article.content}</ReactMarkdown>
+        <div className="prose prose-neutral dark:prose-invert max-w-none">
+        <ReactMarkdown>{article.content}</ReactMarkdown>
         </div>
 
-        <div className="border-t pt-4 mt-4 flex justify-end">
-          <Button onClick={onOpenChat} className="gap-2">
+        <div className="border-t border-gray-200 dark:border-zinc-700 pt-4 mt-6 mb-2 flex justify-end">
+        <Button onClick={onOpenChat} className="gap-2">
             <MessageCircleMore className="h-5 w-5" />
-            Chat with this article
-          </Button>
+            Chat
+        </Button>
         </div>
       </Accordion.Content>
     </Accordion.Item>
