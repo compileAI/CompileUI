@@ -1,6 +1,6 @@
 import { getGeneratedArticles } from "@/lib/fetchArticles";
 import CompilePageClient from "@/components/CompilePageClient";
-import { Article } from "@/components/CompilePageClient";
+import { Article } from "@/types";
 
 export default async function Home() {
   const articles: Article[] = await getGeneratedArticles(); // Supabase query

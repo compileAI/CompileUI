@@ -1,5 +1,5 @@
 import { createClientForServer } from "@/utils/supabase/server";
-import { Article } from "@/components/CompilePageClient";
+import { Article } from "@/types";
 
 export async function getGeneratedArticles() {
   const supabase = await createClientForServer();
