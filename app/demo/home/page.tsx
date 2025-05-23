@@ -1,9 +1,6 @@
-import { getGeneratedArticles } from "@/lib/fetchArticles";
-import DemoPageClient from "@/components/DemoPageClient";
-import { Article } from "@/types";
+import DemoHomeClient from "@/components/DemoHome";
 
 export default async function DemoHome() {
-  const articles: Article[] = await getGeneratedArticles();
-        
-  return <DemoPageClient cardsData={articles} />;
+    
+    return <DemoHomeClient/>
 }

@@ -10,12 +10,16 @@ import {
 } from "@/components/ui/select";
 import { useRouter, usePathname } from "next/navigation";
 
-export function NavigationDropdown() {
+interface NavigationProps {
+  showHome?: boolean;
+}
+
+export function NavigationDropdown({ showHome = true }: NavigationProps) {
   const router = useRouter();
   const pathname = usePathname();
   
   // Determine the current value based on the pathname
-  const currentValue = pathname.includes("/discover") ? "discover" : "home";
+  const currentValue = showHome ? "home" : "discover";
 
   return (
     <Select
@@ -28,7 +32,7 @@ export function NavigationDropdown() {
         }
       }}
     >
-      <SelectTrigger className="h-9 bg-transparent border-none shadow-none hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 font-medium text-gray-700 dark:text-gray-200">
+      <SelectTrigger className="h-9 bg-transparent shadow-none hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 font-medium text-gray-700 dark:text-gray-200">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

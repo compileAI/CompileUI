@@ -25,7 +25,7 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
         <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => router.push("/demo/home")}
+            onClick={() => router.push("/demo/discover")}
             className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity"
           >
             Compile.
