@@ -1,5 +1,5 @@
-export interface Article {
-  article_id: number;
+export interface Article { // This is GenArticle
+  article_id: string;
   date: Date;
   title: string;
   content: string;
@@ -14,4 +14,23 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Add other shared types here in the future if needed 
+export interface SourceArticleDB { // Renaming to avoid confusion with the simplified type below
+  id: string; // Corresponds to source_articles.id
+  published: string | null; // Keep as string from DB, format later if needed
+  title: string | null;
+  content: string | null;
+  author: string | null;
+  source_id: number; // Assuming this is bigint from master_sources.id
+  url: string | null;
+  tags: string[] | null;
+  created_at: string; // Keep as string from DB
+}
+
+// This is the simplified version you for giving Gemini context
+export interface SourceArticleContext {
+  id: string;
+  title: string | null;
+  content: string | null;
+  author: string | null;
+  url: string | null;
+}

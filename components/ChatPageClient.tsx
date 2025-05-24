@@ -52,6 +52,7 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
           message: userMessage.content,
           history: messages, // Send chat history for context
           articleContext: {
+            article_id: article.article_id,
             title: article.title,
             content: article.content
           }
