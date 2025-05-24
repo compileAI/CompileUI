@@ -7,4 +7,11 @@ export interface Article {
   tag: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 // Add other shared types here in the future if needed 
