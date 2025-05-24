@@ -12,7 +12,7 @@ interface Props {
 export default function DemoPageClient({ cardsData }: Props) {
   return (
     <div className="pb-6">
-      <DemoHeader showSettings={false} showHome={false} />
+      <DemoHeader />
 
       <div className="mt-6 px-2 sm:px-4 lg:px-8">
         {cardsData.length > 0 ? (
