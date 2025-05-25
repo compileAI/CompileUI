@@ -1,25 +1,26 @@
 import { notFound } from "next/navigation";
 import ChatPageClient from "@/components/ChatPageClient";
-import { getGeneratedArticles } from "@/lib/fetchArticles";
+import { getGeneratedArticle } from "@/lib/fetchArticles";
 
 interface PageProps {
   params: { id: string };
+  searchParams: { message?: string };
 }
 
-export default async function ChatPage({ params }: PageProps) {
-  const { id } = await params;
+export default async function ChatPage({ params, searchParams }: PageProps) {
+  const { id } = params;
+  const { message } = searchParams;
   
   if (!id) {
     notFound();
   }
 
-  const articles = await getGeneratedArticles();
-  const article = articles.find(a => a.article_id === id);
+  const article = await getGeneratedArticle(id);
 
   if (!article) {
-    console.log(`Article with ID ${id} not found. Available article IDs: ${articles.map(a => a.article_id).join(', ')}`);
+    console.log(`Article with ID ${id} not found`);
     notFound();
   }
 
-  return <ChatPageClient article={article} />;
+  return <ChatPageClient article={article} initialMessage={message} />;
 }

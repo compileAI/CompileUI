@@ -104,7 +104,7 @@ export default function CompilePageClient({ cardsData }: Props) {
                   day: "numeric",
                 });
                 // Optional: full-page chat view
-                if (chatModeArticleId === item.article_id) {
+                if (chatModeArticleId === Number(item.article_id)) {
                   return (
                     <FullPageChatView
                       key={item.article_id}
@@ -126,7 +126,7 @@ export default function CompilePageClient({ cardsData }: Props) {
                         prev === tag ? "all" : (tag as TabValue)
                       )
                     }
-                    onOpenChat={() => handleOpenChat(item.article_id)}
+                    onOpenChat={() => handleOpenChat(Number(item.article_id))}
                   />
                 );
               })}
