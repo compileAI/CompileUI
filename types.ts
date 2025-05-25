@@ -1,3 +1,9 @@
+export interface Citation {
+  sourceName: string;
+  articleTitle: string;
+  url: string | null;
+}
+
 export interface Article { // This is GenArticle
   article_id: string;
   date: Date;
@@ -5,6 +11,7 @@ export interface Article { // This is GenArticle
   content: string;
   fingerprint: string;
   tag: string;
+  citations: Citation[];
 }
 
 export interface ChatMessage {
