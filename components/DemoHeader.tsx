@@ -17,6 +17,7 @@ import {
 import { Input } from "./ui/input";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 interface PreferenceFormData {
   preference: string;
@@ -33,6 +34,7 @@ export default function DemoHeader({
   showHome = true,
   onPreferenceChange 
 }: DemoHeaderProps) {
+  const router = useRouter();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [savedPreferences, setSavedPreferences] = useState<string | null>(null);
@@ -73,7 +75,12 @@ export default function DemoHeader({
     <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Compile.</h1>
+          <button
+            onClick={() => router.push("/demo/discover")}
+            className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            Compile.
+          </button>
           <NavigationDropdown showHome={showHome} />
         </div>
         {showSettings && (
