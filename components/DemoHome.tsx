@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import DemoHeader from "./DemoHeader";
-import { Article } from "@/types";
-import * as Accordion from "@radix-ui/react-accordion";
-import DemoArticleAccordionItem from "./DemoArticleAccordionItem";
+// import { Article } from "@/types";
+// import * as Accordion from "@radix-ui/react-accordion";
+// import DemoArticleAccordionItem from "./DemoArticleAccordionItem";
 
 export default function DemoHomeClient() {
-  const [articles, setArticles] = useState<Article[]>([]);
+  // const [articles, setArticles] = useState<Article[]>([]);
   const [preferences, setPreferences] = useState<string>("");
 
   const handlePreferenceChange = (preference: string) => {
@@ -29,7 +29,7 @@ export default function DemoHomeClient() {
           </div>
         )}
 
-        {articles.length > 0 && (
+        {/* {articles.length > 0 && (
           <div>
             <div className="mt-6 px-2 sm:px-4 lg:px-8">
               <Accordion.Root type="multiple" className="flex flex-col gap-2">
@@ -45,16 +45,13 @@ export default function DemoHomeClient() {
                       key={item.article_id}
                       article={item}
                       formattedDate={formattedDate}
-                      lookupLabel={() => ""}
-                      onTagClick={() => {}}
-                      onOpenChat={() => {}}
                     />
                   );
                 })}
               </Accordion.Root>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

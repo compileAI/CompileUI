@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
-import { Article } from "../types";
+import { Article } from "@/types";
 
 interface FullPageChatViewProps {
   article: Article;

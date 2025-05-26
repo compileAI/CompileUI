@@ -51,10 +51,6 @@ export default function CompilePageClient({ cardsData }: Props) {
     // We don't necessarily close the dialog here, just exit chat mode.
     // The dialog's onOpenChange will handle closing it if the user clicks outside or hits Esc.
   };
-  
-  const handleDialogClose = () => {
-    setChatModeArticleId(null); // Ensure chat mode is also exited if dialog is closed
-  }
 
   return (
     // Main container
@@ -104,7 +100,7 @@ export default function CompilePageClient({ cardsData }: Props) {
                   day: "numeric",
                 });
                 // Optional: full-page chat view
-                if (chatModeArticleId === item.article_id) {
+                if (chatModeArticleId === parseInt(item.article_id)) {
                   return (
                     <FullPageChatView
                       key={item.article_id}
@@ -126,7 +122,7 @@ export default function CompilePageClient({ cardsData }: Props) {
                         prev === tag ? "all" : (tag as TabValue)
                       )
                     }
-                    onOpenChat={() => handleOpenChat(item.article_id)}
+                    onOpenChat={() => handleOpenChat(parseInt(item.article_id))}
                   />
                 );
               })}
