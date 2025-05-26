@@ -11,8 +11,6 @@ import { Article } from "../types";
 interface DemoArticleCardProps
   extends React.HTMLAttributes<HTMLDivElement> {
   cardData: Article;
-  onTagClick: (tag: string) => void;
-  lookupLabel: (tag: string) => string;
   formattedDate: string;
 }
 
@@ -20,8 +18,6 @@ const DemoArticleCard = forwardRef<HTMLDivElement, DemoArticleCardProps>(
   (
     {
       cardData,
-      onTagClick,
-      lookupLabel,
       formattedDate,
       className,
       ...rest

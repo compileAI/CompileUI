@@ -1,7 +1,6 @@
 "use client";
 
 import { Settings, Search, Loader2 } from "lucide-react";
-import { Article } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +25,10 @@ interface PreferenceFormData {
 
 interface DemoHeaderProps {
   onPreferenceChange?: (preference: string) => void;
-  onSearchResults?: (articles: Article[]) => void;
 }
 
 export default function DemoHeader({ 
   onPreferenceChange,
-  onSearchResults
 }: DemoHeaderProps) {
   const router = useRouter();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
@@ -78,26 +75,10 @@ export default function DemoHeader({
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/vector-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchTerm,
-          limit: 20
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
       // Navigate to discover page with search results
       router.push(`/demo/discover?search=${encodeURIComponent(searchTerm)}`);
     } catch (error) {
-      console.error('Error performing vector search:', error);
+      console.error('Error navigating to discover page:', error);
     } finally {
       setIsLoading(false);
     }

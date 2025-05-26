@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { SourceArticleContext } from "@/types";
+import { ChatMessage, SourceArticleContext } from "@/types";
 import { createClientForServer } from "@/utils/supabase/server";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
@@ -13,7 +13,15 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 export async function POST(req: Request) {
     try {
         // Expect message (question), history (chat history), and articleContext (article id, title, and content) from the client.
-        const { message, history, articleContext } = await req.json();
+        const { message, history, articleContext }: {
+            message: string;
+            history: ChatMessage[];
+            articleContext: {
+                article_id: string; // Ensure this is a string
+                title?: string;
+                content?: string;
+            };
+        } = await req.json();
 
         if (!message) {
             return NextResponse.json(
@@ -135,7 +143,7 @@ export async function POST(req: Request) {
         };
 
         // Convert chat history to Gemini format
-        const chatHistory = history?.map((msg: any) => ({
+        const chatHistory = history?.map((msg: ChatMessage) => ({
             role: msg.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: msg.content }],
         })) || [];

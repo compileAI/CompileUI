@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, /*usePathname*/ } from "next/navigation";
 
 interface NavigationProps {
   showHome?: boolean;
@@ -16,7 +16,7 @@ interface NavigationProps {
 
 export function NavigationDropdown({ showHome = true }: NavigationProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  // const pathname = usePathname();
   
   // Determine the current value based on the pathname
   const currentValue = showHome ? "home" : "discover";
