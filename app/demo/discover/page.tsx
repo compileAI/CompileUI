@@ -1,5 +1,5 @@
 import { getGeneratedArticles } from "@/lib/fetchArticles";
-import DemoPageClient from "@/components/DemoPageClient";
+import DemoDiscoverClient from "@/components/DemoDiscoverClient";
 import { Article } from "@/types";
 
 export default async function DemoDiscover() {
@@ -15,5 +15,5 @@ export default async function DemoDiscover() {
     });
   });
         
-  return <DemoPageClient cardsData={articles} />;
+  return <DemoDiscoverClient initialArticles={articles} />;
 }
