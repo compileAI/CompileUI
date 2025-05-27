@@ -3,13 +3,13 @@ import ChatPageClient from "@/components/ChatPageClient";
 import { getGeneratedArticle } from "@/lib/fetchArticles";
 
 interface PageProps {
-  params: { id: string };
-  searchParams: { message?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ message?: string }>;
 }
 
 export default async function ChatPage({ params, searchParams }: PageProps) {
-  const { id } = params;
-  const { message } = searchParams;
+  const { id } = await params;
+  const { message } = await searchParams;
   
   if (!id) {
     notFound();

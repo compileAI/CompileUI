@@ -12,17 +12,11 @@ import { useState } from "react";
 interface Props {
   article: Article;
   formattedDate: string;
-  lookupLabel: (tag: string) => string;
-  onTagClick: (tag: string) => void;
-  onOpenChat: () => void;
 }
 
 export default function DemoArticleAccordionItem({
   article,
   formattedDate,
-  lookupLabel,
-  onTagClick,
-  onOpenChat,
 }: Props) {
   const router = useRouter();
   const [chatInput, setChatInput] = useState("");
@@ -62,8 +56,6 @@ export default function DemoArticleAccordionItem({
           <DemoArticleCard
             cardData={article}
             formattedDate={formattedDate}
-            onTagClick={onTagClick}
-            lookupLabel={lookupLabel}
             className="border-none rounded-none"
           />
         </div>

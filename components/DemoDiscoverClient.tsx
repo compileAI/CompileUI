@@ -74,9 +74,6 @@ export default function DemoDiscoverClient({ initialArticles }: Props) {
                   key={item.article_id}
                   article={item}
                   formattedDate={formattedDate}
-                  lookupLabel={() => ""}
-                  onTagClick={() => {}}
-                  onOpenChat={() => {}}
                 />
               );
             })}
