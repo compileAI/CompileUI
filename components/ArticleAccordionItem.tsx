@@ -7,12 +7,19 @@ import ArticleCard from "./ArticleCard";
 import { Button } from "@/components/ui/button";
 import { MessageCircleMore } from "lucide-react";
 
+interface Citation {
+  sourceName: string;
+  articleTitle: string;
+  url: string;
+}
+
 interface Props {
   article: Article;
   formattedDate: string;
   lookupLabel: (tag: string) => string;
   onTagClick: (tag: string) => void;
   onOpenChat: () => void;
+  citations?: Citation[];
 }
 
 export default function ArticleAccordionItem({

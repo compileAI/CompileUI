@@ -86,6 +86,7 @@ export async function fetchArticlesByIds(articleIds: string[]): Promise<Article[
         content: String(item.content),
         fingerprint: String(item.fingerprint),
         tag: String(item.tag),
+        citations: [],
       });
     });
 

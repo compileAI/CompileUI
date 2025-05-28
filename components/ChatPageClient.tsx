@@ -8,14 +8,25 @@ import { Article, ChatMessage } from "../types";
 
 interface ChatPageClientProps {
   article: Article;
+  initialMessage?: string;
 }
 
-export default function ChatPageClient({ article }: ChatPageClientProps) {
+interface Citation {
+  sourceName: string;
+  articleTitle: string;
+  url: string | null;
+}
+
+export default function ChatPageClient({ article, initialMessage }: ChatPageClientProps) {
   const router = useRouter();
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [citations, setCitations] = useState<Citation[]>([]);
+  const [citationsLoading, setCitationsLoading] = useState(true);
+  const [citationsError, setCitationsError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialMessageSentRef = useRef(false);
 
   const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
     year: "numeric",
@@ -23,23 +34,59 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
     day: "numeric",
   });
 
+  // Fetch citations
+  useEffect(() => {
+    const fetchCitations = async () => {
+      try {
+        setCitationsLoading(true);
+        setCitationsError(null);
+        
+        const response = await fetch(`/api/fetchArticles?articleId=${article.article_id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch citations');
+        }
+        
+        setCitations(data.citations || []);
+      } catch (error) {
+        console.error('Error fetching citations:', error);
+        setCitationsError('Failed to load citations');
+      } finally {
+        setCitationsLoading(false);
+      }
+    };
+
+    fetchCitations();
+  }, [article.article_id]);
+
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || isLoading) return;
+  // Send initial message
+  useEffect(() => {
+    if (initialMessage && !initialMessageSentRef.current) {
+      initialMessageSentRef.current = true;
+      handleSendMessage(initialMessage);
+    }
+  }, []); // Empty dependency array = run once on mount
 
+  const handleSendMessage = async (messageToSend?: string) => {
+    const messageContent = messageToSend || chatInput.trim();
+    if (!messageContent || isLoading) return;
+
+    setChatInput("");
+    
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: chatInput.trim(),
-      timestamp: new Date(),
+      content: messageContent,
+      timestamp: new Date()
     };
-
     setMessages(prev => [...prev, userMessage]);
-    setChatInput("");
+    
     setIsLoading(true);
 
     try {
@@ -49,8 +96,8 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage.content,
-          history: messages, // Send chat history for context
+          message: messageContent,
+          history: messages,
           articleContext: {
             article_id: article.article_id,
             title: article.title,
@@ -101,7 +148,7 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/demo/discover")}
-            className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+            className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
           >
             Compile.
           </button>
@@ -124,6 +171,41 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
                 
                 <div className="prose prose-lg dark:prose-invert">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
+                </div>
+
+                {/* Citations Section */}
+                <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <h2 className="text-lg font-semibold mb-4">Citations</h2>
+                  
+                  {citationsLoading ? (
+                    <p className="text-sm text-zinc-500">Loading citations...</p>
+                  ) : citationsError ? (
+                    <p className="text-sm text-red-500">{citationsError}</p>
+                  ) : citations.length > 0 ? (
+                    <ul className="space-y-2">
+                      {citations.map((citation, index) => (
+                        <li key={index} className="text-sm">
+                          <span className="font-medium">{citation.sourceName}: </span>
+                          {citation.url ? (
+                            <a 
+                              href={citation.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {citation.articleTitle || 'Untitled'}
+                            </a>
+                          ) : (
+                            <span className="text-zinc-600 dark:text-zinc-400">
+                              {citation.articleTitle || 'Untitled'}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-zinc-500">No citations available</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -199,7 +281,7 @@ export default function ChatPageClient({ article }: ChatPageClientProps) {
                   className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background"
                 />
                 <Button 
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={isLoading || !chatInput.trim()}
                   variant="secondary"
                 >

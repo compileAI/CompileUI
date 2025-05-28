@@ -20,9 +20,20 @@ export default function DemoArticleAccordionItem({
 }: Props) {
   const router = useRouter();
   const [chatInput, setChatInput] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleDoubleClick = () => {
+    router.push(`/demo/${article.article_id}`);
+  };
 
   const handleChatClick = () => {
-    router.push(`/demo/${article.article_id}`);
+    if (!chatInput.trim()) {
+      router.push(`/demo/${article.article_id}`);
+      return;
+    }
+    
+    const encodedMessage = encodeURIComponent(chatInput.trim());
+    router.push(`/demo/${article.article_id}?message=${encodedMessage}`);
   };
 
   return (
@@ -32,11 +43,16 @@ export default function DemoArticleAccordionItem({
       transition-shadow hover:shadow-sm"
     >
       <Accordion.Trigger asChild>
-        <div className="
+        <div 
+          className="
             w-full cursor-pointer transition-shadow duration-200 
             data-[state=open]:shadow-md data-[state=open]:rounded-b-none 
             hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-t-xl
-        ">
+            relative
+          "
+          onClick={() => setIsExpanded(prev => !prev)}
+          onDoubleClick={handleDoubleClick}
+        >
           <DemoArticleCard
             cardData={article}
             formattedDate={formattedDate}
@@ -47,14 +63,14 @@ export default function DemoArticleAccordionItem({
 
       <Accordion.Content
         className="
-          px-6 pt-0 pb-2
+          px-6 pb-2
           bg-white dark:bg-zinc-900
           data-[state=open]:animate-slideDown
           data-[state=closed]:animate-slideUp
           rounded-b-xl
         "
       >
-        <div className="prose prose-neutral dark:prose-invert max-w-none">
+        <div className="prose prose-neutral dark:prose-invert max-w-none pt-4">
           <ReactMarkdown>{article.content}</ReactMarkdown>
         </div>
 
