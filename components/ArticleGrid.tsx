@@ -1,0 +1,125 @@
+"use client";
+
+import { useHomeSearch } from "@/hooks/useHomeSearch";
+import { usePreferences } from "@/hooks/usePreferences";
+import ArticleTile from "./ArticleTile";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+
+export default function ArticleGrid() {
+  const { loading, articles, error, search } = useHomeSearch();
+  const { getContentInterests, getPresentationStyle, isLoaded } = usePreferences();
+  const router = useRouter();
+  const hasSearched = useRef(false);
+
+  // Auto-search when preferences are loaded (only once)
+  useEffect(() => {
+    if (isLoaded && !hasSearched.current) {
+      const contentInterests = getContentInterests();
+      const presentationStyle = getPresentationStyle();
+      console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+      search(contentInterests, presentationStyle);
+      hasSearched.current = true;
+    }
+  }, [isLoaded, search, getContentInterests, getPresentationStyle]);
+
+  const handleArticleClick = (articleId: string) => {
+    router.push(`/demo/${articleId}`);
+  };
+
+  const getSizeForIndex = (index: number): "hero" | "medium" | "small" => {
+    if (index === 0) return "hero";
+    if (index <= 2) return "medium";
+    return "small";
+  };
+
+  return (
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-4">
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md mx-auto">
+            <p className="text-red-700 dark:text-red-300">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-12 gap-3 auto-rows-[200px]">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className={`
+                ${i === 0 ? "col-span-12 md:col-span-8 row-span-2" : "col-span-12 md:col-span-4 row-span-1"}
+                bg-zinc-100 dark:bg-zinc-800 
+                rounded-xl 
+                animate-pulse
+              `}
+            >
+              <div className="p-4 md:p-5 h-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded w-20"></div>
+                  <div className="h-5 bg-zinc-200 dark:bg-zinc-700 rounded w-16"></div>
+                </div>
+                <div className={`h-6 bg-zinc-200 dark:bg-zinc-700 rounded mb-3 ${i === 0 ? "w-3/4" : "w-full"}`}></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-5/6"></div>
+                  {i === 0 && (
+                    <>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5"></div>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5"></div>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div>
+                    </>
+                  )}
+                  {i !== 0 && (
+                    <>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5"></div>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div>
+                      <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5"></div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Results Grid */}
+      {!loading && articles.length > 0 && (
+        <div className="grid grid-cols-12 gap-3 auto-rows-[200px]">
+          {articles.map((article, index) => (
+            <ArticleTile
+              key={article.article_id}
+              article={article}
+              size={getSizeForIndex(index)}
+              onClick={() => handleArticleClick(article.article_id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State (when search returns no results) */}
+      {!loading && !error && articles.length === 0 && isLoaded && (
+        <div className="text-center py-12">
+          <div className="max-w-md mx-auto">
+            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              No recent articles found
+            </h3>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              We couldn't find any articles from today or yesterday matching your preferences. Try updating your preferences or check back later for new content.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
