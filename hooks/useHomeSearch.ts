@@ -42,10 +42,12 @@ export function useHomeSearch() {
       if (cachedData.contentInterests.toLowerCase() === contentInterests.toLowerCase() &&
           cachedData.presentationStyle.toLowerCase() === presentationStyle.toLowerCase()) {
         console.log(`[useHomeSearch] Using cached results for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
-        return cachedData.articles.map(article => ({
+        const articles = cachedData.articles.map(article => ({
           ...article,
           date: new Date(article.date) // Convert date string back to Date object
         }));
+        console.log(`[useHomeSearch] Cached articles citations:`, articles.map(a => ({ id: a.article_id, citationCount: a.citations?.length || 0 })));
+        return articles;
       }
 
       return null;
@@ -59,6 +61,7 @@ export function useHomeSearch() {
   // Helper function to cache results
   const cacheResults = (contentInterests: string, presentationStyle: string, articles: EnhancedArticle[]) => {
     try {
+      console.log(`[useHomeSearch] Caching articles with citations:`, articles.map(a => ({ id: a.article_id, citationCount: a.citations?.length || 0 })));
       const cacheData: CachedSearchResult = {
         contentInterests,
         presentationStyle,

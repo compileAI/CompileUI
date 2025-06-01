@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Search, Loader2 } from "lucide-react";
+import { Settings, Search, Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -185,6 +185,22 @@ export default function DemoHeader() {
                 Cached ({cacheStatus.articleCount})
               </span>
             </div>
+          )}
+          
+          {/* Clear Cache Button */}
+          {isMounted && cacheStatus && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                localStorage.removeItem("compile-enhanced-articles");
+                window.location.reload();
+              }}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-all"
+              title="Clear cache and refresh"
+            >
+              <RefreshCw className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+            </Button>
           )}
           
           {/* Settings Button */}

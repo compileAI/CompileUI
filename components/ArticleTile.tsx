@@ -6,10 +6,10 @@ import { Calendar, Tag } from "lucide-react";
 interface ArticleTileProps {
   article: EnhancedArticle;
   size: "hero" | "medium" | "small";
-  onClick?: () => void;
+  onReadAndChat?: () => void;
 }
 
-export default function ArticleTile({ article, size, onClick }: ArticleTileProps) {
+export default function ArticleTile({ article, size, onReadAndChat }: ArticleTileProps) {
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
     medium: "col-span-12 md:col-span-4 row-span-1", 
@@ -49,6 +49,12 @@ export default function ArticleTile({ article, size, onClick }: ArticleTileProps
     }
   };
 
+  const handleClick = () => {
+    if (onReadAndChat) {
+      onReadAndChat();
+    }
+  };
+
   return (
     <article 
       className={`
@@ -62,8 +68,9 @@ export default function ArticleTile({ article, size, onClick }: ArticleTileProps
         hover:border-blue-300 dark:hover:border-blue-600
         overflow-hidden
         group
+        flex flex-col
       `}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Header with metadata */}
       <div className="flex items-center justify-between mb-2">
@@ -85,18 +92,16 @@ export default function ArticleTile({ article, size, onClick }: ArticleTileProps
       </h2>
 
       {/* Enhanced content */}
-      <div className={`${contentClasses[size]} text-zinc-700 dark:text-zinc-300 leading-relaxed`}>
+      <div className={`${contentClasses[size]} text-zinc-700 dark:text-zinc-300 leading-relaxed flex-1`}>
         {article.tuned}
       </div>
 
-      {/* Footer with citations count if available */}
-      {article.citations && article.citations.length > 0 && (
-        <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            {article.citations.length} source{article.citations.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-      )}
+      {/* Footer with citations count */}
+      <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''}
+        </span>
+      </div>
     </article>
   );
 }

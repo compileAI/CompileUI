@@ -80,9 +80,26 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
       
       console.log(`[Vector Search] Trying date range: ${range.label} (${startDate.toISOString()} to ${endDate.toISOString()})`);
       
+      // Updated query to include citations data
       const { data, error } = await supabase
         .from("gen_articles")
-        .select("article_id::text, date, title, content, fingerprint, tag")
+        .select(`
+          article_id::text,
+          date,
+          title,
+          content,
+          fingerprint,
+          tag,
+          citations:citations_ref (
+            source_articles (
+              title,
+              url,
+              master_sources (
+                name
+              )
+            )
+          )
+        `)
         .in("article_id", articleIds)
         .gte("date", startDate.toISOString())
         .lte("date", endDate.toISOString())
@@ -125,6 +142,33 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
             articleDate = new Date(); // Fallback to current date
           }
 
+          // Process citations data
+          const citationsMap = new Map<string, any>();
+          
+          if (item.citations && Array.isArray(item.citations)) {
+            item.citations.forEach((citation: any) => {
+              if (!citation?.source_articles?.master_sources?.name) return;
+              
+              // Create the citation object
+              const newCitation = {
+                sourceName: citation.source_articles.master_sources.name,
+                articleTitle: citation.source_articles.title || 'Untitled',
+                url: citation.source_articles.url
+              };
+              
+              // Create a unique key based on source name and article title
+              const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+              
+              // Only add if we haven't seen this citation before
+              if (!citationsMap.has(citationKey)) {
+                citationsMap.set(citationKey, newCitation);
+              }
+            });
+          }
+
+          // Convert the Map back to an array
+          const citations = Array.from(citationsMap.values());
+
           articlesMap.set(String(item.article_id), {
             article_id: String(item.article_id),
             date: articleDate,
@@ -132,7 +176,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
             content: String(item.content),
             fingerprint: String(item.fingerprint),
             tag: String(item.tag),
-            citations: [],
+            citations: citations,
           });
         });
 

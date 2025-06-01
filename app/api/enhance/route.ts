@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     console.log(`[API /api/enhance] Enhancing article "${article.title}" with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+    console.log(`[API /api/enhance] Article has ${article.citations?.length || 0} citations:`, article.citations);
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
@@ -60,10 +61,14 @@ Return only the enhanced article content, no additional formatting or explanatio
     const result = await model.generateContent(enhancementPrompt);
     const enhancedContent = result.response.text();
 
-    return NextResponse.json({
+    const enhancedArticle = {
       ...article,
       tuned: enhancedContent
-    }, { status: 200 });
+    };
+    
+    console.log(`[API /api/enhance] Enhanced article has ${enhancedArticle.citations?.length || 0} citations`);
+
+    return NextResponse.json(enhancedArticle, { status: 200 });
 
   } catch (error) {
     console.error('[API /api/enhance] Error:', error);
