@@ -34,7 +34,7 @@ const DemoArticleCard = forwardRef<HTMLDivElement, DemoArticleCardProps>(
       <Card
         ref={ref}
         {...rest}
-        className={`py-4 px-6 transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 ${className ?? ""}`}
+        className={`py-4 px-6 transition-all duration-200 hover:shadow-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 ${className ?? ""}`}
         key={cardData.article_id}
       >
         <CardHeader className="grid grid-rows-[auto] items-center gap-0 px-0 py-1">

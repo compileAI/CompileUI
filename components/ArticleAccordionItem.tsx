@@ -40,9 +40,9 @@ export default function ArticleAccordionItem({
       <Accordion.Trigger asChild>
         {/* this div itself receives data-state="open | closed" */}
         <div className="
-            w-full cursor-pointer transition-shadow duration-200 
+            w-full cursor-pointer transition-all duration-200 
             data-[state=open]:shadow-md data-[state=open]:rounded-b-none 
-            hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-t-xl
+            hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-500 rounded-t-xl
         ">
         <ArticleCard
             cardData={article}
@@ -50,7 +50,7 @@ export default function ArticleAccordionItem({
             onTagClick={onTagClick}
             lookupLabel={lookupLabel}
             /* we let the Item supply the border/radius instead */
-            className="border-none rounded-none"
+            className="border-none rounded-none hover:bg-transparent dark:hover:bg-transparent"
           />
         </div>
       </Accordion.Trigger>

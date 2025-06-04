@@ -1,12 +1,6 @@
 "use client";
 
-import { Settings, Search, Loader2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { Settings, Search, Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,53 +8,85 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
-import { useState } from "react";
+import { Label } from "./ui/label";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
+import { usePreferences } from "@/hooks/usePreferences";
 
 interface PreferenceFormData {
-  preference: string;
+  contentInterests: string;
+  presentationStyle: string;
 }
 
-interface DemoHeaderProps {
-  onPreferenceChange?: (preference: string) => void;
-}
+// Helper function to check if cache exists
+const getCacheStatus = () => {
+  try {
+    const cached = localStorage.getItem("compile-enhanced-articles");
+    if (!cached) return null;
+    
+    const cachedData = JSON.parse(cached);
+    const isExpired = Date.now() > cachedData.expiresAt;
+    
+    if (isExpired) {
+      localStorage.removeItem("compile-enhanced-articles");
+      return null;
+    }
+    
+    return {
+      contentInterests: cachedData.contentInterests,
+      presentationStyle: cachedData.presentationStyle,
+      articleCount: cachedData.articles.length,
+      timestamp: cachedData.timestamp
+    };
+  } catch {
+    return null;
+  }
+};
 
-export default function DemoHeader({ 
-  onPreferenceChange,
-}: DemoHeaderProps) {
+export default function DemoHeader() {
   const router = useRouter();
+  const { preferences, savePreferences, hasPreferences } = usePreferences();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [savedPreferences, setSavedPreferences] = useState<string | null>(null);
-  const [isViewingPreferences, setIsViewingPreferences] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track when component has mounted to prevent hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const form = useForm<PreferenceFormData>({
     defaultValues: {
-      preference: "",
+      contentInterests: preferences?.contentInterests || "",
+      presentationStyle: preferences?.presentationStyle || "",
     },
   });
 
-  const handlePreferencesClick = () => {
-    setIsDropdownOpen(false);
-    setIsPreferencesOpen(true);
-    setIsViewingPreferences(false);
-  };
+  // Only get cache status after component has mounted
+  const cacheStatus = isMounted ? getCacheStatus() : null;
 
-  const handleViewPreferences = () => {
-    setIsDropdownOpen(false);
-    setIsViewingPreferences(true);
+  const handleSettingsClick = () => {
+    setIsPreferencesOpen(true);
+    // Reset form with current preferences
+    form.reset({
+      contentInterests: preferences?.contentInterests || "",
+      presentationStyle: preferences?.presentationStyle || "",
+    });
   };
 
   const onSubmit = (data: PreferenceFormData) => {
-    setSavedPreferences(data.preference);
-    onPreferenceChange?.(data.preference);
+    savePreferences({
+      contentInterests: data.contentInterests,
+      presentationStyle: data.presentationStyle,
+    });
     setShowSavedMessage(true);
-    form.reset();
+    
+    // Clear cache when preferences change
+    localStorage.removeItem("compile-enhanced-articles");
     
     // Hide the saved message after 2 seconds
     setTimeout(() => {
@@ -91,10 +117,15 @@ export default function DemoHeader({
   };
 
   return (
-    <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
+    <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Compile.</h1>
+          <button 
+            onClick={() => router.push("/demo/home")}
+            className="text-3xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
+          >
+            Compile.
+          </button>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -135,56 +166,122 @@ export default function DemoHeader({
               )}
             </Button>
           </div>
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
-              <Settings className="h-5 w-5 text-gray-700 dark:text-gray-200" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleViewPreferences}>View Preferences</DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePreferencesClick}>
-                Set Preferences
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          
+          {/* No preferences notification - only show after mount */}
+          {isMounted && !hasPreferences() && (
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs text-primary font-medium">
+                Set preferences →
+              </span>
+            </div>
+          )}
+
+          {/* Cache status indicator - only show after mount */}
+          {isMounted && cacheStatus && (
+            <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
+              <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
+              <span className="text-xs text-accent-foreground font-medium">
+                Cached ({cacheStatus.articleCount})
+              </span>
+            </div>
+          )}
+          
+          {/* Clear Cache Button */}
+          {isMounted && cacheStatus && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                localStorage.removeItem("compile-enhanced-articles");
+                window.location.reload();
+              }}
+              className="p-2 hover:bg-muted rounded-md transition-all"
+              title="Clear cache and refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Settings Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSettingsClick}
+            className={`p-2 hover:bg-muted rounded-md transition-all ${
+              isMounted && !hasPreferences() ? 'bg-primary/10 border border-primary/20' : ''
+            }`}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Set Preferences Dialog */}
+      {/* Settings Dialog */}
       <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Set Preferences</DialogTitle>
+            <DialogTitle className="text-xl">Customize Your Experience</DialogTitle>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="py-4 space-y-4">
-              <Input
-                {...form.register("preference")}
-                placeholder="What are you interested in seeing?"
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Content Interests Section */}
+            <div className="space-y-3">
+              <Label htmlFor="contentInterests" className="text-base font-medium">
+                What content are you interested in?
+              </Label>
+              <textarea
+                id="contentInterests"
+                {...form.register("contentInterests")}
+                placeholder="e.g., AI and machine learning developments, startup funding news, tech industry analysis..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 autoFocus
               />
-              {showSavedMessage && (
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Preferences saved successfully!
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground">
+                This determines which articles are selected for you from our database.
+              </p>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
-      {/* View Preferences Dialog */}
-      <Dialog open={isViewingPreferences} onOpenChange={setIsViewingPreferences}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Current Preferences</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {savedPreferences ? (
-              <p className="text-sm text-gray-700 dark:text-gray-300">{savedPreferences}</p>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No preferences set yet</p>
+            {/* Presentation Style Section */}
+            <div className="space-y-3">
+              <Label htmlFor="presentationStyle" className="text-base font-medium">
+                How would you like the content to be presented?
+              </Label>
+              <textarea
+                id="presentationStyle"
+                {...form.register("presentationStyle")}
+                placeholder="e.g., Focus on key takeaways and business implications, write in a casual conversational tone, highlight actionable insights..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              />
+              <p className="text-sm text-muted-foreground">
+                This customizes how articles are enhanced and summarized for you.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" className="flex-1">
+                Save Preferences
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsPreferencesOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+
+            {/* Success Message */}
+            {showSavedMessage && (
+              <div className="text-center">
+                <p className="text-sm text-primary font-medium">
+                  ✓ Preferences saved successfully! Your homepage will refresh with new content.
+                </p>
+              </div>
             )}
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

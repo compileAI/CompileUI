@@ -14,6 +14,10 @@ export interface Article { // This is GenArticle
   citations: Citation[];
 }
 
+export interface EnhancedArticle extends Article {
+  tuned: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
