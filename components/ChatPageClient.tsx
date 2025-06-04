@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
@@ -65,15 +65,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send initial message
-  useEffect(() => {
-    if (initialMessage && !initialMessageSentRef.current) {
-      initialMessageSentRef.current = true;
-      handleSendMessage(initialMessage);
-    }
-  }, []); // Empty dependency array = run once on mount
-
-  const handleSendMessage = async (messageToSend?: string) => {
+  // Use useCallback to stabilize the handleSendMessage function reference
+  const handleSendMessage = useCallback(async (messageToSend?: string) => {
     const messageContent = messageToSend || chatInput.trim();
     if (!messageContent || isLoading) return;
 
@@ -132,7 +125,15 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [chatInput, isLoading, messages, article]);
+
+  // Send initial message if provided
+  useEffect(() => {
+    if (initialMessage && !initialMessageSentRef.current) {
+      initialMessageSentRef.current = true;
+      handleSendMessage(initialMessage);
+    }
+  }, [initialMessage, handleSendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

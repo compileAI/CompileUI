@@ -5,7 +5,7 @@ import ArticleGrid from "./ArticleGrid";
 
 export default function DemoHomeClient() {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-background">
       <DemoHeader />
       <ArticleGrid />
     </div>

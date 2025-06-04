@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClientForServer } from "@/utils/supabase/server";
-import { Article } from "@/types";
+import { Article, Citation } from "@/types";
 
 // Initialize Pinecone client
 const pinecone = new Pinecone({
@@ -9,16 +9,23 @@ const pinecone = new Pinecone({
 });
 
 // Initialize Google AI client
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 /**
  * Generate embedding for a given text using text-embedding-004
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-    const result = await model.embedContent(text);
-    return result.embedding.values;
+    const response = await genAI.models.embedContent({
+      model: "text-embedding-004",
+      contents: text
+    });
+    
+    if (!response.embeddings || !response.embeddings[0] || !response.embeddings[0].values) {
+      throw new Error('Invalid embedding response from API');
+    }
+    
+    return response.embeddings[0].values;
   } catch (error) {
     console.error('Error generating embedding:', error);
     throw new Error('Failed to generate embedding');
@@ -137,31 +144,50 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
             } else {
               articleDate = new Date(); // Fallback to current date
             }
-          } catch (error) {
+          } catch {
             console.warn('Error parsing date for article:', item.article_id, 'Date value:', item.date);
             articleDate = new Date(); // Fallback to current date
           }
 
           // Process citations data
-          const citationsMap = new Map<string, any>();
+          const citationsMap = new Map<string, Citation>();
           
           if (item.citations && Array.isArray(item.citations)) {
-            item.citations.forEach((citation: any) => {
-              if (!citation?.source_articles?.master_sources?.name) return;
-              
-              // Create the citation object
-              const newCitation = {
-                sourceName: citation.source_articles.master_sources.name,
-                articleTitle: citation.source_articles.title || 'Untitled',
-                url: citation.source_articles.url
-              };
-              
-              // Create a unique key based on source name and article title
-              const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
-              
-              // Only add if we haven't seen this citation before
-              if (!citationsMap.has(citationKey)) {
-                citationsMap.set(citationKey, newCitation);
+            item.citations.forEach((citationItem: unknown) => {
+              // Type guard to ensure we have the expected structure
+              if (
+                citationItem && 
+                typeof citationItem === 'object' &&
+                'source_articles' in citationItem &&
+                citationItem.source_articles &&
+                typeof citationItem.source_articles === 'object' &&
+                'master_sources' in citationItem.source_articles &&
+                citationItem.source_articles.master_sources &&
+                typeof citationItem.source_articles.master_sources === 'object' &&
+                'name' in citationItem.source_articles.master_sources
+              ) {
+                const sourceArticle = citationItem.source_articles as {
+                  title: string | null;
+                  url: string | null;
+                  master_sources: {
+                    name: string;
+                  };
+                };
+                
+                // Create the citation object
+                const newCitation: Citation = {
+                  sourceName: sourceArticle.master_sources.name,
+                  articleTitle: sourceArticle.title || 'Untitled',
+                  url: sourceArticle.url
+                };
+                
+                // Create a unique key based on source name and article title
+                const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+                
+                // Only add if we haven't seen this citation before
+                if (!citationsMap.has(citationKey)) {
+                  citationsMap.set(citationKey, newCitation);
+                }
               }
             });
           }

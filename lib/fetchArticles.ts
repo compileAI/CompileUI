@@ -1,35 +1,6 @@
 import { createClientForServer } from "@/utils/supabase/server";
-import { Article, SourceArticleContext, Citation } from "@/types"; // Import SourceArticleContext
-
-interface MasterSource {
-  name: string;
-}
-
-interface SourceArticle {
-  title: string | null;
-  url: string | null;
-  master_sources: MasterSource;
-}
-
-interface CitationRef {
-  gen_article_id: string;
-  source_articles: SourceArticle;
-}
-
-interface SourceArticleWithMasterSource {
-  id: string;
-  title: string | null;
-  url: string | null;
-  master_sources: {
-    id: number;
-    name: string;
-  };
-}
-
-interface CitationResponse {
-  gen_article_id: string;
-  source_articles: SourceArticleWithMasterSource;
-}
+import { Article, Citation } from "@/types";
+import { PostgrestError } from "@supabase/supabase-js";
 
 interface ArticleWithCitations {
   article_id: string;
@@ -79,7 +50,7 @@ export async function getGeneratedArticles(): Promise<Article[]> {
     .gte("date", oneWeekAgoISO)
     .order("date", { ascending: false }) as { 
       data: ArticleWithCitations[] | null;
-      error: any;
+      error: PostgrestError | null;
     };
 
   if (articlesError) {
@@ -158,7 +129,7 @@ export async function getGeneratedArticle(articleId: string): Promise<Article | 
     .eq("article_id", articleId)
     .single() as {
       data: ArticleWithCitations | null;
-      error: any;
+      error: PostgrestError | null;
     };
 
   if (articleError) {
@@ -198,7 +169,7 @@ export async function getGeneratedArticle(articleId: string): Promise<Article | 
 
   // Cast the data to our Article type with proper type conversions
   const article: Article = {
-    article_id: articleData.article_id,  // Already a string from article_id::text
+    article_id: articleData.article_id, // Already a string from article_id::text
     date: new Date(articleData.date),
     title: String(articleData.title),
     content: String(articleData.content),
@@ -213,39 +184,32 @@ export async function getGeneratedArticle(articleId: string): Promise<Article | 
 export async function getArticleCitations(articleId: string): Promise<Array<{ title: string | null; url: string | null }>> {
   const supabase = await createClientForServer();
 
-  // Convert string ID to bigint format
-  const numericId = BigInt(articleId);
-
   const { data, error } = await supabase
-    .from('citations_ref')
+    .from("citations_ref")
     .select(`
       source_articles (
         title,
         url
       )
     `)
-    .eq('gen_article_id', numericId) as { data: CitationRef[] | null; error: any };
+    .eq("gen_article_id", articleId) as {
+      data: Array<{ source_articles: { title: string | null; url: string | null } }> | null;
+      error: PostgrestError | null;
+    };
 
   if (error) {
     console.error(`[Supabase ERROR in getArticleCitations] Failed to fetch citations for article ${articleId}:`, error);
     return [];
   }
 
-  if (!data || data.length === 0) {
-    console.log(`[Supabase getArticleCitations] No citations found for article ${articleId}`);
+  if (!data) {
     return [];
   }
 
-  // Extract and deduplicate citations
-  const citationsMap = new Map<string, { title: string | null; url: string | null }>();
-  data.forEach(item => {
-    if (item.source_articles && item.source_articles.title) {
-      citationsMap.set(item.source_articles.title, {
-        title: item.source_articles.title,
-        url: item.source_articles.url
-      });
-    }
-  });
+  // Extract source articles and filter out null entries
+  const citations = data
+    .map(item => item.source_articles)
+    .filter(sa => sa !== null);
 
-  return Array.from(citationsMap.values());
+  return citations;
 }

@@ -117,12 +117,12 @@ export default function DemoHeader() {
   };
 
   return (
-    <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-3 lg:px-8 px-4">
+    <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/demo/home")}
-            className="text-3xl font-bold tracking-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            className="text-3xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
           >
             Compile.
           </button>
@@ -169,9 +169,9 @@ export default function DemoHeader() {
           
           {/* No preferences notification - only show after mount */}
           {isMounted && !hasPreferences() && (
-            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1.5">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs text-primary font-medium">
                 Set preferences →
               </span>
             </div>
@@ -179,9 +179,9 @@ export default function DemoHeader() {
 
           {/* Cache status indicator - only show after mount */}
           {isMounted && cacheStatus && (
-            <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-1.5">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-xs text-green-700 dark:text-green-300 font-medium">
+            <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
+              <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
+              <span className="text-xs text-accent-foreground font-medium">
                 Cached ({cacheStatus.articleCount})
               </span>
             </div>
@@ -196,25 +196,24 @@ export default function DemoHeader() {
                 localStorage.removeItem("compile-enhanced-articles");
                 window.location.reload();
               }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-all"
+              className="p-2 hover:bg-muted rounded-md transition-all"
               title="Clear cache and refresh"
             >
-              <RefreshCw className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+              <RefreshCw className="h-4 w-4" />
             </Button>
           )}
-          
+
           {/* Settings Button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSettingsClick}
-            className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-all ${
-              isMounted && !hasPreferences() ? 'ring-2 ring-blue-500 ring-opacity-50 animate-pulse bg-blue-50 dark:bg-blue-950/20' : ''
+            className={`p-2 hover:bg-muted rounded-md transition-all ${
+              isMounted && !hasPreferences() ? 'bg-primary/10 border border-primary/20' : ''
             }`}
+            title="Settings"
           >
-            <Settings className={`h-5 w-5 ${
-              isMounted && !hasPreferences() ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'
-            }`} />
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -238,7 +237,7 @@ export default function DemoHeader() {
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 autoFocus
               />
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 This determines which articles are selected for you from our database.
               </p>
             </div>
@@ -254,7 +253,7 @@ export default function DemoHeader() {
                 placeholder="e.g., Focus on key takeaways and business implications, write in a casual conversational tone, highlight actionable insights..."
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
               />
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 This customizes how articles are enhanced and summarized for you.
               </p>
             </div>
@@ -277,7 +276,7 @@ export default function DemoHeader() {
             {/* Success Message */}
             {showSavedMessage && (
               <div className="text-center">
-                <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                <p className="text-sm text-primary font-medium">
                   ✓ Preferences saved successfully! Your homepage will refresh with new content.
                 </p>
               </div>

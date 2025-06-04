@@ -36,7 +36,7 @@ const ArticleCard = forwardRef<HTMLDivElement, ArticleCardProps>(
       <Card
         ref={ref}
         {...rest}
-        className={`transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 ${className ?? ""}`}
+        className={`transition-all duration-200 hover:shadow-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 ${className ?? ""}`}
         key={cardData.article_id}
       >
         <CardHeader className="space-y-1">

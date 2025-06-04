@@ -1,16 +1,28 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { Article } from "@/types";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 export async function POST(req: Request) {
   try {
+    // Add better error handling for JSON parsing
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error('[API /api/enhance] JSON parsing error:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
     const { contentInterests, presentationStyle, article }: {
       contentInterests: string;
       presentationStyle: string;
       article: Article;
-    } = await req.json();
+    } = body;
 
     if (!contentInterests || typeof contentInterests !== 'string') {
       return NextResponse.json(
@@ -36,7 +48,7 @@ export async function POST(req: Request) {
     console.log(`[API /api/enhance] Enhancing article "${article.title}" with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
     console.log(`[API /api/enhance] Article has ${article.citations?.length || 0} citations:`, article.citations);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
+    const model = "gemini-2.5-flash-preview-05-20";
 
     const enhancementPrompt = `You are an AI assistant that helps personalize and improve articles based on user preferences.
 
@@ -58,8 +70,12 @@ Please rewrite and enhance this article to better match the user's interests and
 
 Return only the enhanced article content, no additional formatting or explanations.`;
 
-    const result = await model.generateContent(enhancementPrompt);
-    const enhancedContent = result.response.text();
+    const response = await genAI.models.generateContent({
+      model: model,
+      contents: enhancementPrompt
+    });
+    
+    const enhancedContent = response.text;
 
     const enhancedArticle = {
       ...article,

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { ChatMessage, SourceArticleContext } from "@/types";
 import { createClientForServer } from "@/utils/supabase/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 // We post to this route from ChatPageClient.tsx, this is the API endpoint for the chat.
 // Currently it joins the gen_article and source_articles tables to get the source articles for the article.
@@ -118,60 +118,69 @@ export async function POST(req: Request) {
             sourceArticlesContextString = "\n\nThere was an issue retrieving source article information.\n";
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
+        // Use Gemini 2.5 Flash with Google Search grounding using new @google/genai library
+        const model = "gemini-2.5-flash-preview-05-20";
 
         // Create system message with article context
-        const systemMessageParts = [];
+        let systemMessage = "";
         if (articleContext.title && articleContext.content) {
-            systemMessageParts.push({
-                text: `You are an AI assistant.
+            systemMessage = `You are an AI assistant helping users understand and discuss articles.
+                
                 The user is asking questions about the following main article:
                 \n--- Main Article ---
                 Title: ${articleContext.title}
                 Content: ${articleContext.content}
                 \n--- End Main Article ---
                 ${sourceArticlesContextString}
-                Please use all the provided context (main article and any source articles) to provide accurate and relevant responses. If relevant, you can cite information from the source articles.`
-            });
+                
+                Instructions:
+                1. Prioritize information from the main article and source articles when answering questions
+                2. Use Google Search grounding when you need current information, recent updates, or additional context
+                3. If Google Search results contradict or update information in the article, mention both perspectives
+                4. Always be clear about which source you're drawing information from (article vs web search)s
+                5. Focus on being helpful and accurate while maintaining the context of the original article discussion
+                6. Your response should be concise, to the point, and not too verbose. Stick to 1-2 paragraphs unless the user asks for more detail.`;
         } else {
-            systemMessageParts.push({ text: "You are a helpful AI assistant." });
+            systemMessage = "You are a helpful AI assistant with access to current web information through Google Search.";
         }
 
-        const systemInstruction = {
-            role: 'user', // For Gemini, system-like instructions are often placed as the first user message
-            parts: systemMessageParts
-        };
-
-        // Convert chat history to Gemini format
-        const chatHistory = history?.map((msg: ChatMessage) => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }],
-        })) || [];
-
-        // The "system instruction" should effectively be the first turn for the model if it contains context.
-        // Or, if you use the `system_instruction` field available in some Gemini SDK versions/models:
-        // const chat = model.startChat({
-        //     history: chatHistory,
-        //     systemInstruction: { // This is the preferred way if your SDK version supports it well
-        //         role: "system", // or "user" depending on model/SDK specifics for system prompts
-        //         parts: systemMessageParts,
-        //     }
-        // });
-
-        // More common way: prepend system instructions to history
-        const fullHistoryForGemini = [systemInstruction, ...chatHistory];
-
-
-        const chat = model.startChat({
-            history: fullHistoryForGemini,
-            // generationConfig: { // Optional: configure temperature, topP, etc.
-            //   maxOutputTokens: 2048,
-            // },
+        // Convert chat history to new format with proper structure
+        const contents = [];
+        
+        // Add system message as first user message
+        contents.push({
+            role: 'user',
+            parts: [{ text: systemMessage }]
         });
 
-        const result = await chat.sendMessage(message);
-        const response = await result.response;
-        const text = response.text();
+        // Add chat history
+        if (history && history.length > 0) {
+            history.forEach((msg: ChatMessage) => {
+                contents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                });
+            });
+        }
+
+        // Add current user message
+        contents.push({
+            role: 'user',
+            parts: [{ text: message }]
+        });
+
+        const response = await genAI.models.generateContent({
+            model: model,
+            contents: contents,
+            config: {
+                tools: [{ googleSearch: {} }], // Enable Google Search grounding
+                responseModalities: ["TEXT"]
+            }
+        });
+
+        const text = response.text;
+
+        console.log(`[API /api/chat] Generated response with Google Search grounding enabled`);
 
         return NextResponse.json({ 
             message: text 

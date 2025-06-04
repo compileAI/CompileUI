@@ -1,5 +1,6 @@
 import { createClientForServer } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { PostgrestError } from "@supabase/supabase-js";
 
 interface MasterSource {
   id: number;
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
           )
         )
       `)
-      .eq('gen_article_id', articleId) as { data: CitationRef[] | null; error: any };
+      .eq('gen_article_id', articleId) as { data: CitationRef[] | null; error: PostgrestError | null };
 
     if (citationsError) {
       console.error(`Failed to fetch citations: ${citationsError.message}`);
