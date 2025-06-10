@@ -16,7 +16,20 @@ interface ArticleCardProps {
 
 const ArticleCard = forwardRef<HTMLDivElement, ArticleCardProps>(
   ({ cardData, formattedDate, className = "" }, ref) => {
-    const truncatedContent = cardData.content.slice(0, 200);
+    // Strip markdown formatting for preview
+    const stripMarkdown = (text: string) => {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+        .replace(/\*(.*?)\*/g, '$1')     // Remove italic
+        .replace(/`(.*?)`/g, '$1')       // Remove code
+        .replace(/#{1,6}\s/g, '')        // Remove headers
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links, keep text
+        .replace(/\n/g, ' ')             // Replace newlines with spaces
+        .trim();
+    };
+
+    const cleanContent = stripMarkdown(cardData.content);
+    const truncatedContent = cleanContent.slice(0, 200) + (cleanContent.length > 200 ? "..." : "");
 
     return (
       <Card
@@ -39,7 +52,6 @@ const ArticleCard = forwardRef<HTMLDivElement, ArticleCardProps>(
 
               <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                 {truncatedContent}
-                {cardData.content.length > 200 && "..."}
               </p>
 
               {/* Citations section */}

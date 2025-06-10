@@ -108,7 +108,7 @@ export default function DiscoverClient({ initialArticles }: Props) {
             </div>
           </div>
         ) : (
-          <Accordion.Root type="single" collapsible className="space-y-4">
+          <Accordion.Root type="multiple" className="space-y-4">
             {articles.map((article) => {
               const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
                 year: "numeric",

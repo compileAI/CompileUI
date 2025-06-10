@@ -28,6 +28,21 @@ export default function ArticleTile({ article, size, onReadAndChat }: ArticleTil
     small: "text-sm line-clamp-4"
   };
 
+  // Strip markdown formatting for preview
+  const stripMarkdown = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')     // Remove bold **text**
+      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '$1') // Remove italic *text* but not ** or single *
+      .replace(/`(.*?)`/g, '$1')           // Remove code `text`
+      .replace(/#{1,6}\s+/g, '')           // Remove headers # ## ###
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')  // Remove links [text](url), keep text
+      .replace(/^\s*[\*\-\+]\s+/gm, '')    // Remove bullet points * - +
+      .replace(/^\s*\d+\.\s+/gm, '')       // Remove numbered lists 1. 2.
+      .replace(/\n+/g, ' ')                // Replace multiple newlines with single space
+      .replace(/\s+/g, ' ')                // Replace multiple spaces with single space
+      .trim();
+  };
+
   const formatDate = (date: Date | string) => {
     try {
       // Handle both Date objects and string dates
@@ -54,6 +69,9 @@ export default function ArticleTile({ article, size, onReadAndChat }: ArticleTil
       onReadAndChat();
     }
   };
+
+  // Clean the content for display
+  const displayContent = article.tuned ? stripMarkdown(article.tuned) : '';
 
   return (
     <article 
@@ -93,7 +111,7 @@ export default function ArticleTile({ article, size, onReadAndChat }: ArticleTil
 
       {/* Enhanced content */}
       <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-1`}>
-        {article.tuned}
+        {displayContent}
       </div>
 
       {/* Footer with citations count */}

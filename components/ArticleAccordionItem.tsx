@@ -37,7 +37,7 @@ export default function ArticleAccordionItem({
   return (
     <Accordion.Item
       value={String(article.article_id)}
-      className="overflow-hidden rounded-xl border bg-white dark:bg-zinc-900 will-change-[height] transition-shadow hover:shadow-sm"
+      className="overflow-visible rounded-xl border bg-white dark:bg-zinc-900 will-change-[height] transition-shadow hover:shadow-sm"
     >
       <Accordion.Trigger asChild>
         <div 
@@ -63,11 +63,21 @@ export default function ArticleAccordionItem({
             {/* Source count with hover tooltip */}
             <div className="group/sources relative">
               <div className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-help">
-                {article.citations?.length || 0} sources
+                {article.citations?.length || 0} {(article.citations?.length || 0) === 1 ? 'source' : 'sources'}
               </div>
-              {/* Tooltip on hover */}
-              <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-black text-white text-xs rounded-md opacity-0 group-hover/sources:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''} cited
+              {/* Tooltip on hover - shows list of source titles */}
+              <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-black text-white text-xs rounded-md opacity-0 group-hover/sources:opacity-100 transition-opacity pointer-events-none z-50 max-w-xs shadow-lg">
+                {article.citations && article.citations.length > 0 ? (
+                  <div className="space-y-1">
+                    {article.citations.map((citation, index) => (
+                      <div key={index} className="text-left">
+                        {citation.sourceName}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>No sources available</div>
+                )}
               </div>
             </div>
             
