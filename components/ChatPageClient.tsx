@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Article, ChatMessage } from "../types";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface ChatPageClientProps {
   article: Article;
@@ -23,8 +24,9 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [citations, setCitations] = useState<Citation[]>([]);
-  const [citationsLoading, setCitationsLoading] = useState(true);
+  const [citationsLoading, setCitationsLoading] = useState(false);
   const [citationsError, setCitationsError] = useState<string | null>(null);
+  const [isCitationsOpen, setIsCitationsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
 
@@ -33,6 +35,11 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     month: "long",
     day: "numeric",
   });
+
+  // Close citations dropdown when article changes
+  useEffect(() => {
+    setIsCitationsOpen(false);
+  }, [article.article_id]);
 
   // Fetch citations
   useEffect(() => {
@@ -148,7 +155,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => router.push("/demo/discover")}
+            onClick={() => router.push("/discover")}
             className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
           >
             Compile.
@@ -158,7 +165,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       
       <div className="flex-1 flex overflow-hidden">
         {/* Article Section - Left Side */}
-        <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto">
+        <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
           <div className="h-full p-8"> {/* h-full ensures padding is within the scrollable area */}
             <div className="max-w-3xl mx-auto">
               <div className="mb-8">
@@ -173,11 +180,16 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 <div className="prose prose-lg dark:prose-invert">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
                 </div>
-
-                {/* Citations Section */}
-                <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-                  <h2 className="text-lg font-semibold mb-4">Citations</h2>
-                  
+              </div>
+            </div>
+          </div>
+          
+          {/* Citations Dropdown - Bottom Left */}
+          <div className="absolute bottom-4 left-4 z-10">
+            <div className="relative">
+              {/* Citations Dropdown Content */}
+              {isCitationsOpen && (
+                <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
                   {citationsLoading ? (
                     <p className="text-sm text-zinc-500">Loading citations...</p>
                   ) : citationsError ? (
@@ -208,7 +220,22 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                     <p className="text-sm text-zinc-500">No citations available</p>
                   )}
                 </div>
-              </div>
+              )}
+              
+              {/* Citations Toggle Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                className="flex items-center gap-2 bg-white dark:bg-zinc-900"
+              >
+                Citations ({citations.length})
+                {isCitationsOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
             </div>
           </div>
         </div>

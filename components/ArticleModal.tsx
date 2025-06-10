@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { X } from "lucide-react";
+import { X, ChevronUp, ChevronDown } from "lucide-react";
 import { EnhancedArticle, ChatMessage } from "@/types";
 
 interface ArticleModalProps {
@@ -17,6 +17,7 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCitationsOpen, setIsCitationsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const formattedDate = article ? new Date(article.date).toLocaleDateString("en-US", {
@@ -31,8 +32,14 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
       setMessages([]);
       setChatInput("");
       setIsLoading(false);
+      setIsCitationsOpen(false); // Close citations dropdown when modal opens
     }
   }, [isOpen]);
+
+  // Close citations dropdown when article changes
+  useEffect(() => {
+    setIsCitationsOpen(false);
+  }, [article?.article_id]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -130,7 +137,7 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
         
         <div className="flex-1 flex overflow-hidden h-full">
           {/* Article Section - Left Side */}
-          <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto">
+          <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
             <div className="h-full p-8">
               <div className="max-w-3xl mx-auto">
                 <div className="mb-8">
@@ -145,11 +152,16 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
                   <div className="prose prose-lg dark:prose-invert">
                     <ReactMarkdown>{article.tuned || article.content}</ReactMarkdown>
                   </div>
-
-                  {/* Citations Section */}
-                  <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-                    <h2 className="text-lg font-semibold mb-4">Citations</h2>
-                    
+                </div>
+              </div>
+            </div>
+            
+            {/* Citations Dropdown - Bottom Left */}
+            <div className="absolute bottom-4 left-4 z-10">
+              <div className="relative">
+                {/* Citations Dropdown Content */}
+                {isCitationsOpen && (
+                  <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
                     {article.citations && article.citations.length > 0 ? (
                       <ul className="space-y-2">
                         {article.citations.map((citation, index) => (
@@ -176,7 +188,22 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
                       <p className="text-sm text-zinc-500">No citations available</p>
                     )}
                   </div>
-                </div>
+                )}
+                
+                {/* Citations Toggle Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                  className="flex items-center gap-2 bg-white dark:bg-zinc-900"
+                >
+                  Citations ({article.citations?.length || 0})
+                  {isCitationsOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
             </div>
           </div>
