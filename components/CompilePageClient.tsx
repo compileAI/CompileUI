@@ -42,10 +42,6 @@ export default function CompilePageClient({ cardsData }: Props) {
     return matchTag && itemDate.getTime() === today.getTime();
   });
 
-  const handleOpenChat = (articleId: number) => {
-    setChatModeArticleId(articleId);
-  };
-
   const handleCloseChat = () => {
     setChatModeArticleId(null);
     // We don't necessarily close the dialog here, just exit chat mode.
@@ -122,7 +118,7 @@ export default function CompilePageClient({ cardsData }: Props) {
             </Accordion.Root>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No items found for “{lookupLabel(selectedTab)}.”
+              No items found for &ldquo;{lookupLabel(selectedTab)}&rdquo;.
             </p>
           )}
         </TabsContent>

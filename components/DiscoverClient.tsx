@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Header from "./Header";
 import * as Accordion from "@radix-ui/react-accordion";
 import { Article } from "../types";
@@ -16,7 +16,6 @@ export default function DiscoverClient({ initialArticles }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const handleVectorSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -96,7 +95,7 @@ export default function DiscoverClient({ initialArticles }: Props) {
         {searchQuery && (
           <div className="mb-4">
             <p className="text-sm text-gray-600">
-              Vector search results for: <span className="font-medium">"{searchQuery}"</span>
+              Vector search results for: <span className="font-medium">&ldquo;{searchQuery}&rdquo;</span>
             </p>
           </div>
         )}
