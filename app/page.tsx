@@ -1,9 +1,11 @@
-import { getGeneratedArticles } from "@/lib/fetchArticles";
-import CompilePageClient from "@/components/CompilePageClient";
-import { Article } from "@/types";
+import Header from "@/components/Header";
+import ArticleGrid from "@/components/ArticleGrid";
 
 export default async function Home() {
-  const articles: Article[] = await getGeneratedArticles(); // Supabase query
-        
-  return <CompilePageClient cardsData={articles} />;
+  return (
+    <>
+      <Header />
+      <ArticleGrid />
+    </>
+  );
 }

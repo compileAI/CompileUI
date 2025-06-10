@@ -45,7 +45,7 @@ const getCacheStatus = () => {
   }
 };
 
-export default function DemoHeader() {
+export default function Header() {
   const router = useRouter();
   const { preferences, savePreferences, hasPreferences } = usePreferences();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
@@ -101,8 +101,8 @@ export default function DemoHeader() {
 
     setIsLoading(true);
     try {
-      // Navigate to discover page with search results
-      router.push(`/demo/discover?search=${encodeURIComponent(searchTerm)}`);
+      // Navigate to discover page with search query - DiscoverClient will handle vector search
+      router.push(`/discover?search=${encodeURIComponent(searchTerm)}`);
     } catch (error) {
       console.error('Error navigating to discover page:', error);
     } finally {
@@ -121,7 +121,7 @@ export default function DemoHeader() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => router.push("/demo/home")}
+            onClick={() => router.push("/home")}
             className="text-3xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
           >
             Compile.
@@ -129,14 +129,14 @@ export default function DemoHeader() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => router.push("/demo/home")}
+              onClick={() => router.push("/home")}
               className="h-8"
             >
               Home
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push("/demo/discover")}
+              onClick={() => router.push("/discover")}
               className="h-8"
             >
               Discover

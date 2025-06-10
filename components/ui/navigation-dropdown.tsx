@@ -26,9 +26,9 @@ export function NavigationDropdown({ showHome = true }: NavigationProps) {
       value={currentValue}
       onValueChange={(value) => {
         if (value === "home") {
-          router.push("/demo/home");
+          router.push("/home");
         } else if (value === "discover") {
-          router.push("/demo/discover");
+          router.push("/discover");
         }
       }}
     >

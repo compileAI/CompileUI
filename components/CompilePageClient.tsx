@@ -116,13 +116,6 @@ export default function CompilePageClient({ cardsData }: Props) {
                     key={item.article_id}
                     article={item}
                     formattedDate={formattedDate}
-                    lookupLabel={lookupLabel}
-                    onTagClick={(tag) =>
-                      setSelectedTab((prev) =>
-                        prev === tag ? "all" : (tag as TabValue)
-                      )
-                    }
-                    onOpenChat={() => handleOpenChat(parseInt(item.article_id))}
                   />
                 );
               })}

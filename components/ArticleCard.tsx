@@ -1,61 +1,73 @@
 // components/ArticleCard.tsx
 "use client";
 
-import React, { forwardRef } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import ReactMarkdown from "react-markdown";
+import { Card } from "@/components/ui/card";
 import { Article } from "../types";
-import { TabValue } from "../lib/tabUtils";
+import { forwardRef } from "react";
+import {
+  ChevronDown
+} from "lucide-react";
 
-interface ArticleCardProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+interface ArticleCardProps {
   cardData: Article;
-  onTagClick: (tag: string) => void;
-  lookupLabel: (tag: TabValue) => string;
   formattedDate: string;
+  className?: string;
 }
 
 const ArticleCard = forwardRef<HTMLDivElement, ArticleCardProps>(
-  (
-    {
-      cardData,
-      onTagClick,
-      lookupLabel,
-      formattedDate,
-      className,
-      ...rest
-    },
-    ref
-  ) => {
+  ({ cardData, formattedDate, className = "" }, ref) => {
+    const truncatedContent = cardData.content.slice(0, 200);
+
     return (
       <Card
         ref={ref}
-        {...rest}
-        className={`transition-all duration-200 hover:shadow-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 ${className ?? ""}`}
-        key={cardData.article_id}
+        className={`p-6 hover:bg-accent/10 transition-colors duration-200 cursor-pointer border border-border relative ${className}`}
       >
-        <CardHeader className="space-y-1">
-          <div className="flex flex-row text-left">
-            <Badge
-              variant="secondary"
-              onClick={() => onTagClick(cardData.tag)}
-              className="cursor-pointer bg-gray-200 hover:bg-gray-300 transition-colors"
-            >
-              {lookupLabel(cardData.tag as TabValue)}
-            </Badge>
-            <p className="text-sm text-muted-foreground ml-2">
-              {formattedDate}
-            </p>
+        <div className="flex justify-between items-start">
+          <div className="flex-1 pr-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold leading-tight text-foreground">
+                  {cardData.title}
+                </h3>
+                <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                {formattedDate}
+              </div>
+
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                {truncatedContent}
+                {cardData.content.length > 200 && "..."}
+              </p>
+
+              {/* Citations section */}
+              {cardData.citations && cardData.citations.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Sources ({cardData.citations.length}):
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {cardData.citations.slice(0, 3).map((citation, index) => (
+                      <span
+                        key={index}
+                        className="inline-block px-2 py-1 bg-accent/20 text-xs rounded-md text-muted-foreground border border-accent/30"
+                      >
+                        {citation.sourceName}
+                      </span>
+                    ))}
+                    {cardData.citations.length > 3 && (
+                      <span className="inline-block px-2 py-1 bg-accent/20 text-xs rounded-md text-muted-foreground border border-accent/30">
+                        +{cardData.citations.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <CardTitle className="text-left">
-            <ReactMarkdown>{cardData.title}</ReactMarkdown>
-          </CardTitle>
-        </CardHeader>
+        </div>
       </Card>
     );
   }
