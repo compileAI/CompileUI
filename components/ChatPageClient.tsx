@@ -150,8 +150,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   };
 
   return (
-    // MODIFIED: Changed min-h-screen to h-screen and added overflow-hidden
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
         <div className="flex items-center gap-4">
           <button 
@@ -166,7 +165,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Article Section - Left Side */}
         <div className="lg:w-1/2 w-full border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
-          <div className="h-full p-8"> {/* h-full ensures padding is within the scrollable area */}
+          <div className="h-full p-4 sm:p-8"> {/* h-full ensures padding is within the scrollable area */}
             <div className="max-w-3xl mx-auto">
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-2">
@@ -185,7 +184,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
           </div>
           
           {/* Citations Dropdown - Bottom Left */}
-          <div className="sm:absolute sm:bottom-4 sm:left-4 z-10 mt-4 sm:mt-0">
+          <div className="md:absolute md:bottom-4 md:left-4 z-10 mt-4 md:mt-0">
             <div className="relative">
               {/* Citations Dropdown Content */}
               {isCitationsOpen && (
@@ -244,7 +243,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         <div className="lg:w-1/2 w-full flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col h-full">
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto px-6 pt-6">
+            <div className="flex-1 overflow-y-auto px-4 pt-4 sm:px-6 sm:pt-6">
               {messages.length > 0 && (
                 <div className="space-y-4">
                   {messages.map((message) => (
@@ -297,7 +296,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             </div>
 
             {/* Chat Input - Sticky at bottom of its flex container */}
-            <div className="sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6">
+            <div className="sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-4 sm:p-6">
               <div className="flex items-center gap-4">
                 <input
                   type="text"

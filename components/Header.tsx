@@ -156,51 +156,19 @@ export default function Header() {
             <Settings className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <div className="relative w-full sm:w-64">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Search..."
-              className="h-8 text-sm pr-8"
-              disabled={isLoading}
-            />
-            <Button 
-              onClick={() => handleSearch()} 
-              disabled={isLoading || !searchQuery.trim()}
-              className="absolute right-0 top-0 h-8 w-8 p-0"
-              variant="ghost"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          
-          {/* No preferences notification - only show after mount */}
+        <div className="hidden sm:flex items-center gap-2">
           {isMounted && !hasPreferences() && (
-            <div className="hidden sm:flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <span className="text-xs text-primary font-medium">
-                Set preferences →
-              </span>
+              <span className="text-xs text-primary font-medium">Set preferences →</span>
             </div>
           )}
-
-          {/* Cache status indicator - only show after mount */}
           {isMounted && cacheStatus && (
-            <div className="hidden sm:flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
               <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
-              <span className="text-xs text-accent-foreground font-medium">
-                Cached ({cacheStatus.articleCount})
-              </span>
+              <span className="text-xs text-accent-foreground font-medium">Cached ({cacheStatus.articleCount})</span>
             </div>
           )}
-          
-          {/* Clear Cache Button */}
           {isMounted && cacheStatus && (
             <Button
               variant="ghost"
@@ -209,14 +177,12 @@ export default function Header() {
                 localStorage.removeItem("compile-enhanced-articles");
                 window.location.reload();
               }}
-              className="hidden sm:inline-flex p-2 hover:bg-muted rounded-md transition-all"
+              className="p-2 hover:bg-muted rounded-md transition-all"
               title="Clear cache and refresh"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
           )}
-
-          {/* Settings Button */}
           <Button
             variant="ghost"
             size="sm"
@@ -228,6 +194,32 @@ export default function Header() {
           >
             <Settings className="h-4 w-4" />
           </Button>
+        </div>
+
+        {/* Search Row */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative w-full sm:w-64">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Search..."
+              className="h-8 text-sm pr-8"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={() => handleSearch()}
+              disabled={isLoading || !searchQuery.trim()}
+              className="absolute right-0 top-0 h-8 w-8 p-0"
+              variant="ghost"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
