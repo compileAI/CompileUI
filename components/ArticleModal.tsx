@@ -135,9 +135,9 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
           <X className="w-4 h-4" />
         </Button>
         
-        <div className="flex-1 flex overflow-hidden h-full">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden h-full">
           {/* Article Section - Left Side */}
-          <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
+          <div className="lg:w-1/2 w-full border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
             <div className="h-full p-8">
               <div className="max-w-3xl mx-auto">
                 <div className="mb-8">
@@ -157,7 +157,7 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
             </div>
             
             {/* Citations Dropdown - Bottom Left */}
-            <div className="absolute bottom-4 left-4 z-10">
+            <div className="sm:absolute sm:bottom-4 sm:left-4 z-10 mt-4 sm:mt-0">
               <div className="relative">
                 {/* Citations Dropdown Content */}
                 {isCitationsOpen && (
@@ -209,7 +209,7 @@ export default function ArticleModal({ article, isOpen, onClose }: ArticleModalP
           </div>
 
           {/* Chat Section - Right Side */}
-          <div className="w-1/2 flex flex-col overflow-hidden"> 
+          <div className="lg:w-1/2 w-full flex flex-col overflow-hidden">
             <div className="flex-1 flex flex-col h-full">
               {/* Chat Messages */}
               <div className="flex-1 overflow-y-auto px-6 pt-6">

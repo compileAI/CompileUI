@@ -118,8 +118,9 @@ export default function Header() {
 
   return (
     <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/home")}
             className="text-3xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
@@ -142,9 +143,21 @@ export default function Header() {
               Discover
             </Button>
           </div>
+          {/* Mobile Settings Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSettingsClick}
+            className={`sm:hidden p-2 hover:bg-muted rounded-md transition-all ${
+              isMounted && !hasPreferences() ? 'bg-primary/10 border border-primary/20' : ''
+            }`}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-64">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative w-full sm:w-64">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -169,7 +182,7 @@ export default function Header() {
           
           {/* No preferences notification - only show after mount */}
           {isMounted && !hasPreferences() && (
-            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <span className="text-xs text-primary font-medium">
                 Set preferences →
@@ -179,7 +192,7 @@ export default function Header() {
 
           {/* Cache status indicator - only show after mount */}
           {isMounted && cacheStatus && (
-            <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
               <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
               <span className="text-xs text-accent-foreground font-medium">
                 Cached ({cacheStatus.articleCount})
@@ -196,7 +209,7 @@ export default function Header() {
                 localStorage.removeItem("compile-enhanced-articles");
                 window.location.reload();
               }}
-              className="p-2 hover:bg-muted rounded-md transition-all"
+              className="hidden sm:inline-flex p-2 hover:bg-muted rounded-md transition-all"
               title="Clear cache and refresh"
             >
               <RefreshCw className="h-4 w-4" />
@@ -208,7 +221,7 @@ export default function Header() {
             variant="ghost"
             size="sm"
             onClick={handleSettingsClick}
-            className={`p-2 hover:bg-muted rounded-md transition-all ${
+            className={`hidden sm:inline-flex p-2 hover:bg-muted rounded-md transition-all ${
               isMounted && !hasPreferences() ? 'bg-primary/10 border border-primary/20' : ''
             }`}
             title="Settings"
@@ -283,7 +296,8 @@ export default function Header() {
             )}
           </form>
         </DialogContent>
-      </Dialog>
+        </Dialog>
+      </div>
     </div>
   );
-} 
+}

@@ -43,7 +43,7 @@ export default function ArticleGrid() {
 
   return (
     <>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-2">
         {/* Error State */}
         {error && (
           <div className="text-center py-4">
@@ -55,7 +55,7 @@ export default function ArticleGrid() {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-12 gap-3 auto-rows-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 auto-rows-auto sm:auto-rows-[200px]">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
@@ -98,7 +98,7 @@ export default function ArticleGrid() {
 
         {/* Results Grid */}
         {!loading && !error && articles.length > 0 && (
-          <div className="grid grid-cols-12 gap-3 auto-rows-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 auto-rows-auto sm:auto-rows-[200px]">
             {articles.map((article, index) => (
               <ArticleTile
                 key={article.article_id}

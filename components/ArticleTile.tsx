@@ -12,14 +12,14 @@ interface ArticleTileProps {
 export default function ArticleTile({ article, size, onReadAndChat }: ArticleTileProps) {
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
-    medium: "col-span-12 md:col-span-4 row-span-1", 
-    small: "col-span-12 md:col-span-4 row-span-1"
+    medium: "col-span-12 sm:col-span-6 md:col-span-4 row-span-1",
+    small: "col-span-12 sm:col-span-6 md:col-span-4 row-span-1"
   };
 
   const titleClasses = {
-    hero: "text-2xl md:text-3xl font-bold",
-    medium: "text-xl font-semibold",
-    small: "text-lg font-semibold"
+    hero: "text-xl sm:text-2xl md:text-3xl font-bold",
+    medium: "text-lg sm:text-xl font-semibold",
+    small: "text-base sm:text-lg font-semibold"
   };
 
   const contentClasses = {
