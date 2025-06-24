@@ -1,0 +1,218 @@
+---
+description: This should be requested whenever using Test Driven Development (TDD)
+globs: 
+alwaysApply: false
+---
+# Test-Driven Development (TDD) Guidelines
+
+## Core Principles
+
+### 1. Always Ask Clarifying Questions
+- **Before starting any implementation**, ask clarifying questions if anything is unclear
+- Seek additional detail on requirements, edge cases, or user expectations
+- Better to over-communicate than make assumptions
+- Example questions:
+  - "Should we handle the case where...?"
+  - "What's the expected behavior when...?"
+  - "Do you want me to consider...?"
+
+### 2. Challenge and Propose Alternatives
+- **Challenge** if you see a different or potentially better strategy
+- Present alternative approaches with pros/cons
+- Don't just implement the first suggestion - explore options
+- Example challenges:
+  - "I see a potential issue with this approach because..."
+  - "Have you considered using X instead of Y because..."
+  - "This approach might be better because..."
+
+### 3. Implement with Test-Driven Development
+- **ALWAYS** write tests before implementation code
+- Follow the Red-Green-Refactor cycle:
+  1. **Red**: Write failing tests that describe the desired behavior
+  2. **Green**: Write minimal code to make tests pass
+  3. **Refactor**: Improve code while keeping tests green
+- No production code without corresponding tests
+
+### 4. Always Propose Working Plan
+- **Before implementing any code**, present a detailed working plan
+- Break down complex features into phases
+- Get approval on the plan before starting implementation
+- Include timeline and dependencies
+
+## TDD Implementation Strategy
+
+### Phase-Based Development
+Based on our successful recommended articles implementation, break features into logical phases:
+
+1. **Phase 1: Core Utilities/Infrastructure**
+   - Start with foundational utilities and data structures
+   - Focus on pure functions that are easy to test
+   - Example: `recentlyVisited.ts` utility functions
+
+2. **Phase 2: API Layer** 
+   - Implement server-side endpoints with comprehensive tests
+   - Mock external dependencies (databases, APIs)
+   - Test all error conditions and edge cases
+   - Example: `/api/recommended-articles/route.ts`
+
+3. **Phase 3: React Components**
+   - Build UI components with full test coverage
+   - Test user interactions, loading states, error handling
+   - Mock API calls and external dependencies
+   - Example: `RecommendedArticles.tsx` component
+
+4. **Phase 4: Integration**
+   - Integrate components into existing pages
+   - Test end-to-end workflows
+   - Update navigation and user flows
+
+### Testing Strategy
+
+#### API Tests
+```typescript
+// Use @jest-environment node for API tests
+/**
+ * @jest-environment node
+ */
+
+describe('API Endpoint', () => {
+  it('should handle successful requests', async () => {
+    // Test happy path
+  });
+  
+  it('should handle error conditions', async () => {
+    // Test error scenarios
+  });
+  
+  it('should validate input parameters', async () => {
+    // Test validation
+  });
+});
+```
+
+#### Component Tests  
+```typescript
+// Use jsdom environment for React components (default)
+
+describe('Component', () => {
+  it('should render loading state initially', () => {
+    // Test loading skeletons
+  });
+  
+  it('should handle successful data loading', async () => {
+    // Test successful API calls
+  });
+  
+  it('should handle error states gracefully', async () => {
+    // Test error handling
+  });
+  
+  it('should handle user interactions', async () => {
+    // Test clicks, navigation, etc.
+  });
+});
+```
+
+#### Utility Tests
+```typescript
+describe('Utility Function', () => {
+  beforeEach(() => {
+    // Reset state before each test
+  });
+  
+  it('should handle normal input', () => {
+    // Test expected behavior
+  });
+  
+  it('should handle edge cases', () => {
+    // Test boundaries and edge cases
+  });
+  
+  it('should handle invalid input', () => {
+    // Test error conditions
+  });
+});
+```
+
+## Best Practices from Our Implementation
+
+### 1. Progressive Enhancement
+- Show loading skeletons immediately for better UX
+- Handle progressive loading (CSR) for slow external APIs
+- Graceful degradation when APIs fail
+
+### 2. Comprehensive Error Handling
+- Test all error scenarios
+- Provide meaningful fallbacks
+- Don't break the user experience on API failures
+
+### 3. Configuration-Driven Development
+- Extract constants to configuration files
+- Make limits and thresholds configurable
+- Example: `config/recommendations.ts`
+
+### 4. Mock External Dependencies
+- Mock Pinecone, Supabase, and other external services
+- Use proper Jest environment setup for different test types
+- Isolate units under test
+
+### 5. Test Coverage Requirements
+- Aim for comprehensive test coverage
+- Test all code paths, not just happy paths
+- Include edge cases and error conditions
+
+## Implementation Checklist
+
+Before starting any feature:
+- [ ] Clarifying questions asked and answered
+- [ ] Alternative approaches considered
+- [ ] Working plan proposed and approved
+- [ ] Phase breakdown defined
+- [ ] Test strategy determined
+
+For each phase:
+- [ ] Tests written first (Red)
+- [ ] Minimal implementation to pass tests (Green)  
+- [ ] Code refactored and improved (Refactor)
+- [ ] All tests passing
+- [ ] Error handling tested
+- [ ] Edge cases covered
+
+## Example: Recommended Articles Implementation
+
+Our successful implementation followed this exact methodology:
+
+**Phase 1: Recently Visited Utility (✅ Complete)**
+- Created configuration constants
+- Implemented utility functions with TDD
+- 10 comprehensive tests covering all scenarios
+
+**Phase 2: API Endpoint (✅ Complete)**
+- Built POST endpoint with vector search integration
+- Comprehensive error handling and validation
+- 9 tests covering success, error, and edge cases
+
+**Phase 3: React Component (✅ Complete)**
+- Progressive loading with skeletons
+- Error handling and user interactions
+- 10 tests covering all component behaviors
+
+**Phase 4: Integration (In Progress)**
+- Adding to existing article pages
+- Testing end-to-end workflows
+
+This methodical approach resulted in:
+- 29 total tests passing
+- Zero production bugs
+- Clean, maintainable code
+- Excellent user experience
+
+## Key Takeaways
+
+1. **TDD saves time** - Catching issues early prevents debugging later
+2. **Phase-based development** - Reduces complexity and risk
+3. **Comprehensive testing** - Builds confidence in code changes
+4. **Clear planning** - Prevents scope creep and confusion
+5. **Challenge assumptions** - Often leads to better solutions
+
+Remember: The goal is not just working code, but **reliable, maintainable, well-tested code** that provides excellent user experience.

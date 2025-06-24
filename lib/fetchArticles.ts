@@ -47,7 +47,7 @@ export async function getGeneratedArticles(): Promise<Article[]> {
         )
       )
     `)
-    .eq("tag", "VDB_IMPROVED")
+    .in("tag", ["VDB_IMPROVED", "DSPY"])
     .gte("date", oneWeekAgoISO)
     .order("date", { ascending: false }) as { 
       data: ArticleWithCitations[] | null;

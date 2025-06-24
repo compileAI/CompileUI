@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+The type 'any' should never be used in TypeScript. Create a type where needed.

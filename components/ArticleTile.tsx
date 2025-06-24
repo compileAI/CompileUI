@@ -110,12 +110,12 @@ export default function ArticleTile({ article, size, onReadAndChat }: ArticleTil
       </h2>
 
       {/* Enhanced content */}
-      <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-1`}>
+      <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow`}>
         {displayContent}
       </div>
 
       {/* Footer with citations count */}
-      <div className="mt-3 pt-2 border-t border-border">
+      <div className="mt-3 pt-2 border-t border-border flex-shrink-0">
         <span className="text-xs text-muted-foreground">
           {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''}
         </span>

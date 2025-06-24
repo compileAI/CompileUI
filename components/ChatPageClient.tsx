@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Article, ChatMessage } from "../types";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, MessageCircle, X } from "lucide-react";
+import RecommendedArticles from "./RecommendedArticles";
+import { addRecentlyVisited } from "@/utils/recentlyVisited";
 
 interface ChatPageClientProps {
   article: Article;
@@ -27,7 +29,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const [citationsLoading, setCitationsLoading] = useState(false);
   const [citationsError, setCitationsError] = useState<string | null>(null);
   const [isCitationsOpen, setIsCitationsOpen] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
+  const [chatMessagesVisible, setChatMessagesVisible] = useState(false);
+  const [articleScrollPosition, setArticleScrollPosition] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const articleContentRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
 
   const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
@@ -36,9 +44,26 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     day: "numeric",
   });
 
-  // Close citations dropdown when article changes
+  // Check if mobile on mount and window resize
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Reset chat visibility and clear messages when article changes
+  useEffect(() => {
+    setChatVisible(false);
+    setChatMessagesVisible(false);
+    setMessages([]);
     setIsCitationsOpen(false);
+    initialMessageSentRef.current = false;
+    // Track that this article was visited (for recently visited exclusion)
+    addRecentlyVisited(article.article_id);
   }, [article.article_id]);
 
   // Fetch citations
@@ -72,10 +97,69 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle mobile scroll position saving/restoring
+  const saveArticleScrollPosition = () => {
+    if (articleContentRef.current && isMobile) {
+      setArticleScrollPosition(articleContentRef.current.scrollTop);
+    }
+  };
+
+  const restoreArticleScrollPosition = () => {
+    if (articleContentRef.current && isMobile) {
+      articleContentRef.current.scrollTop = articleScrollPosition;
+    }
+  };
+
+  // Handle chat visibility toggle
+  const toggleChat = () => {
+    if (isMobile && chatVisible) {
+      // Switching from chat to article on mobile - restore scroll position
+      setChatVisible(false);
+      setChatMessagesVisible(false);
+      setTimeout(restoreArticleScrollPosition, 0);
+    } else if (isMobile && !chatVisible) {
+      // Switching from article to chat on mobile - save scroll position
+      saveArticleScrollPosition();
+      setChatVisible(true);
+      // Show messages immediately on mobile
+      setChatMessagesVisible(true);
+      // Scroll to bottom of chat after opening
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } else {
+      // Desktop toggle
+      if (chatVisible) {
+        // Closing chat - hide content first, then panel
+        setChatMessagesVisible(false);
+        setTimeout(() => {
+          setChatVisible(false);
+        }, 200);
+      } else {
+        // Opening chat - show panel, then content with animation
+        setChatVisible(true);
+        // Show messages with a slight delay for smooth fade-in
+        setTimeout(() => {
+          setChatMessagesVisible(true);
+          // Scroll to bottom after messages are rendered
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }, 400);
+      }
+    }
+  };
+
   // Use useCallback to stabilize the handleSendMessage function reference
   const handleSendMessage = useCallback(async (messageToSend?: string) => {
     const messageContent = messageToSend || chatInput.trim();
     if (!messageContent || isLoading) return;
+
+    // Auto-open chat when sending a message
+    if (!chatVisible) {
+      setChatVisible(true);
+      setChatMessagesVisible(true);
+    }
 
     setChatInput("");
     
@@ -107,6 +191,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       });
 
       if (!response.ok) {
+        console.error(`Error Response: ${response.status} ${response.statusText} - ${response.url}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -132,7 +217,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     } finally {
       setIsLoading(false);
     }
-  }, [chatInput, isLoading, messages, article]);
+  }, [chatInput, isLoading, messages, article, chatVisible]);
 
   // Send initial message if provided
   useEffect(() => {
@@ -150,8 +235,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   };
 
   return (
-    // MODIFIED: Changed min-h-screen to h-screen and added overflow-hidden
     <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header */}
       <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
         <div className="flex items-center gap-4">
           <button 
@@ -164,140 +249,244 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       </div>
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Article Section - Left Side */}
-        <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto relative">
-          <div className="h-full p-8"> {/* h-full ensures padding is within the scrollable area */}
-            <div className="max-w-3xl mx-auto">
+        {/* Article Section */}
+        <div 
+          ref={articleContentRef}
+          data-testid="article-content-container"
+          className={`
+            h-full overflow-y-auto transition-all duration-500 ease-in-out
+            ${isMobile 
+              ? (chatVisible ? 'hidden' : 'w-full')
+              : (chatVisible 
+                  ? 'w-1/2' 
+                  : 'w-full'
+                )
+            }
+            ${!isMobile && chatVisible ? 'border-r border-zinc-200 dark:border-zinc-800' : ''}
+          `}
+        >
+          <div className="p-8">
+            <div className={`mx-auto ${chatVisible && !isMobile ? 'max-w-2xl' : 'max-w-4xl'}`}>
+              {/* Article Header */}
               <div className="mb-8">
-                <div className="flex justify-between items-center mb-2">
-                  <h1 className="text-xl font-bold">{article.title}</h1>
+                <div className={`${isMobile ? 'mb-4' : 'flex justify-between items-start mb-4'}`}>
+                  <h1 className="text-2xl font-bold flex-1 mr-4">{article.title}</h1>
+                  {/* Desktop Chat Button */}
+                  {!isMobile && (
+                    <Button
+                      onClick={toggleChat}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 shrink-0"
+                    >
+                      {chatVisible ? (
+                        <>
+                          <X className="h-4 w-4" />
+                          Close Chat
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="h-4 w-4" />
+                          Chat
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="text-sm text-muted-foreground mb-6">
                   {formattedDate}
                 </div>
+
+                {/* Mobile Chat Button - Between date and content */}
+                {isMobile && (
+                  <div className="mb-6">
+                    <Button
+                      onClick={toggleChat}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Show Chat
+                    </Button>
+                  </div>
+                )}
                 
-                <div className="prose prose-lg dark:prose-invert">
+                <div className="prose prose-lg dark:prose-invert max-w-none">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
                 </div>
               </div>
-            </div>
-          </div>
-          
-          {/* Citations Dropdown - Bottom Left */}
-          <div className="absolute bottom-4 left-4 z-10">
-            <div className="relative">
-              {/* Citations Dropdown Content */}
-              {isCitationsOpen && (
-                <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
-                  {citationsLoading ? (
-                    <p className="text-sm text-zinc-500">Loading citations...</p>
-                  ) : citationsError ? (
-                    <p className="text-sm text-red-500">{citationsError}</p>
-                  ) : citations.length > 0 ? (
-                    <ul className="space-y-2">
-                      {citations.map((citation, index) => (
-                        <li key={index} className="text-sm">
-                          <span className="font-medium">{citation.sourceName}: </span>
-                          {citation.url ? (
-                            <a 
-                              href={citation.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {citation.articleTitle || 'Untitled'}
-                            </a>
-                          ) : (
-                            <span className="text-zinc-600 dark:text-zinc-400">
-                              {citation.articleTitle || 'Untitled'}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-zinc-500">No citations available</p>
-                  )}
-                </div>
-              )}
               
-              {/* Citations Toggle Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsCitationsOpen(!isCitationsOpen)}
-                className="flex items-center gap-2 bg-white dark:bg-zinc-900"
-              >
-                Citations ({citations.length})
-                {isCitationsOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
+              {/* Citations Section - Between article and recommendations */}
+              <div className="mb-8">
+                <div className="flex justify-start">
+                  <div className="relative">
+                    {/* Citations Dropdown Content */}
+                    {isCitationsOpen && (
+                      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
+                        {citationsLoading ? (
+                          <p className="text-sm text-zinc-500">Loading citations...</p>
+                        ) : citationsError ? (
+                          <p className="text-sm text-red-500">{citationsError}</p>
+                        ) : citations.length > 0 ? (
+                          <ul className="space-y-2">
+                            {citations.map((citation, index) => (
+                              <li key={index} className="text-sm">
+                                <span className="font-medium">{citation.sourceName}: </span>
+                                {citation.url ? (
+                                  <a 
+                                    href={citation.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    {citation.articleTitle || 'Untitled'}
+                                  </a>
+                                ) : (
+                                  <span className="text-zinc-600 dark:text-zinc-400">
+                                    {citation.articleTitle || 'Untitled'}
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-zinc-500">No citations available</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Citations Toggle Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                      className="flex items-center gap-2 bg-white dark:bg-zinc-900 shadow-sm"
+                    >
+                      Citations ({citations.length})
+                      {isCitationsOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronUp className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recommended Articles Section */}
+              <div className="max-w-none">
+                <RecommendedArticles 
+                  currentArticleId={article.article_id}
+                  onArticleClick={() => setChatVisible(false)}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Chat Section - Right Side */}
-        <div className="w-1/2 flex flex-col overflow-hidden"> 
+        {/* Chat Section - Always rendered for smooth animations */}
+        <div 
+          className={`
+            transition-all duration-500 ease-in-out
+            ${isMobile 
+              ? (chatVisible 
+                  ? 'w-full absolute inset-0 top-[73px] z-30 bg-background' 
+                  : 'w-full absolute inset-0 top-[73px] z-30 bg-background translate-x-full pointer-events-none'
+                )
+              : (chatVisible 
+                  ? 'w-1/2 flex flex-col overflow-hidden' 
+                  : 'w-0 flex flex-col overflow-hidden pointer-events-none'
+                )
+            }
+          `}
+          aria-hidden={!chatVisible}
+        >
           <div className="flex-1 flex flex-col h-full">
+            {/* Mobile Back to Article Button */}
+            {isMobile && (
+              <div className={`
+                border-b border-zinc-200 dark:border-zinc-800 p-4
+                transition-all duration-200 ease-out delay-300
+                ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+              `}>
+                <Button
+                  onClick={toggleChat}
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Back to Article
+                </Button>
+              </div>
+            )}
+            
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto px-6 pt-6">
-              {messages.length > 0 && (
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
-                    >
+              <div className={`
+                transition-all duration-200 ease-out delay-300
+                ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+              `}>
+                {messages.length > 0 && (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
                       <div
-                        className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                          message.role === 'user'
-                            ? 'bg-zinc-800 text-zinc-100'
-                            : 'bg-zinc-100 dark:bg-zinc-800'
+                        key={message.id}
+                        className={`flex ${
+                          message.role === 'user' ? 'justify-end' : 'justify-start'
                         }`}
                       >
-                        <div className="text-sm">
-                          {message.role === 'assistant' ? (
-                            <ReactMarkdown>{message.content}</ReactMarkdown>
-                          ) : (
-                            message.content
-                          )}
-                        </div>
-                        <div className={`text-xs mt-1 ${
-                          message.role === 'user' 
-                            ? 'text-zinc-400' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {message.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div
+                          className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                            message.role === 'user'
+                              ? 'bg-zinc-800 text-zinc-100'
+                              : 'bg-zinc-100 dark:bg-zinc-800'
+                          }`}
+                        >
+                          <div className="text-sm">
+                            {message.role === 'assistant' ? (
+                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                            ) : (
+                              message.content
+                            )}
+                          </div>
+                          <div className={`text-xs mt-1 ${
+                            message.role === 'user' 
+                              ? 'text-zinc-400' 
+                              : 'text-muted-foreground'
+                          }`}>
+                            {message.timestamp.toLocaleTimeString()}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+                    ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Chat Input - Sticky at bottom of its flex container */}
-            <div className="sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6">
+            {/* Chat Input */}
+            <div className={`
+              sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6
+              transition-all duration-200 ease-out delay-300
+              ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+            `}>
               <div className="flex items-center gap-4">
                 <input
                   type="text"

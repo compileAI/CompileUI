@@ -1,11 +1,5 @@
-import Header from "@/components/Header";
-import ArticleGrid from "@/components/ArticleGrid";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
-  return (
-    <>
-      <Header />
-      <ArticleGrid />
-    </>
-  );
+  redirect("/home");
 }
