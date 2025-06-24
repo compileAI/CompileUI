@@ -1,92 +1,38 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "./Header";
-import * as Accordion from "@radix-ui/react-accordion";
-import { Article } from "../types";
-import ArticleAccordionItem from "./ArticleAccordionItem";
+import ArticleList from "./ArticleList";
+import { useDiscoverArticles } from "@/hooks/useDiscoverArticles";
+import { Button } from "./ui/button";
 
-interface Props {
-  initialArticles: Article[];
-}
-
-export default function DiscoverClient({ initialArticles }: Props) {
-  const [articles, setArticles] = useState<Article[]>(initialArticles);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+export default function DiscoverClient() {
+  const { 
+    articles, 
+    loading, 
+    error, 
+    hasMore, 
+    fetchArticles, 
+    loadMore, 
+    search,
+    refresh,
+    searchQuery 
+  } = useDiscoverArticles();
   const searchParams = useSearchParams();
 
-  const handleVectorSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setArticles(initialArticles);
-      setSearchQuery("");
-      return;
-    }
-
-    // Prevent duplicate calls
-    if (isLoading) {
-      console.log('[DiscoverClient] Search already in progress, skipping duplicate call');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      console.log(`[DiscoverClient] Performing vector search for: "${query}"`);
-      
-      // Perform vector search
-      const response = await fetch('/api/vector-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: query,
-          limit: 20 // Get more results for search page
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Vector search failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const searchResults: Article[] = data.articles || [];
-      
-      console.log(`[DiscoverClient] Vector search returned ${searchResults.length} articles`);
-      setArticles(searchResults);
-      
-    } catch (error) {
-      console.error('Error performing vector search:', error);
-      
-      // Fallback to simple text filtering if vector search fails
-      console.log('[DiscoverClient] Falling back to text filtering');
-      const filteredArticles = initialArticles.filter(article =>
-        article.title.toLowerCase().includes(query.toLowerCase()) ||
-        article.content.toLowerCase().includes(query.toLowerCase())
-      );
-      setArticles(filteredArticles);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [initialArticles, isLoading]);
-
-  // Handle search query from URL parameters using Next.js useSearchParams
+  // Handle initial load and search query from URL parameters
   useEffect(() => {
-    const search = searchParams.get('search');
+    const urlSearchQuery = searchParams.get('search');
     
-    // If there's a search parameter and it's different from current query, perform search
-    if (search && search !== searchQuery) {
-      console.log(`[DiscoverClient] New search detected: "${search}" (previous: "${searchQuery}")`);
-      setSearchQuery(search);
-      handleVectorSearch(search);
-    } else if (!search && searchQuery) {
-      // If no search parameter but we have a current query, reset to initial articles
-      console.log('[DiscoverClient] No search parameter, resetting to initial articles');
-      setSearchQuery("");
-      setArticles(initialArticles);
+    if (urlSearchQuery) {
+      // Search with query from URL
+      search(urlSearchQuery);
+    } else {
+      // Load all articles
+      fetchArticles();
     }
-  }, [searchParams, handleVectorSearch, searchQuery, initialArticles]);
+  }, [searchParams, search, fetchArticles]);
 
   return (
     <>
@@ -95,39 +41,67 @@ export default function DiscoverClient({ initialArticles }: Props) {
         {searchQuery && (
           <div className="mb-4">
             <p className="text-sm text-gray-600">
-              Vector search results for: <span className="font-medium">&ldquo;{searchQuery}&rdquo;</span>
+              Search results for: <span className="font-medium">&ldquo;{searchQuery}&rdquo;</span>
             </p>
           </div>
         )}
         
-        {isLoading ? (
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-8">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={refresh} variant="outline" size="sm">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {/* Loading State */}
+        {loading && articles.length === 0 && (
           <div className="text-center py-8">
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <p>Searching for relevant articles...</p>
+              <p>{searchQuery ? 'Searching for relevant articles...' : 'Loading articles...'}</p>
             </div>
           </div>
-        ) : (
-          <Accordion.Root type="multiple" className="space-y-4">
-            {articles.map((article) => {
-              const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              });
-
-              return (
-                <ArticleAccordionItem
-                  key={article.article_id}
-                  article={article}
-                  formattedDate={formattedDate}
-                />
-              );
-            })}
-          </Accordion.Root>
         )}
 
-        {articles.length === 0 && !isLoading && (
+        {/* Articles List */}
+        {!error && articles.length > 0 && (
+          <>
+            <ArticleList articles={articles} />
+            
+            {/* Load More / Loading More */}
+            {hasMore && (
+              <div className="text-center py-8">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p>Loading more articles...</p>
+                  </div>
+                ) : (
+                  <Button onClick={loadMore} variant="outline">
+                    Load More Articles
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* End of Results */}
+            {!hasMore && articles.length > 20 && (
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-500">
+                  You&apos;ve reached the end of the results.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Empty State */}
+        {!error && !loading && articles.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-600">
               {searchQuery ? 'No relevant articles found for your search.' : 'No articles available.'}

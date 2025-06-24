@@ -1,19 +1,19 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { signInWithGithub, signInWithGoogle, signInWithMagicLink } from "@/utils/actions";
+import { signInWithMagicLink } from "@/utils/actions";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import EmailValidator from "email-validator";
 import Image from "next/image";
-
+import { createClient } from "@/utils/supabase/client";
 
 const AuthForm = () => {
     const [email, setEmail] = useState<string>('');
     const [alert, setAlert] = useState<{ status: string, description: string } | null>(null);
+    const supabase = createClient();
 
     const handleMagicLinkSignIn = async (formData: FormData) => {
         const email = formData.get("email") as string;
@@ -56,9 +56,9 @@ const AuthForm = () => {
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full mb-5"
+                    className="w-full"
                 />
-                <Button variant="outline" formAction={handleMagicLinkSignIn} className="w-full">
+                <Button variant="outline" formAction={handleMagicLinkSignIn} className="w-full mb-5">
                     <Image
                         src="/supabase-logo-icon.png"
                         alt="Supabase"
@@ -66,13 +66,25 @@ const AuthForm = () => {
                         height={15} />
                     <span>Sign in with MagicLink</span>
                 </Button>
-                <Button formAction={signInWithGoogle}>
-                    <FcGoogle size={20}/>
-                    <span>Sign In with Google</span>
-                </Button>
-                <Button formAction={signInWithGithub}>
-                    <FaGithub size={20}></FaGithub>
-                    <span>Sign In with Github</span>
+                <Button
+                    className="w-full"
+                    type="button"
+                    onClick={async () => {
+                        const { data, error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo: `${window.location.origin}/auth/callback`,
+                        },
+                        });
+                        if (error) {
+                        setAlert({ status: "error", description: error.message });
+                        } else if (data.url) {
+                        window.location.href = data.url; // This will redirect the user to Google
+                        }
+                    }}
+                >
+                <FcGoogle size={20}/>
+                <span>Sign In with Google</span>
                 </Button>
             </form>
         </div>

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tabs";
 
 import * as Accordion from "@radix-ui/react-accordion";
-import ArticleAccordionItem from "@/components/ArticleAccordionItem";
+import { ChevronDown } from "lucide-react";
 
 import FullPageChatView from "./FullPageChatView";
 import { Article } from "../types";
@@ -108,11 +108,49 @@ export default function CompilePageClient({ cardsData }: Props) {
                 }
 
                 return (
-                  <ArticleAccordionItem
+                  <Accordion.Item
                     key={item.article_id}
-                    article={item}
-                    formattedDate={formattedDate}
-                  />
+                    value={item.article_id}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-zinc-900"
+                  >
+                    <Accordion.Header>
+                      <Accordion.Trigger className="w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-t-lg flex items-center justify-between group">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold leading-tight text-foreground mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {item.title}
+                          </h3>
+                          <div className="text-sm text-muted-foreground">
+                            {formattedDate}
+                          </div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      </Accordion.Trigger>
+                    </Accordion.Header>
+                    <Accordion.Content className="p-4 pt-0 text-sm text-muted-foreground border-t border-gray-100 dark:border-gray-800">
+                      <div className="space-y-3">
+                        <p className="leading-relaxed">{item.content}</p>
+                        {item.citations && item.citations.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-foreground mb-2">Sources:</h4>
+                            <ul className="space-y-1">
+                              {item.citations.map((citation, index) => (
+                                <li key={index} className="text-xs">
+                                  <a 
+                                    href={citation.url || '#'} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    {citation.sourceName}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </Accordion.Content>
+                  </Accordion.Item>
                 );
               })}
             </Accordion.Root>

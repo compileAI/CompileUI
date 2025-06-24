@@ -1,6 +1,6 @@
 'use server';
 
-import { createClientForServer } from "@/utils/supabase/server";
+import { createServerClientForRoutes } from "@/utils/supabase/server";
 import { Provider } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
@@ -10,9 +10,10 @@ interface AuthResponse {
 }
 
 const signInWithProvider = (provider: Provider) => async() => {
-    const supabase = await createClientForServer();
+    const supabase = await createServerClientForRoutes();
 
-    const auth_callback_url = `${process.env.SITE_URL}/auth/callback`;
+    const baseUrl = process.env.SITE_URL || 'http://localhost:3000';
+    const auth_callback_url = `${baseUrl}/auth/callback`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider,
@@ -36,11 +37,12 @@ const signInWithProvider = (provider: Provider) => async() => {
 }
 
 const signInWithMagicLink = async (formData: FormData): Promise<AuthResponse> => {
-    const supabase = await createClientForServer();
+    const supabase = await createServerClientForRoutes();
     
     const email = formData.get("email") as string;
 
-    const auth_callback_url = `${process.env.SITE_URL}/auth/callback`;
+    const baseUrl = process.env.SITE_URL || 'http://localhost:3000';
+    const auth_callback_url = `${baseUrl}/auth/callback`;
 
     const { data, error } = await supabase.auth.signInWithOtp({
         email: email,
@@ -59,11 +61,10 @@ const signInWithMagicLink = async (formData: FormData): Promise<AuthResponse> =>
 }
 
 const signOut = async () => {
-    const supabase = await createClientForServer();
+    const supabase = await createServerClientForRoutes();
     await supabase.auth.signOut();
 }
 
 const signInWithGoogle = signInWithProvider('google');
-const signInWithGithub = signInWithProvider('github');
 
-export { signInWithGoogle, signInWithGithub, signInWithMagicLink, signOut };
+export { signInWithGoogle, signInWithMagicLink, signOut };

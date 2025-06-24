@@ -71,6 +71,9 @@ export function useHomeSearch() {
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       console.log(`[useHomeSearch] Cached ${articles.length} enhanced articles for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+      
+      // Dispatch custom event to notify other components about cache update
+      window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: cacheData }));
     } catch (error) {
       console.warn('[useHomeSearch] Error caching results:', error);
     }
@@ -166,6 +169,9 @@ export function useHomeSearch() {
   const clearCache = useCallback(() => {
     localStorage.removeItem(CACHE_KEY);
     console.log('[useHomeSearch] Cache cleared');
+    
+    // Dispatch custom event to notify other components about cache update
+    window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
   }, []);
 
   return {
