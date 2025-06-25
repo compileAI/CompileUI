@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Article, ChatMessage } from "../types";
-import { ChevronUp, ChevronDown, MessageCircle, X } from "lucide-react";
+import { ChevronUp, ChevronDown, MessageCircle, X, ArrowLeft } from "lucide-react";
 import RecommendedArticles from "./RecommendedArticles";
 import { addRecentlyVisited } from "@/utils/recentlyVisited";
+import Header from "./Header";
 
 interface ChatPageClientProps {
   article: Article;
@@ -237,16 +238,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="sticky border-b border-zinc-200 dark:border-zinc-800 top-0 z-50 bg-white dark:bg-zinc-900 py-4 lg:px-8 px-4">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push("/discover")}
-            className="text-3xl font-bold tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
-          >
-            Compile.
-          </button>
-        </div>
-      </div>
+      <Header />
       
       <div className="flex-1 flex overflow-hidden">
         {/* Article Section */}
@@ -316,15 +308,28 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 <div className="prose prose-lg dark:prose-invert max-w-none">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
                 </div>
-              </div>
-              
-              {/* Citations Section - Between article and recommendations */}
-              <div className="mb-8">
-                <div className="flex justify-start">
+
+                {/* Bottom controls - Citations on right, Back button on left */}
+                <div className="flex justify-between items-center mt-8 mb-8">
+                  {/* Back button - Bottom left */}
+                  <div>
+                    <Button
+                      onClick={() => router.back()}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      title="Go back"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  </div>
+
+                  {/* Citations - Bottom right */}
                   <div className="relative">
                     {/* Citations Dropdown Content */}
                     {isCitationsOpen && (
-                      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
+                      <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
                         {citationsLoading ? (
                           <p className="text-sm text-zinc-500">Loading citations...</p>
                         ) : citationsError ? (
@@ -392,8 +397,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             transition-all duration-500 ease-in-out
             ${isMobile 
               ? (chatVisible 
-                  ? 'w-full absolute inset-0 top-[73px] z-30 bg-background' 
-                  : 'w-full absolute inset-0 top-[73px] z-30 bg-background translate-x-full pointer-events-none'
+                  ? 'w-full absolute inset-0 top-[97px] z-30 bg-background' 
+                  : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none'
                 )
               : (chatVisible 
                   ? 'w-1/2 flex flex-col overflow-hidden' 

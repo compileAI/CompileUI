@@ -1,31 +1,33 @@
 "use client";
 
-import { Settings, Search, Loader2, RefreshCw } from "lucide-react";
+import { Settings, Search, Loader2, RefreshCw, ChevronDown, Menu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { Button } from "./ui/button";
 import { usePathname } from "next/navigation";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useNavigation } from "@/hooks/useNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
 import { createClient } from "@/utils/supabase/client";
 import PreferenceConflictDialog from "@/components/PreferenceConflictDialog";
 import LoadingOverlay from "./ui/loading-overlay";
+import PreferenceForm from "@/components/PreferenceForm";
 import toast, { Toaster } from 'react-hot-toast';
-
-interface PreferenceFormData {
-  contentInterests: string;
-  presentationStyle: string;
-}
 
 interface CacheStatus {
   contentInterests: string;
@@ -62,6 +64,7 @@ const getCacheStatus = () => {
 export default function Header() {
   const pathname = usePathname();
   const supabase = createClient();
+  const isMobile = useIsMobile();
   const { isNavigating, destination, navigateTo, clearNavigation } = useNavigation();
   const { 
     preferences, 
@@ -73,7 +76,6 @@ export default function Header() {
     resolveConflict
   } = usePreferences();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-  const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -107,51 +109,18 @@ export default function Header() {
     };
   }, []);
 
-  const form = useForm<PreferenceFormData>({
-    defaultValues: {
-      contentInterests: preferences?.contentInterests || "",
-      presentationStyle: preferences?.presentationStyle || "",
-    },
-  });
-
-  // Update form when preferences change
-  useEffect(() => {
-    form.reset({
-      contentInterests: preferences?.contentInterests || "",
-      presentationStyle: preferences?.presentationStyle || "",
-    });
-  }, [preferences, form]);
-
   const handleSettingsClick = () => {
     setIsPreferencesOpen(true);
-    // Reset form with current preferences
-    form.reset({
-      contentInterests: preferences?.contentInterests || "",
-      presentationStyle: preferences?.presentationStyle || "",
-    });
   };
 
-  const onSubmit = async (data: PreferenceFormData) => {
-    try {
-      toast.loading('Saving preferences...', { id: 'save' });
-      
-      await savePreferences({
-        contentInterests: data.contentInterests,
-        presentationStyle: data.presentationStyle,
-      });
-      
-      toast.success('Preferences saved successfully!', { id: 'save' });
-      setShowSavedMessage(true);
-      
-      // Hide the saved message and close modal after 2 seconds
-      setTimeout(() => {
-        setShowSavedMessage(false);
-        setIsPreferencesOpen(false);
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      toast.error('Failed to save preferences. Please try again.', { id: 'save' });
+  const handleSavePreferences = async (preferences: { contentInterests: string; presentationStyle: string }) => {
+    console.log('Header handleSavePreferences called with:', preferences);
+    await savePreferences(preferences);
+    console.log('Header preferences saved successfully');
+    
+    // Clear any existing conflicts since we just saved new preferences
+    if (conflict) {
+      console.log('Clearing existing conflict state');
     }
   };
 
@@ -176,6 +145,14 @@ export default function Header() {
     }
   };
 
+  // Get current page label for mobile navigation dropdown
+  const getCurrentPageLabel = () => {
+    if (pathname === "/discover") return "Discover";
+    return "Home"; // Default to Home for any other page
+  };
+
+
+
   return (
     <>
       {/* Toast Container */}
@@ -194,7 +171,8 @@ export default function Header() {
       />
       
       <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
-        <div className="flex items-center justify-between">
+        {/* Desktop Layout - Hidden on mobile */}
+        <div className="hidden md:flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigateTo("/home", "Loading your personalized feed...")}
@@ -222,13 +200,14 @@ export default function Header() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Desktop Search */}
             <div className="relative w-64">
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Search..."
-                className="h-8 text-sm pr-8"
+                className="text-sm pr-8 h-8"
                 disabled={isLoading}
               />
               <Button 
@@ -244,9 +223,8 @@ export default function Header() {
                 )}
               </Button>
             </div>
-          
 
-            {/* Cache status indicator - only show after mount */}
+            {/* Cache status indicator - only show after mount and on desktop */}
             {isMounted && cacheStatus && (
               <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
                 <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
@@ -263,7 +241,6 @@ export default function Header() {
                 size="sm"
                 onClick={() => {
                   localStorage.removeItem("compile-enhanced-articles");
-                  // Dispatch event to update cache status immediately
                   window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
                   window.location.reload();
                 }}
@@ -274,7 +251,7 @@ export default function Header() {
               </Button>
             )}
 
-            {/* No preferences notification - only show after mount */}
+            {/* No preferences notification - only show after mount and on desktop */}
             {isMounted && !hasPreferences() && (
               <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
@@ -330,72 +307,115 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Settings Dialog */}
-        <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl">Customize Your Experience</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Content Interests Section */}
-              <div className="space-y-3">
-                <Label htmlFor="contentInterests" className="text-base font-medium">
-                  What content are you interested in?
-                </Label>
-                <textarea
-                  id="contentInterests"
-                  {...form.register("contentInterests")}
-                  placeholder="e.g., AI and machine learning developments, startup funding news, tech industry analysis..."
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                  autoFocus
-                />
-                <p className="text-sm text-muted-foreground">
-                  This determines which articles are selected for you from our database.
-                </p>
-              </div>
+        {/* Mobile Layout - Hidden on desktop */}
+        <div className="flex md:hidden flex-col gap-3">
+          {/* Top Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => navigateTo("/home", "Loading your personalized feed...")}
+                className="text-2xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
+              >
+                Compile.
+              </button>
+              
+              {/* Navigation Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1">
+                    {getCurrentPageLabel()}
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => navigateTo("/home", "Loading your personalized feed...")}>
+                    Home
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigateTo("/discover", "Loading articles...")}>
+                    Discover
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-              {/* Presentation Style Section */}
-              <div className="space-y-3">
-                <Label htmlFor="presentationStyle" className="text-base font-medium">
-                  How would you like the content to be presented?
-                </Label>
-                <textarea
-                  id="presentationStyle"
-                  {...form.register("presentationStyle")}
-                  placeholder="e.g., Focus on key takeaways and business implications, write in a casual conversational tone, highlight actionable insights..."
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                />
-                <p className="text-sm text-muted-foreground">
-                  This customizes how articles are enhanced and summarized for you.
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" className="flex-1">
-                  Save Preferences
+            {/* Settings/Auth Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2">
+                  <Menu className="h-4 w-4" />
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsPreferencesOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleSettingsClick}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                {user ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        {user.user_metadata?.avatar_url ? (
+                          <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
+                        ) : (
+                          <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span className="text-sm truncate">{user.email}</span>
+                    </div>
+                    <DropdownMenuItem 
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        window.location.reload();
+                      }}
+                    >
+                      Sign Out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setAuthModalOpen(true)}>
+                      Auth
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-              {/* Success Message */}
-              {showSavedMessage && (
-                <div className="text-center">
-                  <p className="text-sm text-primary font-medium">
-                    ✓ Preferences saved successfully! Your homepage will refresh with new content.
-                  </p>
-                </div>
+          {/* Bottom Row - Search */}
+          <div className="relative w-full">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Search..."
+              className="text-sm pr-8 h-10"
+              disabled={isLoading}
+            />
+            <Button 
+              onClick={() => handleSearch()} 
+              disabled={isLoading || !searchQuery.trim()}
+              className="absolute right-0 top-0 h-10 w-10 p-0"
+              variant="ghost"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
               )}
-            </form>
-          </DialogContent>
-        </Dialog>
+            </Button>
+          </div>
+        </div>
+
+        {/* Preference Form */}
+        <PreferenceForm
+          isOpen={isPreferencesOpen}
+          onClose={() => setIsPreferencesOpen(false)}
+          onSave={handleSavePreferences}
+          initialPreferences={preferences || undefined}
+        />
 
         {/* Auth Modal */}
         <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>

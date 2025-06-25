@@ -2,14 +2,16 @@
 
 import { EnhancedArticle } from "@/types";
 import { Calendar, Tag } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ArticleTileProps {
   article: EnhancedArticle;
   size: "hero" | "medium" | "small";
-  onReadAndChat?: () => void;
 }
 
-export default function ArticleTile({ article, size, onReadAndChat }: ArticleTileProps) {
+export default function ArticleTile({ article, size }: ArticleTileProps) {
+  const router = useRouter();
+  
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
     medium: "col-span-12 md:col-span-4 row-span-1", 
@@ -65,9 +67,7 @@ export default function ArticleTile({ article, size, onReadAndChat }: ArticleTil
   };
 
   const handleClick = () => {
-    if (onReadAndChat) {
-      onReadAndChat();
-    }
+    router.push(`/${article.article_id}`);
   };
 
   // Clean the content for display
