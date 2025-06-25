@@ -18,7 +18,7 @@ export function useNavigation() {
     // Extract base paths (without query params) for comparison
     const currentBasePath = pathname.split('?')[0];
     const targetBasePath = path.split('?')[0];
-    
+
     // Check if we're already on the target path
     if (pathname === path) {
       return; // Do nothing if already on the exact same path
@@ -32,19 +32,12 @@ export function useNavigation() {
         isNavigating: true,
         destination: path,
       });
-
       // Small delay to ensure loading overlay is visible
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     try {
       router.push(path);
-      if (isChangingBasePath) {
-        setState({
-          isNavigating: false,
-          destination: null,
-        });
-      }
       // Note: router.push doesn't throw errors, but we keep this for future-proofing
     } catch (error) {
       console.error('Navigation error:', error);

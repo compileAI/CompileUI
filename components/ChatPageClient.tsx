@@ -79,7 +79,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch citations');
         }
-        
+
         setCitations(data.citations || []);
       } catch (error) {
         console.error('Error fetching citations:', error);
