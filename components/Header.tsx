@@ -20,7 +20,6 @@ import { Button } from "./ui/button";
 import { usePathname } from "next/navigation";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useNavigation } from "@/hooks/useNavigation";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
 import { createClient } from "@/utils/supabase/client";
@@ -64,7 +63,6 @@ const getCacheStatus = () => {
 export default function Header() {
   const pathname = usePathname();
   const supabase = createClient();
-  const isMobile = useIsMobile();
   const { isNavigating, destination, navigateTo, clearNavigation } = useNavigation();
   const { 
     preferences, 

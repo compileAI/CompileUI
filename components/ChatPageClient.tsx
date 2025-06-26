@@ -10,6 +10,7 @@ import RecommendedArticles from "./RecommendedArticles";
 import { addRecentlyVisited } from "@/utils/recentlyVisited";
 import { createClient } from "@/utils/supabase/client";
 import Header from "./Header";
+import ArticleFAQs from "./ArticleFAQs";
 
 interface ChatPageClientProps {
   article: Article;
@@ -195,6 +196,75 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     }
   };
 
+  // Helper function to send message with FAQ context
+  const handleSendMessageWithContext = useCallback(async (question: string, faqAnswer: string) => {
+    if (isLoading) return;
+
+    // Auto-open chat when sending a message
+    if (!chatVisible) {
+      setChatVisible(true);
+      setChatMessagesVisible(true);
+    }
+
+    setChatInput("");
+    
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question, // Only show the question in chat
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: question,
+          history: messages,
+          articleContext: {
+            article_id: article.article_id,
+            title: article.title,
+            content: article.content
+          },
+          faqContext: faqAnswer // Pass FAQ answer as background context
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Error Response: ${response.status} ${response.statusText} - ${response.url}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.message,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, messages, article, chatVisible]);
+
   // Use useCallback to stabilize the handleSendMessage function reference
   const handleSendMessage = useCallback(async (messageToSend?: string) => {
     const messageContent = messageToSend || chatInput.trim();
@@ -263,6 +333,18 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       setIsLoading(false);
     }
   }, [chatInput, isLoading, messages, article, chatVisible]);
+
+  // Handle FAQ clicks - open chat and send question with answer as context
+  const handleFAQClick = useCallback((question: string, answer: string) => {
+    // Auto-open chat if not already open
+    if (!chatVisible) {
+      setChatVisible(true);
+      setChatMessagesVisible(true);
+    }
+
+    // Send just the question, but include answer as background context
+    handleSendMessageWithContext(question, answer);
+  }, [chatVisible, handleSendMessageWithContext]);
 
   // Send initial message if provided
   useEffect(() => {
@@ -351,6 +433,15 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 
                 <div className="prose prose-lg dark:prose-invert max-w-none">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
+                </div>
+
+                {/* FAQ Section */}
+                <div className="mt-8">
+                  <ArticleFAQs 
+                    articleId={article.article_id}
+                    onFAQClick={handleFAQClick}
+                    isMobile={isMobile}
+                  />
                 </div>
 
                 {/* Bottom controls - Citations on right, Back button on left */}

@@ -69,3 +69,12 @@ export interface SourceArticleContext {
   author: string | null;
   url: string | null;
 }
+
+export interface FAQ {
+  id: string; // uuid as string
+  gen_article_id: string; // int8 as string 
+  question: string;
+  answer: string;
+  created_at: string;
+  question_short: string;
+}
