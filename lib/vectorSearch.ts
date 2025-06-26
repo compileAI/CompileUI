@@ -108,7 +108,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
           )
         `)
         .in("article_id", articleIds)
-        .eq("tag", "VDB_IMPROVED")
+        .in("tag", ["VDB_IMPROVED", "CLUSTER"])
         .gte("date", startDate.toISOString())
         .lte("date", endDate.toISOString())
         .order("date", { ascending: false });

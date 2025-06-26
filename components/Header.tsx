@@ -28,6 +28,7 @@ import PreferenceConflictDialog from "@/components/PreferenceConflictDialog";
 import LoadingOverlay from "./ui/loading-overlay";
 import PreferenceForm from "@/components/PreferenceForm";
 import toast, { Toaster } from 'react-hot-toast';
+import { ThemeToggle } from "./ui/theme-toggle";
 
 interface CacheStatus {
   contentInterests: string;
@@ -160,10 +161,11 @@ export default function Header() {
         position="bottom-right"
         toastOptions={{
           duration: 4000,
+          className: 'dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700',
           style: {
-            background: '#ffffff',
-            color: '#000000',
-            border: '1px solid #e5e7eb',
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--card-foreground))',
+            border: '1px solid hsl(var(--border))',
             opacity: 1,
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           },
@@ -261,6 +263,9 @@ export default function Header() {
               </div>
             )}
 
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
+
             {/* Settings Button */}
             <Button
               variant="ghost"
@@ -350,6 +355,11 @@ export default function Header() {
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-sm">Theme</span>
+                  <ThemeToggle />
+                </div>
                 {user ? (
                   <>
                     <DropdownMenuSeparator />

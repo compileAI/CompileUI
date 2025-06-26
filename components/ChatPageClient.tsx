@@ -305,7 +305,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   </div>
                 )}
                 
-                <div className="prose prose-lg dark:prose-invert max-w-none">
+                <div className="prose prose-lg dark:prose-invert max-w-none [&_p]:mb-4">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
                 </div>
 
@@ -450,7 +450,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                               : 'bg-zinc-100 dark:bg-zinc-800'
                           }`}
                         >
-                          <div className="text-sm">
+                          <div className="text-sm [&_p]:mb-4">
                             {message.role === 'assistant' ? (
                               <ReactMarkdown>{message.content}</ReactMarkdown>
                             ) : (
