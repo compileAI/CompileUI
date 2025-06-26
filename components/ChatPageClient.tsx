@@ -8,6 +8,7 @@ import { Article, ChatMessage } from "../types";
 import { ChevronUp, ChevronDown, MessageCircle, X } from "lucide-react";
 import RecommendedArticles from "./RecommendedArticles";
 import { addRecentlyVisited } from "@/utils/recentlyVisited";
+import { createClient } from "@/utils/supabase/client";
 
 interface ChatPageClientProps {
   article: Article;
@@ -90,6 +91,49 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     };
 
     fetchCitations();
+  }, [article.article_id]);
+
+  // Load chat history for authenticated users
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          // No authenticated user, don't load history
+          console.log('[ChatPageClient] No authenticated user, skipping chat history load');
+          return;
+        }
+
+        console.log(`[ChatPageClient] Loading chat history for user ${user.id} and article ${article.article_id}`);
+        
+        const response = await fetch(`/api/chat-history?article_id=${article.article_id}`, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          console.warn(`[ChatPageClient] Failed to fetch chat history: ${response.status}`);
+          return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.messages) {
+          console.log(`[ChatPageClient] Loaded ${data.messages.length} chat messages`);
+          // Ensure timestamps are Date objects
+          const messagesWithDateTimestamps = data.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+          }));
+          setMessages(messagesWithDateTimestamps);
+        }
+      } catch (error) {
+        console.error('[ChatPageClient] Error loading chat history:', error);
+      }
+    };
+
+    loadChatHistory();
   }, [article.article_id]);
 
   // Auto-scroll to bottom when new messages are added
@@ -457,7 +501,10 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                               ? 'text-zinc-400' 
                               : 'text-muted-foreground'
                           }`}>
-                            {message.timestamp.toLocaleTimeString()}
+                            {message.timestamp instanceof Date 
+                              ? message.timestamp.toLocaleTimeString() 
+                              : new Date(message.timestamp).toLocaleTimeString()
+                            }
                           </div>
                         </div>
                       </div>

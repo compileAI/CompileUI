@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { ChatMessage, SourceArticleContext } from "@/types";
 import { createClientForServer } from "@/utils/supabase/server";
+import { saveChatMessageAsync } from "@/utils/chatMessages";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
@@ -38,6 +39,31 @@ export async function POST(req: Request) {
 
         // Initialize Supabase client
         const supabase = await createClientForServer();
+
+        // Get current user for message persistence (don't block chat if no user)
+        let currentUser = null;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            currentUser = user;
+        } catch (authError) {
+            console.warn('[API /api/chat] Failed to get user for message persistence:', authError);
+        }
+
+        // Generate unique message ID for user message
+        const userMessageId = `msg_${Date.now()}_user`;
+
+        // Save user message asynchronously (if authenticated)
+        if (currentUser) {
+            saveChatMessageAsync({
+                user_id: currentUser.id,
+                article_id: articleContext.article_id,
+                message_id: userMessageId,
+                role: 'user',
+                content: message
+            }).catch(error => {
+                console.error('[API /api/chat] Failed to save user message:', error);
+            });
+        }
 
         let sourceArticlesContextString = "";
         console.log(`[API /api/chat] Attempting to fetch source articles for gen_article_id: ${articleContext.article_id}`);
@@ -213,9 +239,25 @@ export async function POST(req: Request) {
             }
         });
 
-        const text = response.text;
+        const text = response.text || 'No response generated';
 
         console.log(`[API /api/chat] Generated response with Google Search grounding enabled`);
+
+        // Generate unique message ID for assistant response
+        const assistantMessageId = `msg_${Date.now()}_assistant`;
+
+        // Save assistant response asynchronously (if authenticated)
+        if (currentUser) {
+            saveChatMessageAsync({
+                user_id: currentUser.id,
+                article_id: articleContext.article_id,
+                message_id: assistantMessageId,
+                role: 'assistant',
+                content: text
+            }).catch(error => {
+                console.error('[API /api/chat] Failed to save assistant message:', error);
+            });
+        }
 
         return NextResponse.json({ 
             message: text 
