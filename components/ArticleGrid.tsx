@@ -84,25 +84,25 @@ export default function ArticleGrid() {
                 `}
               >
                 <div className="flex justify-between items-center mb-3">
-                  <div className="h-3 bg-gray-200 rounded w-20"></div>
-                  <div className="h-5 bg-gray-200 rounded w-16"></div>
+                  <div className="h-3 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-20"></div>
+                  <div className="h-5 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-16"></div>
                 </div>
-                <div className={`h-6 bg-gray-200 rounded mb-3 ${i === 0 ? "w-3/4" : "w-full"}`}></div>
+                <div className={`h-6 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded mb-3 ${i === 0 ? "w-3/4" : "w-full"}`}></div>
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded"></div>
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-5/6"></div>
                   {i === 0 && (
                     <>
-                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
                     </>
                   )}
                   {i !== 0 && (
                     <>
-                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
                     </>
                   )}
                 </div>

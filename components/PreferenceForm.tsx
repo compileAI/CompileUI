@@ -224,13 +224,19 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] mx-4 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-background dark:bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] mx-4 overflow-hidden border border-border"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
-            <h2 className="text-2xl font-semibold">Personalize Home Feed</h2>
-            <p className="text-gray-600 mt-1 italic text-sm">Pick a few topics & a writing style—change anytime</p>
+            <h2 className="text-2xl font-semibold text-foreground">Personalize Home Feed</h2>
+            <p className="text-muted-foreground mt-1 italic text-sm">Pick a few topics & a writing style—change anytime</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -245,7 +251,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
             
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -258,13 +264,13 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
             {/* Custom Topic Preview */}
             {searchQuery.trim() && !filteredSuggestions.some(topic => topic.toLowerCase() === searchQuery.toLowerCase()) && (
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">Add custom topic:</p>
+                <p className="text-sm text-muted-foreground">Add custom topic:</p>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => addTopic(searchQuery.trim())}
-                  className="text-xs rounded-full border-dashed border-blue-400 text-blue-600 hover:bg-blue-50 flex items-center gap-1"
+                  className="text-xs rounded-full border-dashed border-primary/40 text-primary hover:bg-primary/10 dark:border-primary/60 dark:text-primary dark:hover:bg-primary/20 flex items-center gap-1"
                 >
                   <Plus className="h-3 w-3" />
                   {searchQuery.trim()}
@@ -274,7 +280,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
 
             {/* Suggested Topics */}
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">Suggested topics:</p>
+              <p className="text-sm text-muted-foreground">Suggested topics:</p>
               <div className="flex flex-wrap gap-2">
                 {filteredSuggestions.map((topic) => (
                   <Button
@@ -294,25 +300,25 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
             {/* Selected Topics */}
             {watchedTopics.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">Selected topics:</p>
+                <p className="text-sm text-muted-foreground">Selected topics:</p>
                 <div className="flex flex-wrap gap-2">
                   {watchedTopics.map((topic) => (
                     <div
                       key={topic}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                      className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
                     >
                       {topic}
                       <button
                         type="button"
                         onClick={() => removeTopic(topic)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-primary/70 hover:text-primary dark:text-primary/80 dark:hover:text-primary"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500">{watchedTopics.length}/10 topics selected</p>
+                <p className="text-xs text-muted-foreground">{watchedTopics.length}/10 topics selected</p>
               </div>
             )}
           </div>
@@ -327,21 +333,21 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
                   key={preset.id} 
                   className={`p-3 cursor-pointer transition-all ${
                     watchedStyle === preset.id 
-                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200' 
-                      : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/20 dark:bg-primary/10 dark:ring-primary/30' 
+                      : 'border-border hover:bg-muted hover:border-border/80 dark:hover:bg-muted'
                   }`} 
                   onClick={() => setValue("style", preset.id)}
                 >
                   <div className="flex items-center gap-3">
                     <preset.icon className={`h-4 w-4 ${
-                      watchedStyle === preset.id ? 'text-blue-600' : 'text-gray-600'
+                      watchedStyle === preset.id ? 'text-primary' : 'text-muted-foreground'
                     }`} />
                     <div className="flex-1">
                       <div className={`font-medium text-sm ${
-                        watchedStyle === preset.id ? 'text-blue-900' : 'text-gray-900'
+                        watchedStyle === preset.id ? 'text-primary' : 'text-foreground'
                       }`}>{preset.title}</div>
                       <div className={`text-xs ${
-                        watchedStyle === preset.id ? 'text-blue-700' : 'text-gray-500'
+                        watchedStyle === preset.id ? 'text-primary/80' : 'text-muted-foreground'
                       }`}>{preset.tagline}</div>
                     </div>
                   </div>
@@ -354,8 +360,8 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
           {previewContent && (
             <div className="space-y-4">
               <Label className="text-lg font-medium">Preview</Label>
-              <Card className="p-4 bg-gray-50">
-                <div className="text-sm text-gray-700 whitespace-pre-line font-mono">
+              <Card className="p-4 bg-muted/50 dark:bg-muted/30">
+                <div className="text-sm text-foreground whitespace-pre-line font-mono">
                   {previewContent}
                 </div>
               </Card>
@@ -363,18 +369,18 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
           )}
 
           {/* Footer */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-border">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
-              className="flex-1 bg-gray-200 hover:bg-gray-300"
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1"
               disabled={watchedTopics.length === 0}
             >
               Save
@@ -384,7 +390,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
           {/* Success Message */}
           {showSavedMessage && (
             <div className="text-center">
-              <p className="text-sm text-green-600 font-medium">
+              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
                 ✓ Preferences saved successfully! Your homepage will refresh with new content.
               </p>
             </div>
