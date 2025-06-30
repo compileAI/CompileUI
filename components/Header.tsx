@@ -26,7 +26,7 @@ import { createClient } from "@/utils/supabase/client";
 import PreferenceConflictDialog from "@/components/PreferenceConflictDialog";
 import LoadingOverlay from "./ui/loading-overlay";
 import PreferenceForm from "@/components/PreferenceForm";
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import { ThemeToggle } from "./ui/theme-toggle";
 
 interface CacheStatus {

@@ -124,7 +124,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         if (data.success && data.messages) {
           console.log(`[ChatPageClient] Loaded ${data.messages.length} chat messages`);
           // Ensure timestamps are Date objects
-          const messagesWithDateTimestamps = data.messages.map((msg: any) => ({
+          const messagesWithDateTimestamps = data.messages.map((msg: { timestamp: Date | string; [key: string]: unknown }) => ({
             ...msg,
             timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
           }));

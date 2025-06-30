@@ -3,14 +3,13 @@
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-
 import { Button } from "@/components/ui/button"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
+  const [isHovered, setIsHovered] = React.useState(false)
 
-  // useEffect only runs on the client, so now we can safely show the UI
   React.useEffect(() => {
     setMounted(true)
   }, [])
@@ -24,39 +23,51 @@ export function ThemeToggle() {
     )
   }
 
+  const isDark = theme === "dark"
+
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="w-9 h-9 p-0 relative overflow-hidden group hover:bg-accent hover:text-accent-foreground transition-all duration-300 flex items-center justify-center"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="w-9 h-9 p-0 relative overflow-hidden group transition-all duration-300 flex items-center justify-center rounded-md"
     >
+
+
+      {/* Icon Container */}
       <div className="relative w-4 h-4 flex items-center justify-center">
-        {/* Sun Icon */}
+        {/* Sun Icon - Visible in light mode, rises on hover in dark mode */}
         <Sun 
-          className={`absolute w-4 h-4 transition-all duration-500 ease-in-out transform ${
-            theme === "light" 
-              ? "rotate-0 scale-100 opacity-100" 
-              : "rotate-90 scale-0 opacity-0"
+          className={`absolute w-4 h-4 transition-all duration-700 ease-in-out transform text-yellow-500 ${
+            !isDark 
+              ? isHovered
+                ? "translate-y-5 rotate-180 scale-75 opacity-0"  // Sun sets on hover  
+                : "translate-y-0 rotate-0 scale-100 opacity-100" // Sun visible in light mode
+              : isHovered
+                ? "translate-y-0 rotate-0 scale-100 opacity-100" // Sun rises on hover in dark mode
+                : "translate-y-5 rotate-45 scale-75 opacity-0"   // Sun hidden in dark mode
           }`} 
         />
-        {/* Moon Icon */}
+        
+        {/* Moon Icon - Visible in dark mode, rises on hover in light mode */}
         <Moon 
-          className={`absolute w-4 h-4 transition-all duration-500 ease-in-out transform ${
-            theme === "dark" 
-              ? "rotate-0 scale-100 opacity-100" 
-              : "-rotate-90 scale-0 opacity-0"
+          className={`absolute w-4 h-4 transition-all duration-700 ease-in-out transform text-slate-600 dark:text-slate-300 ${
+            isDark 
+              ? isHovered
+                ? "translate-y-5 -rotate-45 scale-75 opacity-0"  // Moon sets on hover in dark mode
+                : "translate-y-0 rotate-0 scale-100 opacity-100" // Moon visible in dark mode
+              : isHovered
+                ? "translate-y-0 rotate-0 scale-100 opacity-100" // Moon rises on hover in light mode
+                : "translate-y-5 rotate-45 scale-75 opacity-0"   // Moon hidden in light mode
           }`} 
         />
+
+
       </div>
+
       <span className="sr-only">Toggle theme</span>
-      
-      {/* Animated background effect */}
-      <div className={`absolute inset-0 rounded-md transition-all duration-300 ease-in-out transform ${
-        theme === "light" 
-          ? "bg-yellow-400/20 scale-0 group-hover:scale-100" 
-          : "bg-blue-600/20 scale-0 group-hover:scale-100"
-      }`} />
     </Button>
   )
 } 
