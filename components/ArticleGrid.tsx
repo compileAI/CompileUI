@@ -5,7 +5,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
 import ArticleTile from "./ArticleTile";
 import { useEffect, useRef } from "react";
-import { Settings } from "lucide-react";
+import LoadingOverlay from "./ui/loading-overlay";
 
 export default function ArticleGrid() {
   const { loading, articles, error, search } = useHomeSearch();
@@ -43,20 +43,7 @@ export default function ArticleGrid() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
       {/* Loading Message */}
-      {loading && (
-        <div className="text-center py-8 mb-6">
-          <h2 className="text-2xl font-semibold text-foreground mb-3">
-            Fetching your custom feed!
-          </h2>
-          <p className="text-muted-foreground flex items-center justify-center gap-2">
-            Update your preferences with the 
-            <span className="inline-flex items-center justify-center p-2 bg-muted/50 rounded-md border border-border">
-              <Settings className="h-4 w-4" />
-            </span>
-            button in the top right corner
-          </p>
-        </div>
-      )}
+      {loading && <LoadingOverlay isVisible={true} message="Curating your feed..." />}
 
       {/* Error State */}
       {error && (

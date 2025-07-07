@@ -74,6 +74,16 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         setCitationsLoading(true);
         setCitationsError(null);
         
+        // If the article already has citations, use them
+        if (article.citations && article.citations.length > 0) {
+          console.log(`[ChatPageClient] Using existing citations from article: ${article.citations.length} citations`);
+          setCitations(article.citations);
+          setCitationsLoading(false);
+          return;
+        }
+        
+        // Otherwise, fetch citations from the API as fallback
+        console.log(`[ChatPageClient] No existing citations, fetching from API for article: ${article.article_id}`);
         const response = await fetch(`/api/fetchArticles?articleId=${article.article_id}`);
         const data = await response.json();
         
@@ -91,7 +101,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     };
 
     fetchCitations();
-  }, [article.article_id]);
+  }, [article.article_id, article.citations]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
