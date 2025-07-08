@@ -97,7 +97,7 @@ export function useRefresh() {
         }));
         
         if (!preventReload) {
-          toast.success('Cache cleared successfully!');
+        toast.success('Cache cleared successfully!');
           // Reload the page to show fresh content
           window.location.reload();
         }
@@ -124,7 +124,7 @@ export function useRefresh() {
       console.error('Error refreshing cache:', error);
       setState(prev => ({ ...prev, isLoading: false }));
       if (!preventReload) {
-        toast.error('Failed to refresh cache. Please try again.');
+      toast.error('Failed to refresh cache. Please try again.');
       }
       throw error;
     }

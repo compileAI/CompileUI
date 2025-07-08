@@ -1,6 +1,60 @@
 import { useState, useCallback } from "react";
-import { Article, EnhancedArticle, DatabaseEnhancedArticle } from "@/types";
+import { Article, EnhancedArticle, DatabaseEnhancedArticle, Citation } from "@/types";
 import { createClient } from "@/utils/supabase/client";
+
+// Helper function to fetch citation count for a gen_article_id
+async function getCitationCount(genArticleId: string): Promise<number> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("gen_articles")
+      .select(`
+        citations:citations_ref (
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
+      `)
+      .eq("article_id", genArticleId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`[getCitationCount] Failed to fetch citations for article ${genArticleId}:`, error);
+      return 0;
+    }
+
+    // Extract and deduplicate citations from the nested data
+    const citationsMap = new Map<string, Citation>();
+    
+    (data.citations || []).forEach((citation: any) => {
+      if (!citation?.source_articles?.master_sources?.name) return;
+      
+      // Create the citation object
+      const newCitation: Citation = {
+        sourceName: citation.source_articles.master_sources.name,
+        articleTitle: citation.source_articles.title || 'Untitled',
+        url: citation.source_articles.url
+      };
+      
+      // Create a unique key based on source name and article title
+      const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+      
+      // Only add if we haven't seen this citation before
+      if (!citationsMap.has(citationKey)) {
+        citationsMap.set(citationKey, newCitation);
+      }
+    });
+
+    return citationsMap.size;
+  } catch (error) {
+    console.warn(`[getCitationCount] Error fetching citations for article ${genArticleId}:`, error);
+    return 0;
+  }
+}
 
 interface SearchState {
   loading: boolean;
@@ -79,20 +133,33 @@ export function useHomeSearch() {
                   error: "No articles available. Please try again later.",
                   refreshesRemaining: undefined
                 });
-                return;
-              }
+        return;
+      }
 
-              // Transform database articles to EnhancedArticle format
-              const transformedArticles: EnhancedArticle[] = dbArticles.map(article => ({
-                article_id: String(article.gen_article_id),
-                date: new Date(article.generated_at || Date.now()),
-                title: article.title,
-                content: article.content, // This is the enhanced content
-                fingerprint: '', // Not needed for enhanced articles
-                tag: '',
-                citations: article.citations || [],
-                tuned: article.content // The enhanced content is in the 'content' field
-              }));
+                    // Transform database articles to EnhancedArticle format with citation counts
+      const transformedArticles: EnhancedArticle[] = await Promise.all(
+        dbArticles.map(async (article) => {
+          const citationCount = await getCitationCount(String(article.gen_article_id));
+          
+          // Create a mock citations array with the correct count for display
+          const mockCitations = Array.from({ length: citationCount }, (_, i) => ({
+            sourceName: `Source ${i + 1}`,
+            articleTitle: 'Loading...',
+            url: null
+          }));
+
+          return {
+            article_id: String(article.gen_article_id),
+            date: new Date(article.generated_at || Date.now()),
+            title: article.title,
+            content: article.content, // This is the enhanced content
+            fingerprint: '', // Not needed for enhanced articles
+            tag: '',
+            citations: mockCitations, // Use mock citations with correct count
+            tuned: article.content // The enhanced content is in the 'content' field
+          };
+        })
+      );
 
               setState({
                 loading: false,
@@ -144,17 +211,30 @@ export function useHomeSearch() {
         return;
       }
 
-      // Transform database articles to EnhancedArticle format
-      const transformedArticles: EnhancedArticle[] = dbArticles.map(article => ({
-        article_id: String(article.gen_article_id),
-        date: new Date(article.generated_at || Date.now()),
-        title: article.title,
-        content: article.content, // This is the enhanced content
-        fingerprint: '', // Not needed for enhanced articles
-        tag: '',
-        citations: article.citations || [],
-        tuned: article.content // The enhanced content is in the 'content' field
-      }));
+                    // Transform database articles to EnhancedArticle format with citation counts
+              const transformedArticles: EnhancedArticle[] = await Promise.all(
+                dbArticles.map(async (article) => {
+                  const citationCount = await getCitationCount(String(article.gen_article_id));
+                  
+                  // Create a mock citations array with the correct count for display
+                  const mockCitations = Array.from({ length: citationCount }, (_, i) => ({
+                    sourceName: `Source ${i + 1}`,
+                    articleTitle: 'Loading...',
+                    url: null
+                  }));
+
+                  return {
+                    article_id: String(article.gen_article_id),
+                    date: new Date(article.generated_at || Date.now()),
+                    title: article.title,
+                    content: article.content, // This is the enhanced content
+                    fingerprint: '', // Not needed for enhanced articles
+                    tag: '',
+                    citations: mockCitations, // Use mock citations with correct count
+                    tuned: article.content // The enhanced content is in the 'content' field
+                  };
+                })
+              );
 
       setState({
         loading: false,

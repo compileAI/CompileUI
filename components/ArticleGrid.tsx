@@ -5,7 +5,6 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
 import ArticleTile from "./ArticleTile";
 import { useEffect, useRef } from "react";
-import LoadingOverlay from "./ui/loading-overlay";
 
 export default function ArticleGrid() {
   const { loading, articles, error, search } = useHomeSearch();
@@ -42,9 +41,6 @@ export default function ArticleGrid() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-      {/* Loading Message */}
-      {loading && <LoadingOverlay isVisible={true} message="Curating your feed..." />}
-
       {/* Error State */}
       {error && (
         <div className="text-center py-4">

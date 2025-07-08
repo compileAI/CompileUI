@@ -131,6 +131,18 @@ function getCurrentESTDate(): string {
   return estTime.toISOString().split('T')[0]; // Returns YYYY-MM-DD
 }
 
+// Convert EST date to UTC range for database queries
+function getESTDateRange(date: string) {
+  // Convert EST date to UTC range
+  const estStart = new Date(`${date}T00:00:00-05:00`); // EST start
+  const estEnd = new Date(`${date}T23:59:59-05:00`);   // EST end
+  
+  return {
+    start: estStart.toISOString(),
+    end: estEnd.toISOString()
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -146,12 +158,14 @@ export async function GET(request: NextRequest) {
       const supabase = await createClientForServer();
       const today = getCurrentESTDate();
       
+      const { start: todayStart, end: todayEnd } = getESTDateRange(today);
+      
       const { data: generalArticles, error: generalError } = await supabase
         .from('enhanced_articles')
         .select('*, gen_article_id::text')
         .is('user_id', null)
-        .gte('generated_at', `${today}T00:00:00Z`)
-        .lte('generated_at', `${today}T23:59:59Z`)
+        .gte('generated_at', todayStart)
+        .lte('generated_at', todayEnd)
         .gte('expires_at', new Date().toISOString()) // Not expired
         .order('generated_at', { ascending: false })
         .limit(6);
@@ -220,14 +234,16 @@ export async function GET(request: NextRequest) {
 
     // Try user-specific articles first
     console.log(`[Enhanced Articles API] Searching for user-specific articles...`);
+    const { start: todayStart, end: todayEnd } = getESTDateRange(today);
+    
     const { data: userArticles, error: userError } = await supabase
       .from('enhanced_articles')
       .select('*, gen_article_id::text')
       .eq('user_id', userId)
       .eq('content_preferences_hash', contentHash)
       .eq('style_preferences_hash', styleHash)
-      .gte('generated_at', `${today}T00:00:00Z`)
-      .lte('generated_at', `${today}T23:59:59Z`)
+      .gte('generated_at', todayStart)
+      .lte('generated_at', todayEnd)
       .gte('expires_at', new Date().toISOString()) // Not expired
       .order('generated_at', { ascending: false })
       .limit(6);
@@ -302,7 +318,7 @@ export async function GET(request: NextRequest) {
           gen_article_id: articleIdString || null,
           title: article.title,
           content: enhancedContent || "",
-          citations: article.citations,
+          citations: null, // Don't store citations - fetch from original article when needed
           content_preferences_hash: contentHash || 'general',
           style_preferences_hash: styleHash || 'general',
           content_preferences: safeContentInterests,
@@ -321,7 +337,7 @@ export async function GET(request: NextRequest) {
           gen_article_id: articleIdString,
           title: article.title,
           content: enhancedContent || "",
-          citations: article.citations,
+          citations: null, // Don't include citations - fetch from original article when needed
           content_preferences_hash: contentHash || 'general',
           style_preferences_hash: styleHash || 'general',
           content_preferences: safeContentInterests,
@@ -351,10 +367,10 @@ export async function GET(request: NextRequest) {
         const fallbackArticle = {
           id: crypto.randomUUID(),
           user_id: userId || null,
-          gen_article_id: parseInt(article.article_id),
+          gen_article_id: String(article.article_id), // Keep as string
           title: article.title,
           content: article.content, // Use original content as fallback
-          citations: article.citations,
+          citations: null, // Don't include citations - fetch from original article when needed
           content_preferences_hash: contentHash || 'general',
           style_preferences_hash: styleHash || 'general',
           content_preferences: safeContentInterests,
