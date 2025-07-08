@@ -3,6 +3,7 @@
 import { EnhancedArticle } from "@/types";
 import { Calendar, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEnhancedArticle } from "@/context/EnhancedArticleContext";
 
 interface ArticleTileProps {
   article: EnhancedArticle;
@@ -11,6 +12,7 @@ interface ArticleTileProps {
 
 export default function ArticleTile({ article, size }: ArticleTileProps) {
   const router = useRouter();
+  const { setLastEnhanced } = useEnhancedArticle();
   
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
@@ -67,6 +69,7 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
   };
 
   const handleClick = () => {
+    setLastEnhanced(article);
     router.push(`/${article.article_id}`);
   };
 
@@ -74,7 +77,7 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
   const displayContent = article.tuned ? stripMarkdown(article.tuned) : '';
 
   return (
-    <article 
+    <article
       className={`
         ${sizeClasses[size]}
         bg-card 
@@ -93,7 +96,7 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
       {/* Header with metadata */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Calendar className="h-3 w-3" />
+          <Calendar className="h-3 w-3" />
           <span>{formatDate(article.date)}</span>
         </div>
         {article.tag && (
@@ -103,17 +106,14 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
           </div>
         )}
       </div>
-
       {/* Title */}
       <h2 className={`${titleClasses[size]} text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
         {article.title}
       </h2>
-
       {/* Enhanced content */}
       <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow`}>
         {displayContent}
       </div>
-
       {/* Footer with citations count */}
       <div className="mt-3 pt-2 border-t border-border flex-shrink-0">
         <span className="text-xs text-muted-foreground">

@@ -18,6 +18,22 @@ export interface EnhancedArticle extends Article {
   tuned: string;
 }
 
+// New type for enhanced articles from the database API
+export interface DatabaseEnhancedArticle {
+  id: string;
+  user_id: string | null;
+  gen_article_id: string;
+  title: string;
+  content: string; // This is the enhanced content
+  citations: Citation[] | null;
+  content_preferences_hash: string;
+  style_preferences_hash: string;
+  similarity_score: number | null;
+  generated_at: string;
+  expires_at: string | null;
+  enhancement_metadata: any;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

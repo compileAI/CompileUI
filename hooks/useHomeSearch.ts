@@ -1,22 +1,68 @@
 import { useState, useCallback } from "react";
-import { Article, EnhancedArticle } from "@/types";
+import { Article, EnhancedArticle, DatabaseEnhancedArticle, Citation } from "@/types";
+import { createClient } from "@/utils/supabase/client";
+
+// Helper function to fetch citation count for a gen_article_id
+async function getCitationCount(genArticleId: string): Promise<number> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("gen_articles")
+      .select(`
+        citations:citations_ref (
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
+      `)
+      .eq("article_id", genArticleId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`[getCitationCount] Failed to fetch citations for article ${genArticleId}:`, error);
+      return 0;
+    }
+
+    // Extract and deduplicate citations from the nested data
+    const citationsMap = new Map<string, Citation>();
+    
+    (data.citations || []).forEach((citation: any) => {
+      if (!citation?.source_articles?.master_sources?.name) return;
+      
+      // Create the citation object
+      const newCitation: Citation = {
+        sourceName: citation.source_articles.master_sources.name,
+        articleTitle: citation.source_articles.title || 'Untitled',
+        url: citation.source_articles.url
+      };
+      
+      // Create a unique key based on source name and article title
+      const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+      
+      // Only add if we haven't seen this citation before
+      if (!citationsMap.has(citationKey)) {
+        citationsMap.set(citationKey, newCitation);
+      }
+    });
+
+    return citationsMap.size;
+  } catch (error) {
+    console.warn(`[getCitationCount] Error fetching citations for article ${genArticleId}:`, error);
+    return 0;
+  }
+}
 
 interface SearchState {
   loading: boolean;
   articles: EnhancedArticle[];
   error?: string;
+  refreshesRemaining?: number;
+  source?: 'pre-computed' | 'hybrid';
 }
-
-interface CachedSearchResult {
-  contentInterests: string;
-  presentationStyle: string;
-  articles: EnhancedArticle[];
-  timestamp: number;
-  expiresAt: number;
-}
-
-const CACHE_KEY = "compile-enhanced-articles";
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 export function useHomeSearch() {
   const [state, setState] = useState<SearchState>({
@@ -24,135 +70,178 @@ export function useHomeSearch() {
     articles: []
   });
 
-  // Helper function to get cached results
-  const getCachedResults = (contentInterests: string, presentationStyle: string): EnhancedArticle[] | null => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (!cached) return null;
-
-      const cachedData: CachedSearchResult = JSON.parse(cached);
-      
-      // Check if cache is expired
-      if (Date.now() > cachedData.expiresAt) {
-        localStorage.removeItem(CACHE_KEY);
-        return null;
-      }
-
-      // Check if both preferences match (case-insensitive)
-      if (cachedData.contentInterests.toLowerCase() === contentInterests.toLowerCase() &&
-          cachedData.presentationStyle.toLowerCase() === presentationStyle.toLowerCase()) {
-        console.log(`[useHomeSearch] Using cached results for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
-        const articles = cachedData.articles.map(article => ({
-          ...article,
-          date: new Date(article.date) // Convert date string back to Date object
-        }));
-        console.log(`[useHomeSearch] Cached articles citations:`, articles.map(a => ({ id: a.article_id, citationCount: a.citations?.length || 0 })));
-        return articles;
-      }
-
-      return null;
-    } catch (error) {
-      console.warn('[useHomeSearch] Error reading cache:', error);
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-  };
-
-  // Helper function to cache results
-  const cacheResults = (contentInterests: string, presentationStyle: string, articles: EnhancedArticle[]) => {
-    try {
-      console.log(`[useHomeSearch] Caching articles with citations:`, articles.map(a => ({ id: a.article_id, citationCount: a.citations?.length || 0 })));
-      const cacheData: CachedSearchResult = {
-        contentInterests,
-        presentationStyle,
-        articles,
-        timestamp: Date.now(),
-        expiresAt: Date.now() + CACHE_DURATION
-      };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-      console.log(`[useHomeSearch] Cached ${articles.length} enhanced articles for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
-      
-      // Dispatch custom event to notify other components about cache update
-      window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: cacheData }));
-    } catch (error) {
-      console.warn('[useHomeSearch] Error caching results:', error);
-    }
-  };
-
-  const search = useCallback(async (contentInterests: string, presentationStyle: string) => {
+  const search = useCallback(async (contentInterests: string, presentationStyle: string, forceRefresh: boolean = false) => {
     if (!contentInterests.trim() || !presentationStyle.trim()) return;
-
-    // Check cache first
-    const cachedArticles = getCachedResults(contentInterests, presentationStyle);
-    if (cachedArticles) {
-      setState({ loading: false, articles: cachedArticles, error: undefined });
-      return;
-    }
 
     setState({ loading: true, articles: [] });
 
     try {
-      console.log(`[useHomeSearch] Starting fresh search for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+      console.log(`[useHomeSearch] Starting search for content interests: "${contentInterests}" and presentation style: "${presentationStyle}"${forceRefresh ? ' (force refresh)' : ''}`);
 
-      // Step 1: Vector search to get top 6 articles using content interests
-      const searchResponse = await fetch("/api/vector-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: contentInterests, limit: 6 })
+      // Get current user ID
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        interests: contentInterests,
+        style: presentationStyle,
+        ...(forceRefresh && { forceRefresh: 'true' })
       });
 
-      if (!searchResponse.ok) {
-        throw new Error(`Vector search failed: ${searchResponse.statusText}`);
+      // Only add userId if user is authenticated
+      if (userId) {
+        params.append('userId', userId);
       }
 
-      const searchData = await searchResponse.json();
-      const articles: Article[] = searchData.articles || [];
+      // Call new enhanced articles API
+      const response = await fetch(`/api/enhanced-articles?${params}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      });
 
-      console.log(`[useHomeSearch] Found ${articles.length} articles from vector search`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 401) {
+          // For unauthenticated users, try to fetch general articles with default preferences
+          if (!userId) {
+            console.log('[useHomeSearch] User not authenticated, fetching general articles with default preferences');
+            
+            // Use default preferences for general articles
+            const generalParams = new URLSearchParams({
+              interests: "AI, Technology, Innovation", // Default general interests
+              style: "Executive Brief", // Default general style
+            });
+            
+            const generalResponse = await fetch(`/api/enhanced-articles?${generalParams}`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" }
+            });
+            
+            if (generalResponse.ok) {
+              const generalData = await generalResponse.json();
+              const dbArticles: DatabaseEnhancedArticle[] = generalData.articles || [];
 
-      if (articles.length === 0) {
-        setState({ loading: false, articles: [], error: "No articles found for your interests" });
+              console.log(`[useHomeSearch] Received ${dbArticles.length} general articles`);
+
+              if (dbArticles.length === 0) {
+                setState({ 
+                  loading: false, 
+                  articles: [], 
+                  error: "No articles available. Please try again later.",
+                  refreshesRemaining: undefined
+                });
         return;
       }
 
-      // Step 2: Enhance articles in parallel with controlled concurrency
-      console.log(`[useHomeSearch] Starting enhancement for ${articles.length} articles`);
-      
-      const enhancementPromises = articles.map(async (article) => {
-        try {
-          const enhanceResponse = await fetch("/api/enhance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contentInterests, presentationStyle, article })
-          });
+                    // Transform database articles to EnhancedArticle format with citation counts
+      const transformedArticles: EnhancedArticle[] = await Promise.all(
+        dbArticles.map(async (article) => {
+          const citationCount = await getCitationCount(String(article.gen_article_id));
+          
+          // Create a mock citations array with the correct count for display
+          const mockCitations = Array.from({ length: citationCount }, (_, i) => ({
+            sourceName: `Source ${i + 1}`,
+            articleTitle: 'Loading...',
+            url: null
+          }));
 
-          if (!enhanceResponse.ok) {
-            console.warn(`Enhancement failed for article ${article.article_id}: ${enhanceResponse.statusText}`);
-            // Return article with original content as fallback
-            return { ...article, tuned: article.content };
+          return {
+            article_id: String(article.gen_article_id),
+            date: new Date(article.generated_at || Date.now()),
+            title: article.title,
+            content: article.content, // This is the enhanced content
+            fingerprint: '', // Not needed for enhanced articles
+            tag: '',
+            citations: mockCitations, // Use mock citations with correct count
+            tuned: article.content // The enhanced content is in the 'content' field
+          };
+        })
+      );
+
+              setState({
+                loading: false,
+                articles: transformedArticles,
+                error: undefined,
+                refreshesRemaining: undefined,
+                source: generalData.source
+              });
+              return;
+            }
           }
-
-          const enhancedArticle: EnhancedArticle = await enhanceResponse.json();
-          return enhancedArticle;
-        } catch (error) {
-          console.warn(`Enhancement error for article ${article.article_id}:`, error);
-          // Return article with original content as fallback
-          return { ...article, tuned: article.content };
+          
+          // Authentication required
+          setState({
+            loading: false,
+            articles: [],
+            error: "Please log in to use personalized content preferences.",
+            refreshesRemaining: undefined
+          });
+          return;
         }
-      });
+        
+        if (response.status === 429) {
+          // Rate limit exceeded
+          setState({
+            loading: false,
+            articles: [],
+            error: `Daily refresh limit reached. You have ${errorData.refreshesRemaining} refreshes remaining.`,
+            refreshesRemaining: errorData.refreshesRemaining
+          });
+          return;
+        }
+        
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
 
-      // Wait for all enhancements to complete
-      const enhancedArticles = await Promise.all(enhancementPromises);
+      const data = await response.json();
+      const dbArticles: DatabaseEnhancedArticle[] = data.articles || [];
 
-      console.log(`[useHomeSearch] Successfully enhanced ${enhancedArticles.length} articles`);
+      console.log(`[useHomeSearch] Received ${dbArticles.length} articles from ${data.source} source`);
 
-      // Cache the results before setting state
-      cacheResults(contentInterests, presentationStyle, enhancedArticles);
+      if (dbArticles.length === 0) {
+        setState({ 
+          loading: false, 
+          articles: [], 
+          error: "No articles found for your interests",
+          refreshesRemaining: data.refreshesRemaining
+        });
+        return;
+      }
+
+                    // Transform database articles to EnhancedArticle format with citation counts
+              const transformedArticles: EnhancedArticle[] = await Promise.all(
+                dbArticles.map(async (article) => {
+                  const citationCount = await getCitationCount(String(article.gen_article_id));
+                  
+                  // Create a mock citations array with the correct count for display
+                  const mockCitations = Array.from({ length: citationCount }, (_, i) => ({
+                    sourceName: `Source ${i + 1}`,
+                    articleTitle: 'Loading...',
+                    url: null
+                  }));
+
+                  return {
+                    article_id: String(article.gen_article_id),
+                    date: new Date(article.generated_at || Date.now()),
+                    title: article.title,
+                    content: article.content, // This is the enhanced content
+                    fingerprint: '', // Not needed for enhanced articles
+                    tag: '',
+                    citations: mockCitations, // Use mock citations with correct count
+                    tuned: article.content // The enhanced content is in the 'content' field
+                  };
+                })
+              );
 
       setState({
         loading: false,
-        articles: enhancedArticles,
-        error: undefined
+        articles: transformedArticles,
+        error: undefined,
+        refreshesRemaining: data.refreshesRemaining,
+        source: data.source
       });
 
     } catch (error) {
@@ -165,18 +254,8 @@ export function useHomeSearch() {
     }
   }, []);
 
-  // Function to clear cache (useful for debugging or manual refresh)
-  const clearCache = useCallback(() => {
-    localStorage.removeItem(CACHE_KEY);
-    console.log('[useHomeSearch] Cache cleared');
-    
-    // Dispatch custom event to notify other components about cache update
-    window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
-  }, []);
-
   return {
     ...state,
-    search,
-    clearCache
+    search
   };
 } 
