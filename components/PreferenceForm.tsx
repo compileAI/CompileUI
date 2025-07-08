@@ -118,40 +118,40 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
 
   // Generate preview when topics or style changes
   useEffect(() => {
+    const generatePreview = () => {
+      const selectedStyle = STYLE_PRESETS.find(s => s.id === watchedStyle);
+      if (!selectedStyle || watchedTopics.length === 0) return;
+
+      // Use the same story across all styles to show the difference
+      let preview = "";
+      
+      switch (selectedStyle.id) {
+        case "executive-brief":
+          preview = `OpenAI GPT-5 Launch: Key Development\n• Revolutionary multimodal AI model released\n• Market impact: $500B AI sector growth projected\n• 10x performance improvement over GPT-4\n• Enterprise adoption expected within 6 months\n\nSources: OpenAI blog, TechCrunch, WSJ`;
+          break;
+        case "explain-like-five":
+          preview = `Think of the new GPT-5 like having a super-smart friend who can see, hear, and understand everything!\n\nImagine your regular smart friend (GPT-4) could only read books. Now this new friend can also look at pictures, watch videos, and even help you with math homework by seeing the problems. It's like upgrading from a bicycle to a rocket ship!`;
+          break;
+        case "first-principles":
+          preview = `Understanding GPT-5's Breakthrough\n\n1. Core problem: Previous AI models were limited to text-only understanding\n2. OpenAI's approach: Unified architecture processing text, images, audio, and video\n3. Key innovation: Cross-modal reasoning allows simultaneous understanding\n4. Technical foundation: Transformer architecture with 10T parameters\n5. Implications: Enables human-level multimodal comprehension`;
+          break;
+        case "just-facts":
+          preview = `• OpenAI released GPT-5 on December 15, 2024\n• Model size: 10 trillion parameters\n• Capabilities: Text, image, audio, video processing\n• Performance: 90% on graduate-level reasoning tasks\n• Pricing: $0.03 per 1K input tokens\n• Availability: API access, ChatGPT Pro subscribers\n• Competitors: Google Gemini Ultra, Anthropic Claude 3.5`;
+          break;
+        case "actionable-insights":
+          preview = `GPT-5 transforms the AI landscape with unprecedented multimodal capabilities.\n\nImmediate opportunities:\n→ Integrate GPT-5 API into existing products for competitive advantage\n→ Develop video/audio content analysis tools\n→ Create educational apps leveraging visual understanding\n\nRisks to monitor:\n→ Increased operational costs vs. current models\n→ Potential regulatory scrutiny on advanced AI`;
+          break;
+      }
+      
+      setPreviewContent(preview);
+    };
+
     if (watchedTopics.length > 0 && watchedStyle) {
       generatePreview();
     } else {
       setPreviewContent(null);
     }
   }, [watchedTopics, watchedStyle]);
-
-  const generatePreview = () => {
-    const selectedStyle = STYLE_PRESETS.find(s => s.id === watchedStyle);
-    if (!selectedStyle || watchedTopics.length === 0) return;
-
-    // Use the same story across all styles to show the difference
-    let preview = "";
-    
-    switch (selectedStyle.id) {
-      case "executive-brief":
-        preview = `OpenAI GPT-5 Launch: Key Development\n• Revolutionary multimodal AI model released\n• Market impact: $500B AI sector growth projected\n• 10x performance improvement over GPT-4\n• Enterprise adoption expected within 6 months\n\nSources: OpenAI blog, TechCrunch, WSJ`;
-        break;
-      case "explain-like-five":
-        preview = `Think of the new GPT-5 like having a super-smart friend who can see, hear, and understand everything!\n\nImagine your regular smart friend (GPT-4) could only read books. Now this new friend can also look at pictures, watch videos, and even help you with math homework by seeing the problems. It's like upgrading from a bicycle to a rocket ship!`;
-        break;
-      case "first-principles":
-        preview = `Understanding GPT-5's Breakthrough\n\n1. Core problem: Previous AI models were limited to text-only understanding\n2. OpenAI's approach: Unified architecture processing text, images, audio, and video\n3. Key innovation: Cross-modal reasoning allows simultaneous understanding\n4. Technical foundation: Transformer architecture with 10T parameters\n5. Implications: Enables human-level multimodal comprehension`;
-        break;
-      case "just-facts":
-        preview = `• OpenAI released GPT-5 on December 15, 2024\n• Model size: 10 trillion parameters\n• Capabilities: Text, image, audio, video processing\n• Performance: 90% on graduate-level reasoning tasks\n• Pricing: $0.03 per 1K input tokens\n• Availability: API access, ChatGPT Pro subscribers\n• Competitors: Google Gemini Ultra, Anthropic Claude 3.5`;
-        break;
-      case "actionable-insights":
-        preview = `GPT-5 transforms the AI landscape with unprecedented multimodal capabilities.\n\nImmediate opportunities:\n→ Integrate GPT-5 API into existing products for competitive advantage\n→ Develop video/audio content analysis tools\n→ Create educational apps leveraging visual understanding\n\nRisks to monitor:\n→ Increased operational costs vs. current models\n→ Potential regulatory scrutiny on advanced AI`;
-        break;
-    }
-    
-    setPreviewContent(preview);
-  };
 
   const addTopic = (topic: string) => {
     const currentTopics = getValues("topics");

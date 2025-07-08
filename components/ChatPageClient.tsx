@@ -174,24 +174,24 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     } else {
-      // Desktop toggle
+      // Desktop toggle - chat slides over recommended articles
       if (chatVisible) {
-        // Closing chat - hide content first, then panel
+        // Closing chat - hide content first, then slide out
         setChatMessagesVisible(false);
         setTimeout(() => {
           setChatVisible(false);
         }, 200);
       } else {
-        // Opening chat - show panel, then content with animation
+        // Opening chat - slide in, then show content
         setChatVisible(true);
-        // Show messages with a slight delay for smooth fade-in
+        // Show messages with a delay for smooth slide-in + fade-in
         setTimeout(() => {
           setChatMessagesVisible(true);
           // Scroll to bottom after messages are rendered
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
           }, 100);
-        }, 400);
+        }, 300);
       }
     }
   };
@@ -367,7 +367,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       <Header />
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Article Section */}
+        {/* Article Section - Takes 2/3 width on desktop, full width on mobile */}
         <div 
           ref={articleContentRef}
           data-testid="article-content-container"
@@ -375,16 +375,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             h-full overflow-y-auto transition-all duration-500 ease-in-out
             ${isMobile 
               ? (chatVisible ? 'hidden' : 'w-full')
-              : (chatVisible 
-                  ? 'w-1/2' 
-                  : 'w-full'
-                )
+              : 'w-2/3' // Always 2/3 width on desktop
             }
-            ${!isMobile && chatVisible ? 'border-r border-zinc-200 dark:border-zinc-800' : ''}
+            ''
           `}
         >
           <div className="p-8">
-            <div className={`mx-auto ${chatVisible && !isMobile ? 'max-w-2xl' : 'max-w-4xl'}`}>
+            <div className="mx-auto max-w-4xl">
               {/* Article Header */}
               <div className="mb-8">
                 <div className={`${isMobile ? 'mb-4' : 'flex justify-between items-start mb-4'}`}>
@@ -433,15 +430,6 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 
                 <div className="prose prose-lg dark:prose-invert max-w-none [&_p]:mb-4">
                   <ReactMarkdown>{article.content}</ReactMarkdown>
-                </div>
-
-                {/* FAQ Section */}
-                <div className="mt-8">
-                  <ArticleFAQs 
-                    articleId={article.article_id}
-                    onFAQClick={handleFAQClick}
-                    isMobile={isMobile}
-                  />
                 </div>
 
                 {/* Bottom controls - Citations on right, Back button on left */}
@@ -513,20 +501,50 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                     </Button>
                   </div>
                 </div>
-              </div>
-              
-              {/* Recommended Articles Section */}
-              <div className="max-w-none">
-                <RecommendedArticles 
-                  currentArticleId={article.article_id}
-                  onArticleClick={() => setChatVisible(false)}
-                />
+
+                {/* FAQ Section */}
+                <div className="mt-8">
+                  <ArticleFAQs 
+                    articleId={article.article_id}
+                    onFAQClick={handleFAQClick}
+                    isMobile={isMobile}
+                  />
+                </div>
+
+                {/* Mobile Recommended Articles - Only show on mobile */}
+                {isMobile && (
+                  <div className="mt-8 max-w-none">
+                    <RecommendedArticles 
+                      currentArticleId={article.article_id}
+                      onArticleClick={() => setChatVisible(false)}
+                      layout="bottom"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Chat Section - Always rendered for smooth animations */}
+        {/* Recommended Articles Sidebar - Only on desktop, hidden when chat is open */}
+        {!isMobile && (
+          <div 
+            className={`
+              w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out
+              ${chatVisible ? 'hidden' : 'block'}
+            `}
+          >
+            <div className="p-6">
+              <RecommendedArticles 
+                currentArticleId={article.article_id}
+                onArticleClick={() => setChatVisible(false)}
+                layout="sidebar"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Chat Section - Slides over the recommended articles section */}
         <div 
           className={`
             transition-all duration-500 ease-in-out
@@ -536,8 +554,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none'
                 )
               : (chatVisible 
-                  ? 'w-1/2 flex flex-col overflow-hidden' 
-                  : 'w-0 flex flex-col overflow-hidden pointer-events-none'
+                  ? 'w-1/3 flex flex-col overflow-hidden absolute right-0 top-0 h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800' 
+                  : 'w-1/3 flex flex-col overflow-hidden absolute right-0 top-0 h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800 translate-x-full pointer-events-none'
                 )
             }
           `}

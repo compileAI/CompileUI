@@ -10,9 +10,10 @@ interface ArticleFAQsProps {
   articleId: string;
   onFAQClick: (question: string, answer: string) => void;
   isMobile: boolean;
+  layout?: 'side' | 'bottom' | 'chat';
 }
 
-export default function ArticleFAQs({ articleId, onFAQClick, isMobile }: ArticleFAQsProps) {
+export default function ArticleFAQs({ articleId, onFAQClick, isMobile, layout = 'bottom' }: ArticleFAQsProps) {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -46,7 +47,8 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile }: Article
     }
   };
 
-  if (isMobile) {
+  // Mobile dropdown version (except in chat layout)
+  if (isMobile && layout !== 'chat') {
     return (
       <div className="relative mb-4">
         {/* Mobile Dropdown Button */}
@@ -54,10 +56,12 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile }: Article
           variant="outline"
           size="sm"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600"
+          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 w-full justify-between"
         >
-          <MessageCircle className="h-4 w-4" />
-          <span>Questions ({faqs.length})</span>
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" />
+            <span>Related Questions ({faqs.length})</span>
+          </div>
           {isDropdownOpen ? (
             <ChevronUp className="h-4 w-4" />
           ) : (
@@ -68,17 +72,15 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile }: Article
         {/* Mobile Dropdown Content */}
         {isDropdownOpen && (
           <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 z-10">
-            <div className="space-y-2">
+            <div className="space-y-1">
               {faqs.map((faq) => (
-                <Button
+                <button
                   key={faq.id}
-                  variant="ghost"
-                  size="sm"
                   onClick={() => handleFAQClick(faq)}
-                  className="w-full text-left justify-start h-auto min-h-[2.5rem] p-3 text-sm bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600 whitespace-normal text-wrap leading-tight"
+                  className="w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   {faq.question_short}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
@@ -87,21 +89,33 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile }: Article
     );
   }
 
-  // Desktop Layout - 3 buttons spanning full width
+  // Get container styles based on layout
+  const containerClasses = {
+    side: 'mb-4',
+    bottom: 'mb-4',
+    chat: ''
+  }[layout];
+
+  const cardClasses = 'dark:border-gray-800 rounded-lg p-4';
+
+  // Desktop Layout
   return (
-    <div className="mb-4">
-      <div className="grid grid-cols-3 gap-3 items-stretch">
-        {faqs.map((faq) => (
-          <Button
-            key={faq.id}
-            variant="outline"
-            size="sm"
-            onClick={() => handleFAQClick(faq)}
-            className="h-auto min-h-[3rem] p-3 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 whitespace-normal text-wrap leading-tight flex items-center justify-center"
-          >
-            {faq.question_short}
-          </Button>
-        ))}
+    <div className={containerClasses}>
+      <div className={cardClasses}>
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+          Related Questions
+        </h3>
+        <div className="space-y-1">
+          {faqs.map((faq) => (
+            <button
+              key={faq.id}
+              onClick={() => handleFAQClick(faq)}
+              className="w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {faq.question_short}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
