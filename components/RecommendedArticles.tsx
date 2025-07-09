@@ -32,7 +32,7 @@ export default function RecommendedArticles({ currentArticleId, onArticleClick, 
           body: JSON.stringify({
             articleId: currentArticleId,
             excludeIds,
-            limit: layout === 'sidebar' ? 3 : RECOMMENDATIONS_CONFIG.DEFAULT_COUNT // Fewer items for sidebar
+            limit: RECOMMENDATIONS_CONFIG.DEFAULT_COUNT
           })
         });
 
@@ -53,7 +53,7 @@ export default function RecommendedArticles({ currentArticleId, onArticleClick, 
     if (currentArticleId) {
       fetchRecommendations();
     }
-  }, [currentArticleId, layout]);
+  }, [currentArticleId]);
 
   const handleArticleClick = (article: Article) => {
     // Add current article to recently visited before navigating
@@ -97,8 +97,8 @@ export default function RecommendedArticles({ currentArticleId, onArticleClick, 
         
         {loading ? (
           // Loading skeleton for sidebar
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+          <div className="space-y-4">
+            {Array.from({ length: RECOMMENDATIONS_CONFIG.DEFAULT_COUNT }).map((_, index) => (
               <div
                 key={index}
                 data-testid="article-skeleton"

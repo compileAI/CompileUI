@@ -86,6 +86,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   useEffect(() => {
     const fetchCitations = async () => {
       try {
+        console.log("CITATIONS DEBUG - article.citations: ", article.citations);
         setCitationsLoading(true);
         setCitationsError(null);
         

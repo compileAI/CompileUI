@@ -20,6 +20,70 @@ interface ArticleWithCitations {
   }>;
 }
 
+// Helper function to find fallback citations for CLUSTER articles without citations
+async function findFallbackCitations(supabase: any, clusterArticle: any): Promise<Citation[]> {
+  try {
+    console.log(`[fetchArticles] Finding fallback citations for CLUSTER article: ${clusterArticle.article_id}`);
+    
+    // Try to find VDB_IMPROVED articles with similar content or from the same time period
+    const { data: relatedArticles, error } = await supabase
+      .from("gen_articles")
+      .select(`
+        article_id::text,
+        citations:citations_ref (
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
+      `)
+      .eq("tag", "VDB_IMPROVED")
+      .gte("date", new Date(new Date(clusterArticle.date).getTime() - 24 * 60 * 60 * 1000).toISOString()) // Within 24 hours
+      .lte("date", new Date(new Date(clusterArticle.date).getTime() + 24 * 60 * 60 * 1000).toISOString())
+      .limit(5);
+
+    if (error || !relatedArticles || relatedArticles.length === 0) {
+      console.log(`[fetchArticles] No related VDB_IMPROVED articles found for fallback citations`);
+      return [];
+    }
+
+    // Collect all citations from related articles
+    const fallbackCitationsMap = new Map<string, Citation>();
+    
+    relatedArticles.forEach(article => {
+      if (article.citations && Array.isArray(article.citations)) {
+        article.citations.forEach((citation: any) => {
+          if (citation?.source_articles?.master_sources?.name) {
+            const newCitation: Citation = {
+              sourceName: citation.source_articles.master_sources.name,
+              articleTitle: citation.source_articles.title || 'Untitled',
+              url: citation.source_articles.url
+            };
+            
+            const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+            if (!fallbackCitationsMap.has(citationKey)) {
+              fallbackCitationsMap.set(citationKey, newCitation);
+            }
+          }
+        });
+      }
+    });
+
+    const fallbackCitations = Array.from(fallbackCitationsMap.values());
+    console.log(`[fetchArticles] Found ${fallbackCitations.length} fallback citations for CLUSTER article`);
+    
+    // Limit to top 5 citations to avoid overwhelming the UI
+    return fallbackCitations.slice(0, 5);
+    
+  } catch (error) {
+    console.error(`[fetchArticles] Error finding fallback citations:`, error);
+    return [];
+  }
+}
+
 export async function getGeneratedArticles(): Promise<Article[]> {
   const supabase = await createClientForServer();
 
@@ -64,42 +128,49 @@ export async function getGeneratedArticles(): Promise<Article[]> {
   }
 
   // Transform the data into our Article type
-  const typedArticles: Article[] = articlesData.map(item => {
-    // Extract and deduplicate citations from the nested data
-    const citationsMap = new Map<string, Citation>();
-    
-    (item.citations || []).forEach(citation => {
-      if (!citation?.source_articles?.master_sources?.name) return;
+  const typedArticles: Article[] = await Promise.all(
+    articlesData.map(async (item) => {
+      // Extract and deduplicate citations from the nested data
+      const citationsMap = new Map<string, Citation>();
       
-      // Create the citation object
-      const newCitation: Citation = {
-        sourceName: citation.source_articles.master_sources.name,
-        articleTitle: citation.source_articles.title || 'Untitled',
-        url: citation.source_articles.url
-      };
-      
-      // Create a unique key based on source name and article title
-      const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
-      
-      // Only add if we haven't seen this citation before
-      if (!citationsMap.has(citationKey)) {
-        citationsMap.set(citationKey, newCitation);
+      (item.citations || []).forEach(citation => {
+        if (!citation?.source_articles?.master_sources?.name) return;
+        
+        // Create the citation object
+        const newCitation: Citation = {
+          sourceName: citation.source_articles.master_sources.name,
+          articleTitle: citation.source_articles.title || 'Untitled',
+          url: citation.source_articles.url
+        };
+        
+        // Create a unique key based on source name and article title
+        const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+        
+        // Only add if we haven't seen this citation before
+        if (!citationsMap.has(citationKey)) {
+          citationsMap.set(citationKey, newCitation);
+        }
+      });
+
+      // Convert the Map back to an array
+      let citations = Array.from(citationsMap.values());
+
+      // If CLUSTER article has no citations, try to find fallback citations
+      if (citations.length === 0 && item.tag === 'CLUSTER') {
+        citations = await findFallbackCitations(supabase, item);
       }
-    });
 
-    // Convert the Map back to an array
-    const citations = Array.from(citationsMap.values());
-
-    return {
-      article_id: item.article_id, // Already a string from article_id::text
-      date: new Date(item.date),
-      title: String(item.title),
-      content: String(item.content),
-      fingerprint: String(item.fingerprint),
-      tag: String(item.tag),
-      citations
-    };
-  });
+      return {
+        article_id: item.article_id, // Already a string from article_id::text
+        date: new Date(item.date),
+        title: String(item.title),
+        content: String(item.content),
+        fingerprint: String(item.fingerprint),
+        tag: String(item.tag),
+        citations
+      };
+    })
+  );
 
   return typedArticles;
 }

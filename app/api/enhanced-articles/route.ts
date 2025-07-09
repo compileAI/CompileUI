@@ -19,7 +19,8 @@ function hashStylePreferences(presentationStyle: string): string {
 
 // Helper function to enhance a single article
 async function enhanceArticle(article: Article, contentInterests: string, presentationStyle: string) {
-  const enhancementPrompt = `You are an AI assistant that helps personalize and improve articles based on user preferences.
+  try {
+    const enhancementPrompt = `You are an AI assistant that helps personalize and improve articles based on user preferences.
 
 User's Content Interests: "${contentInterests}"
 User's Preferred Presentation Style: "${presentationStyle}"
@@ -39,12 +40,20 @@ Please rewrite and enhance this article to better match the user's interests and
 
 Return only the enhanced article content, no additional formatting or explanations.`;
 
-  const response = await genAI.models.generateContent({
-    model: "gemini-2.5-flash-preview-05-20",
-    contents: enhancementPrompt
-  });
-  
-  return response.text;
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash-preview-05-20",
+      contents: enhancementPrompt
+    });
+    
+    if (!response.text) {
+      throw new Error('Empty response from Gemini API');
+    }
+    
+    return response.text;
+  } catch (error) {
+    console.error('[Enhanced Articles API] Gemini API error:', error);
+    throw new Error(`Failed to enhance article: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 // Helper function to save enhanced article to database
@@ -60,19 +69,24 @@ async function saveEnhancedArticle(data: {
   style_preferences: string;
   enhancement_metadata: unknown;
 }) {
-  const supabase = await createClientForServer();
-  
-  const { error } = await supabase
-    .from('enhanced_articles')
-    .upsert({
-      ...data,
-      similarity_score: null,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    });
+  try {
+    const supabase = await createClientForServer();
+    
+    const { error } = await supabase
+      .from('enhanced_articles')
+      .upsert({
+        ...data,
+        similarity_score: null,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
 
-  if (error) {
-    console.error('Error saving enhanced article:', error);
-    throw error;
+    if (error) {
+      console.error('[Enhanced Articles API] Error saving enhanced article:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('[Enhanced Articles API] Error in saveEnhancedArticle:', error);
+    throw new Error(`Failed to save enhanced article: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -417,8 +431,19 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[Enhanced Articles API] Error:', error);
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      // If it's an error we threw with a specific message
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    
+    // For unknown errors, return a generic message
     return NextResponse.json(
-      { error: 'Failed to get enhanced articles' },
+      { error: 'An internal server error occurred' },
       { status: 500 }
     );
   }
