@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { X, Search, FileText, Target, Microscope, Clipboard, Zap, Plus } from "lucide-react";
+import { X, Search, FileText, Target, Microscope, Clipboard, Zap, Plus, Edit3 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card } from "./ui/card";
+import { Textarea } from "./ui/textarea";
+import { useRefresh } from "@/hooks/useRefresh";
 
 import toast from 'react-hot-toast';
 
@@ -23,6 +25,7 @@ interface PreferenceFormProps {
 interface PreferenceFormData {
   topics: string[];
   style: string;
+  customStyle: string;
 }
 
 const DEFAULT_TOPICS = [
@@ -82,17 +85,20 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
   const [searchQuery, setSearchQuery] = useState("");
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const { refresh, refreshesRemaining, isDisabled: isRefreshDisabled, isAuthenticated, fetchRefreshCount } = useRefresh();
   
   const form = useForm<PreferenceFormData>({
     defaultValues: {
       topics: [],
-      style: "executive-brief"
+      style: "executive-brief",
+      customStyle: ""
     }
   });
 
   const { watch, setValue, getValues } = form;
   const watchedTopics = watch("topics");
   const watchedStyle = watch("style");
+  const watchedCustomStyle = watch("customStyle");
 
   // Initialize form with existing preferences
   useEffect(() => {
@@ -108,8 +114,10 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
       
       if (matchedPreset) {
         setValue("style", matchedPreset.id);
+        setValue("customStyle", "");
       } else {
-        setValue("style", "executive-brief"); // Default to executive brief if no match
+        setValue("style", "custom");
+        setValue("customStyle", initialPreferences.presentationStyle);
       }
       
       setValue("topics", topics);
@@ -118,40 +126,47 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
 
   // Generate preview when topics or style changes
   useEffect(() => {
-    const generatePreview = () => {
+    if (watchedTopics.length > 0 && (watchedStyle || watchedCustomStyle)) {
       const selectedStyle = STYLE_PRESETS.find(s => s.id === watchedStyle);
-      if (!selectedStyle || watchedTopics.length === 0) return;
-
-      // Use the same story across all styles to show the difference
-      let preview = "";
-      
-      switch (selectedStyle.id) {
-        case "executive-brief":
-          preview = `OpenAI GPT-5 Launch: Key Development\n• Revolutionary multimodal AI model released\n• Market impact: $500B AI sector growth projected\n• 10x performance improvement over GPT-4\n• Enterprise adoption expected within 6 months\n\nSources: OpenAI blog, TechCrunch, WSJ`;
-          break;
-        case "explain-like-five":
-          preview = `Think of the new GPT-5 like having a super-smart friend who can see, hear, and understand everything!\n\nImagine your regular smart friend (GPT-4) could only read books. Now this new friend can also look at pictures, watch videos, and even help you with math homework by seeing the problems. It's like upgrading from a bicycle to a rocket ship!`;
-          break;
-        case "first-principles":
-          preview = `Understanding GPT-5's Breakthrough\n\n1. Core problem: Previous AI models were limited to text-only understanding\n2. OpenAI's approach: Unified architecture processing text, images, audio, and video\n3. Key innovation: Cross-modal reasoning allows simultaneous understanding\n4. Technical foundation: Transformer architecture with 10T parameters\n5. Implications: Enables human-level multimodal comprehension`;
-          break;
-        case "just-facts":
-          preview = `• OpenAI released GPT-5 on December 15, 2024\n• Model size: 10 trillion parameters\n• Capabilities: Text, image, audio, video processing\n• Performance: 90% on graduate-level reasoning tasks\n• Pricing: $0.03 per 1K input tokens\n• Availability: API access, ChatGPT Pro subscribers\n• Competitors: Google Gemini Ultra, Anthropic Claude 3.5`;
-          break;
-        case "actionable-insights":
-          preview = `GPT-5 transforms the AI landscape with unprecedented multimodal capabilities.\n\nImmediate opportunities:\n→ Integrate GPT-5 API into existing products for competitive advantage\n→ Develop video/audio content analysis tools\n→ Create educational apps leveraging visual understanding\n\nRisks to monitor:\n→ Increased operational costs vs. current models\n→ Potential regulatory scrutiny on advanced AI`;
-          break;
+      const styleDescription = selectedStyle?.description || watchedCustomStyle;
+      if (!styleDescription || watchedTopics.length === 0) {
+        setPreviewContent(null);
+        return;
       }
-      
+      let preview = "";
+      if (watchedStyle === "custom" && watchedCustomStyle) {
+        preview = `Custom Style Preview:\n\nOpenAI GPT-5 Launch: ${watchedCustomStyle}\n\nThis preview shows how your custom writing style would be applied to AI news articles.`;
+      } else if (selectedStyle) {
+        switch (selectedStyle.id) {
+          case "executive-brief":
+            preview = `OpenAI GPT-5 Launch: Key Development\n• Revolutionary multimodal AI model released\n• Market impact: $500B AI sector growth projected\n• 10x performance improvement over GPT-4\n• Enterprise adoption expected within 6 months\n\nSources: OpenAI blog, TechCrunch, WSJ`;
+            break;
+          case "explain-like-five":
+            preview = `Think of the new GPT-5 like having a super-smart friend who can see, hear, and understand everything!\n\nImagine your regular smart friend (GPT-4) could only read books. Now this new friend can also look at pictures, watch videos, and even help you with math homework by seeing the problems. It's like upgrading from a bicycle to a rocket ship!`;
+            break;
+          case "first-principles":
+            preview = `Understanding GPT-5's Breakthrough\n\n1. Core problem: Previous AI models were limited to text-only understanding\n2. OpenAI's approach: Unified architecture processing text, images, audio, and video\n3. Key innovation: Cross-modal reasoning allows simultaneous understanding\n4. Technical foundation: Transformer architecture with 10T parameters\n5. Implications: Enables human-level multimodal comprehension`;
+            break;
+          case "just-facts":
+            preview = `• OpenAI released GPT-5 on December 15, 2024\n• Model size: 10 trillion parameters\n• Capabilities: Text, image, audio, video processing\n• Performance: 90% on graduate-level reasoning tasks\n• Pricing: $0.03 per 1K input tokens\n• Availability: API access, ChatGPT Pro subscribers\n• Competitors: Google Gemini Ultra, Anthropic Claude 3.5`;
+            break;
+          case "actionable-insights":
+            preview = `GPT-5 transforms the AI landscape with unprecedented multimodal capabilities.\n\nImmediate opportunities:\n→ Integrate GPT-5 API into existing products for competitive advantage\n→ Develop video/audio content analysis tools\n→ Create educational apps leveraging visual understanding\n\nRisks to monitor:\n→ Increased operational costs vs. current models\n→ Potential regulatory scrutiny on advanced AI`;
+            break;
+        }
+      }
       setPreviewContent(preview);
-    };
-
-    if (watchedTopics.length > 0 && watchedStyle) {
-      generatePreview();
     } else {
       setPreviewContent(null);
     }
-  }, [watchedTopics, watchedStyle]);
+  }, [watchedTopics, watchedStyle, watchedCustomStyle]);
+
+  // Fetch refresh count when the form opens and user is authenticated
+  useEffect(() => {
+    if (isOpen && isAuthenticated) {
+      fetchRefreshCount();
+    }
+  }, [isOpen, isAuthenticated, fetchRefreshCount]);
 
   const addTopic = (topic: string) => {
     const currentTopics = getValues("topics");
@@ -177,6 +192,13 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
     }
   };
 
+  const handleStyleSelect = (styleId: string) => {
+    setValue("style", styleId);
+    if (styleId !== "custom") {
+      setValue("customStyle", "");
+    }
+  };
+
   const filteredSuggestions = DEFAULT_TOPICS.filter(topic => 
     !watchedTopics.includes(topic) && 
     topic.toLowerCase().includes(searchQuery.toLowerCase())
@@ -187,8 +209,14 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
       toast.loading('Saving preferences...', { id: 'save' });
       
       const contentInterests = data.topics.join(', ');
-      const selectedPreset = STYLE_PRESETS.find(preset => preset.id === data.style);
-      const presentationStyle = selectedPreset?.description || "";
+      let presentationStyle = "";
+      
+      if (data.style === "custom") {
+        presentationStyle = data.customStyle;
+      } else {
+        const selectedPreset = STYLE_PRESETS.find(preset => preset.id === data.style);
+        presentationStyle = selectedPreset?.description || "";
+      }
 
       console.log('PreferenceForm saving:', { contentInterests, presentationStyle });
 
@@ -203,7 +231,24 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
       localStorage.removeItem("compile-enhanced-articles");
       window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
       
-      toast.success('Preferences saved successfully!', { id: 'save' });
+      // If user is authenticated and has refreshes remaining, trigger refresh
+      if (isAuthenticated && refreshesRemaining > 0) {
+        toast.loading('Refreshing content...', { id: 'refresh' });
+        
+        try {
+          await refresh(true); // Prevent automatic page reload
+          
+          toast.success('Preferences saved and content refreshed!', { id: 'save' });
+          toast.success('Cache cleared successfully!', { id: 'refresh' });
+        } catch (refreshError) {
+          console.error('Refresh failed after save:', refreshError);
+          toast.success('Preferences saved successfully!', { id: 'save' });
+          toast.error('Failed to refresh content. You can refresh manually later.', { id: 'refresh' });
+        }
+      } else {
+        toast.success('Preferences saved successfully!', { id: 'save' });
+      }
+      
       setShowSavedMessage(true);
       
       // Hide the saved message and close modal after 1.5 seconds
@@ -222,6 +267,50 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
   };
 
   if (!isOpen) return null;
+
+  // Show sign-in message if user is not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div 
+        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+        onClick={onClose}
+      >
+        <div 
+          className="bg-background dark:bg-background rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-border"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 mx-auto bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center">
+              <Search className="h-8 w-8 text-primary" />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Sign in to customize</h2>
+              <p className="text-muted-foreground mt-2">
+                Personalize your content preferences and writing style by signing in to your account.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button 
+                onClick={() => window.location.href = '/auth'}
+                className="w-full"
+              >
+                Sign In
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -327,8 +416,8 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
           <div className="space-y-4">
             <Label className="text-lg font-medium">Writing style</Label>
             
-                        <div className="space-y-2">
-               {STYLE_PRESETS.map((preset) => (
+            <div className="space-y-2">
+              {STYLE_PRESETS.map((preset) => (
                 <Card 
                   key={preset.id} 
                   className={`p-3 cursor-pointer transition-all ${
@@ -336,7 +425,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
                       ? 'border-primary bg-primary/5 ring-1 ring-primary/20 dark:bg-primary/10 dark:ring-primary/30' 
                       : 'border-border hover:bg-muted hover:border-border/80 dark:hover:bg-muted'
                   }`} 
-                  onClick={() => setValue("style", preset.id)}
+                  onClick={() => handleStyleSelect(preset.id)}
                 >
                   <div className="flex items-center gap-3">
                     <preset.icon className={`h-4 w-4 ${
@@ -353,7 +442,47 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
                   </div>
                 </Card>
               ))}
+              
+              {/* Custom Style Option */}
+              <Card 
+                className={`p-3 cursor-pointer transition-all ${
+                  watchedStyle === "custom" 
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20 dark:bg-primary/10 dark:ring-primary/30' 
+                    : 'border-border hover:bg-muted hover:border-border/80 dark:hover:bg-muted'
+                }`} 
+                onClick={() => handleStyleSelect("custom")}
+              >
+                <div className="flex items-center gap-3">
+                  <Edit3 className={`h-4 w-4 ${
+                    watchedStyle === "custom" ? 'text-primary' : 'text-muted-foreground'
+                  }`} />
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${
+                      watchedStyle === "custom" ? 'text-primary' : 'text-foreground'
+                    }`}>Custom Style</div>
+                    <div className={`text-xs ${
+                      watchedStyle === "custom" ? 'text-primary/80' : 'text-muted-foreground'
+                    }`}>Write your own instructions</div>
+                  </div>
+                </div>
+              </Card>
             </div>
+
+            {/* Custom Style Text Area */}
+            {watchedStyle === "custom" && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Custom writing instructions</Label>
+                <Textarea
+                  {...form.register("customStyle")}
+                  placeholder="Describe how you want articles to be written. For example: 'Write in a casual, humorous tone with lots of pop culture references' or 'Focus on technical details and include code examples when relevant'"
+                  className="min-h-[100px] resize-none"
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {watchedCustomStyle.length}/500 characters
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Live Preview */}
@@ -381,9 +510,20 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
             <Button 
               type="submit" 
               className="flex-1"
-              disabled={watchedTopics.length === 0}
+              disabled={watchedTopics.length === 0 || (watchedStyle === "custom" && !watchedCustomStyle.trim()) || (isAuthenticated && isRefreshDisabled)}
             >
-              Save
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <span>Save & Refresh</span>
+                  {isRefreshDisabled ? (
+                    <span className="text-xs opacity-70">(Limit reached)</span>
+                  ) : (
+                    <span className="text-xs opacity-70">({refreshesRemaining} left)</span>
+                  )}
+                </div>
+              ) : (
+                "Save"
+              )}
             </Button>
           </div>
 

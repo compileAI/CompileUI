@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Search, Loader2, RefreshCw, ChevronDown, Menu } from "lucide-react";
+import { Settings, Search, Loader2, ChevronDown, Menu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,6 @@ import { createClient } from "@/utils/supabase/client";
 import PreferenceConflictDialog from "@/components/PreferenceConflictDialog";
 import LoadingOverlay from "./ui/loading-overlay";
 import PreferenceForm from "@/components/PreferenceForm";
-import { Toaster } from 'react-hot-toast';
 import { ThemeToggle } from "./ui/theme-toggle";
 
 interface CacheStatus {
@@ -150,26 +149,8 @@ export default function Header() {
     return "Home"; // Default to Home for any other page
   };
 
-
-
   return (
     <>
-      {/* Toast Container */}
-      <Toaster 
-        position="bottom-right"
-        toastOptions={{
-          duration: 4000,
-          className: 'dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700',
-          style: {
-            background: 'hsl(var(--card))',
-            color: 'hsl(var(--card-foreground))',
-            border: '1px solid hsl(var(--border))',
-            opacity: 1,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          },
-        }}
-      />
-      
       <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
         {/* Desktop Layout - Hidden on mobile */}
         <div className="hidden md:flex items-center justify-between">
@@ -234,22 +215,7 @@ export default function Header() {
               </div>
             )}
             
-            {/* Clear Cache Button */}
-            {isMounted && cacheStatus && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  localStorage.removeItem("compile-enhanced-articles");
-                  window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
-                  window.location.reload();
-                }}
-                className="p-2 hover:bg-muted rounded-md transition-all"
-                title="Clear cache and refresh"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            )}
+
 
             {/* No preferences notification - only show after mount and on desktop */}
             {isMounted && !hasPreferences() && (

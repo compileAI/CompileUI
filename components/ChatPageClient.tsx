@@ -58,6 +58,19 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Prevent body scrolling when mobile chat is open
+  useEffect(() => {
+    if (isMobile && chatVisible) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobile, chatVisible]);
+
   // Reset chat visibility and clear messages when article changes
   useEffect(() => {
     setChatVisible(false);
@@ -76,6 +89,16 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         setCitationsLoading(true);
         setCitationsError(null);
         
+        // If the article already has citations, use them
+        if (article.citations && article.citations.length > 0) {
+          console.log(`[ChatPageClient] Using existing citations from article: ${article.citations.length} citations`);
+          setCitations(article.citations);
+          setCitationsLoading(false);
+          return;
+        }
+        
+        // Otherwise, fetch citations from the API as fallback
+        console.log(`[ChatPageClient] No existing citations, fetching from API for article: ${article.article_id}`);
         const response = await fetch(`/api/fetchArticles?articleId=${article.article_id}`);
         const data = await response.json();
         
@@ -93,7 +116,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     };
 
     fetchCitations();
-  }, [article.article_id]);
+  }, [article.article_id, article.citations]);
 
   // Load chat history for authenticated users
   useEffect(() => {
@@ -550,8 +573,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             transition-all duration-500 ease-in-out
             ${isMobile 
               ? (chatVisible 
-                  ? 'w-full absolute inset-0 top-[97px] z-30 bg-background' 
-                  : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none'
+                  ? 'w-full absolute inset-0 top-[97px] z-30 bg-background overflow-hidden' 
+                  : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none overflow-hidden'
                 )
               : (chatVisible 
                   ? 'w-1/3 flex flex-col overflow-hidden absolute right-0 top-0 h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800' 
@@ -582,28 +605,28 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             )}
             
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto px-6 pt-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pt-6">
               <div className={`
-                transition-all duration-200 ease-out delay-300
+                transition-all duration-200 ease-out delay-300 w-full
                 ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
               `}>
                 {messages.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 w-full">
                     {messages.map((message) => (
                       <div
                         key={message.id}
-                        className={`flex ${
+                        className={`flex w-full ${
                           message.role === 'user' ? 'justify-end' : 'justify-start'
                         }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                          className={`max-w-[80%] rounded-lg px-4 py-2 break-words ${
                             message.role === 'user'
                               ? 'bg-zinc-800 text-zinc-100'
                               : 'bg-zinc-100 dark:bg-zinc-800'
                           }`}
                         >
-                          <div className="text-sm [&_p]:mb-4">
+                          <div className="text-sm [&_p]:mb-4 break-words">
                             {message.role === 'assistant' ? (
                               <ReactMarkdown>{message.content}</ReactMarkdown>
                             ) : (
@@ -624,7 +647,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                       </div>
                     ))}
                     {isLoading && (
-                      <div className="flex justify-start">
+                      <div className="flex justify-start w-full">
                         <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
                           <div className="flex items-center space-x-2">
                             <div className="flex space-x-1">
@@ -644,11 +667,11 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
 
             {/* Chat Input */}
             <div className={`
-              sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6
+              sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6 w-full overflow-hidden
               transition-all duration-200 ease-out delay-300
               ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
             `}>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 w-full min-w-0">
                 <input
                   type="text"
                   value={chatInput}
@@ -656,12 +679,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   onKeyPress={handleKeyPress}
                   placeholder="Ask something about this article..."
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background"
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
                 />
                 <Button 
                   onClick={() => handleSendMessage()}
                   disabled={isLoading || !chatInput.trim()}
                   variant="secondary"
+                  className="flex-shrink-0"
                 >
                   {isLoading ? 'Sending...' : 'Send'}
                 </Button>

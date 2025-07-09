@@ -5,7 +5,6 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
 import ArticleTile from "./ArticleTile";
 import { useEffect, useRef } from "react";
-import { Settings } from "lucide-react";
 
 export default function ArticleGrid() {
   const { loading, articles, error, search } = useHomeSearch();
@@ -42,22 +41,6 @@ export default function ArticleGrid() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-      {/* Loading Message */}
-      {loading && (
-        <div className="text-center py-8 mb-6">
-          <h2 className="text-2xl font-semibold text-foreground mb-3">
-            Fetching your custom feed!
-          </h2>
-          <p className="text-muted-foreground flex items-center justify-center gap-2">
-            Update your preferences with the 
-            <span className="inline-flex items-center justify-center p-2 bg-muted/50 rounded-md border border-border">
-              <Settings className="h-4 w-4" />
-            </span>
-            button in the top right corner
-          </p>
-        </div>
-      )}
-
       {/* Error State */}
       {error && (
         <div className="text-center py-4">
@@ -91,20 +74,9 @@ export default function ArticleGrid() {
                 <div className="space-y-2">
                   <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded"></div>
                   <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-5/6"></div>
-                  {i === 0 && (
-                    <>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                    </>
-                  )}
-                  {i !== 0 && (
-                    <>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                    </>
-                  )}
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
+
                 </div>
               </div>
             ))}
