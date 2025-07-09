@@ -24,24 +24,20 @@ export default function ArticlePage({ params, searchParams }: PageProps) {
 
       const enhanced = lastEnhanced && lastEnhanced.article_id === articleId ? lastEnhanced : null;
       
-      if (enhanced) {
-        // For enhanced articles, we need to fetch citations from the original article
-        // The enhanced article uses article_id as the identifier, but we need to fetch from the original gen_article_id
-        const originalArticle = await getGeneratedArticleClient(articleId);
-        if (originalArticle) {
-          // Use enhanced content but original citations
-          setArticle({
-            ...enhanced,
-            citations: originalArticle.citations
-          });
-        } else {
-          setArticle(enhanced);
-        }
-      } else {
-        const fetchedArticle = await getGeneratedArticleClient(articleId);
-        if (fetchedArticle) {
-          setArticle(fetchedArticle);
-        }
+      // Always fetch the original article to get proper citations
+      const originalArticle = await getGeneratedArticleClient(articleId);
+      
+      if (enhanced && originalArticle) {
+        // Use enhanced content but always use original citations
+        setArticle({
+          ...enhanced,
+          citations: originalArticle.citations // Always use citations from the original article
+        });
+      } else if (originalArticle) {
+        setArticle(originalArticle);
+      } else if (enhanced) {
+        // Fallback to enhanced article if original can't be found
+        setArticle(enhanced);
       }
     };
 

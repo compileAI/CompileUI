@@ -41,6 +41,30 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+// Database chat message types
+export interface DatabaseChatMessage {
+  id: string; // int8 as string
+  user_id: string; // uuid
+  article_id: string; // int8 as string
+  message_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string; // ISO timestamp
+}
+
+export interface SaveChatMessageParams {
+  user_id: string; // uuid
+  article_id: string; // int8 as string
+  message_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatHistoryParams {
+  user_id: string; // uuid
+  article_id: string; // int8 as string
+}
+
 export interface SourceArticleDB { // Renaming to avoid confusion with the simplified type below
   id: string; // Corresponds to source_articles.id
   published: string | null; // Keep as string from DB, format later if needed
@@ -60,4 +84,13 @@ export interface SourceArticleContext {
   content: string | null;
   author: string | null;
   url: string | null;
+}
+
+export interface FAQ {
+  id: string; // uuid as string
+  gen_article_id: string; // int8 as string 
+  question: string;
+  answer: string;
+  created_at: string;
+  question_short: string;
 }

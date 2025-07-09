@@ -64,13 +64,15 @@ jest.mock('react-hot-toast', () => ({
 global.fetch = jest.fn()
 
 // Set up Next.js globals for API testing - only for Node.js environment
-if (typeof window === 'undefined' && typeof global.Request === 'undefined') {
-  // For Node.js 18+, these should be available globally, but in test environment we need to enable them
-  global.Request = global.Request || globalThis.Request
-  global.Response = global.Response || globalThis.Response
-  global.Headers = global.Headers || globalThis.Headers
+if (typeof window === 'undefined') {
+  // Mock Next.js web globals for API route testing
+  const { NextRequest, NextResponse } = require('next/server')
   
-  // If still not available, we need to import them
+  // Set up globals if they don't exist
+  global.NextRequest = NextRequest
+  global.NextResponse = NextResponse
+  
+  // Also ensure standard web APIs are available
   if (!global.Request) {
     try {
       const { fetch, Request, Response, Headers } = require('undici')
@@ -78,6 +80,7 @@ if (typeof window === 'undefined' && typeof global.Request === 'undefined') {
       global.Request = Request
       global.Response = Response
       global.Headers = Headers
+      global.URL = global.URL || URL
     } catch (e) {
       console.warn('Could not import undici globals:', e.message)
     }

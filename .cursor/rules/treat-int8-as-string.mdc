@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+WARNING: int8 in the supabase databasae must be treated a a string in the UI due to javascripts integer precision. Saving numeric strings to int8 columns is handled automatically by supabase.

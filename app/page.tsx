@@ -1,5 +1,5 @@
-import HomeClient from "@/components/Home";
+import { redirect } from 'next/navigation'
 
-export default async function Home() {
-  return <HomeClient />
+export default function Home() {
+  redirect('/home')
 }

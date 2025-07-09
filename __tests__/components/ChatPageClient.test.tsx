@@ -434,4 +434,86 @@ describe('ChatPageClient', () => {
       });
     });
   });
+
+  describe('FAQ Integration', () => {
+    beforeEach(() => {
+      // Mock FAQ fetch
+      (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url.includes('/api/faqs')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              faqs: [
+                {
+                  id: 'faq-1',
+                  gen_article_id: 'test-article-1',
+                  question: 'What is the main topic of this article?',
+                  answer: 'The main topic is AI development.',
+                  created_at: '2024-01-01T12:00:00Z',
+                  question_short: 'Main topic?'
+                }
+              ]
+            })
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ citations: [] }),
+        });
+      });
+    });
+
+    it('should render FAQ component when FAQs are available', async () => {
+      render(<ChatPageClient article={mockArticle} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Main topic?')).toBeInTheDocument();
+      });
+    });
+
+    it('should open chat and send contextual message when FAQ is clicked', async () => {
+      render(<ChatPageClient article={mockArticle} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Main topic?')).toBeInTheDocument();
+      });
+
+      // Initially, chat should not be visible
+      expect(screen.queryByPlaceholderText('Ask something about this article...')).not.toBeInTheDocument();
+
+      // Click FAQ
+      const faqButton = screen.getByText('Main topic?');
+      fireEvent.click(faqButton);
+
+      // Chat should now be visible
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Ask something about this article...')).toBeInTheDocument();
+      });
+
+      // Verify the contextual message was sent (this would be tested more thoroughly in integration)
+      // For now, we just verify chat opened
+      expect(screen.getByText('Close Chat')).toBeInTheDocument();
+    });
+
+    it('should handle FAQ clicks when chat is already open', async () => {
+      render(<ChatPageClient article={mockArticle} />);
+      
+      // Open chat first
+      const chatButton = screen.getByText('Chat');
+      fireEvent.click(chatButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Ask something about this article...')).toBeInTheDocument();
+        expect(screen.getByText('Main topic?')).toBeInTheDocument();
+      });
+
+      // Click FAQ
+      const faqButton = screen.getByText('Main topic?');
+      fireEvent.click(faqButton);
+
+      // Chat should remain open
+      expect(screen.getByPlaceholderText('Ask something about this article...')).toBeInTheDocument();
+    });
+  });
 }); 

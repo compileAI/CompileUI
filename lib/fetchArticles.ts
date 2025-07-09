@@ -20,6 +20,7 @@ interface ArticleWithCitations {
   }>;
 }
 
+
 export async function getGeneratedArticles(): Promise<Article[]> {
   const supabase = await createClientForServer();
 
@@ -64,42 +65,45 @@ export async function getGeneratedArticles(): Promise<Article[]> {
   }
 
   // Transform the data into our Article type
-  const typedArticles: Article[] = articlesData.map(item => {
-    // Extract and deduplicate citations from the nested data
-    const citationsMap = new Map<string, Citation>();
-    
-    (item.citations || []).forEach(citation => {
-      if (!citation?.source_articles?.master_sources?.name) return;
+  const typedArticles: Article[] = await Promise.all(
+    articlesData.map(async (item) => {
+      // Extract and deduplicate citations from the nested data
+      const citationsMap = new Map<string, Citation>();
       
-      // Create the citation object
-      const newCitation: Citation = {
-        sourceName: citation.source_articles.master_sources.name,
-        articleTitle: citation.source_articles.title || 'Untitled',
-        url: citation.source_articles.url
+      (item.citations || []).forEach(citation => {
+        if (!citation?.source_articles?.master_sources?.name) return;
+        
+        // Create the citation object
+        const newCitation: Citation = {
+          sourceName: citation.source_articles.master_sources.name,
+          articleTitle: citation.source_articles.title || 'Untitled',
+          url: citation.source_articles.url
+        };
+        
+        // Create a unique key based on source name and article title
+        const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+        
+        // Only add if we haven't seen this citation before
+        if (!citationsMap.has(citationKey)) {
+          citationsMap.set(citationKey, newCitation);
+        }
+      });
+
+      // Convert the Map back to an array
+      const citations = Array.from(citationsMap.values());
+
+
+      return {
+        article_id: item.article_id, // Already a string from article_id::text
+        date: new Date(item.date),
+        title: String(item.title),
+        content: String(item.content),
+        fingerprint: String(item.fingerprint),
+        tag: String(item.tag),
+        citations
       };
-      
-      // Create a unique key based on source name and article title
-      const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
-      
-      // Only add if we haven't seen this citation before
-      if (!citationsMap.has(citationKey)) {
-        citationsMap.set(citationKey, newCitation);
-      }
-    });
-
-    // Convert the Map back to an array
-    const citations = Array.from(citationsMap.values());
-
-    return {
-      article_id: item.article_id, // Already a string from article_id::text
-      date: new Date(item.date),
-      title: String(item.title),
-      content: String(item.content),
-      fingerprint: String(item.fingerprint),
-      tag: String(item.tag),
-      citations
-    };
-  });
+    })
+  );
 
   return typedArticles;
 }

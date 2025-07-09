@@ -5,6 +5,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
 import ArticleTile from "./ArticleTile";
 import { useEffect, useRef } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ArticleGrid() {
   const { loading, articles, error, search } = useHomeSearch();
@@ -13,15 +14,29 @@ export default function ArticleGrid() {
   const hasSearched = useRef(false);
   const hasTriggeredPreload = useRef(false);
 
-  // Auto-search when preferences are loaded (only once)
+  // Auto-search when preferences are loaded (only for authenticated users)
   useEffect(() => {
-    if (isLoaded && !hasSearched.current) {
-      const contentInterests = getContentInterests();
-      const presentationStyle = getPresentationStyle();
-      console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
-      search(contentInterests, presentationStyle);
-      hasSearched.current = true;
+    async function initializeArticles() {
+      if (isLoaded && !hasSearched.current) {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          // For authenticated users, use their preferences
+          const contentInterests = getContentInterests();
+          const presentationStyle = getPresentationStyle();
+          console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+          search(contentInterests, presentationStyle);
+        } else {
+          // For unauthenticated users, just fetch articles (server will handle defaults)
+          console.log('[ArticleGrid] Unauthenticated user, fetching general articles');
+          search('', '');
+        }
+        hasSearched.current = true;
+      }
     }
+
+    initializeArticles();
   }, [isLoaded, search, getContentInterests, getPresentationStyle]);
 
   // Trigger discover preload when home page finishes loading
@@ -74,20 +89,8 @@ export default function ArticleGrid() {
                 <div className="space-y-2">
                   <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded"></div>
                   <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-5/6"></div>
-                  {i === 0 && (
-                    <>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                    </>
-                  )}
-                  {i !== 0 && (
-                    <>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
-                      <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
-                    </>
-                  )}
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
+                  <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
                 </div>
               </div>
             ))}
@@ -121,7 +124,7 @@ export default function ArticleGrid() {
               No recent articles found
             </h3>
             <p className="text-muted-foreground">
-              We couldn&apos;t find any articles from today or yesterday matching your preferences. Try updating your preferences or check back later for new content.
+              We couldn&apos;t find any articles from today or yesterday. Please check back later for new content.
             </p>
           </div>
         </div>
