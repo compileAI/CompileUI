@@ -90,7 +90,7 @@ export async function getGeneratedArticles(): Promise<Article[]> {
       });
 
       // Convert the Map back to an array
-      let citations = Array.from(citationsMap.values());
+      const citations = Array.from(citationsMap.values());
 
 
       return {
