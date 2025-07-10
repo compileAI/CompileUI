@@ -50,11 +50,21 @@ export function useHomeSearch() {
         let errorData;
         let errorText;
         
+        // Clone the response to avoid "body stream already read" error
+        const responseClone = response.clone();
+        
         try {
+          // Try to parse as JSON first
           errorData = await response.json();
           errorText = errorData.error;
         } catch (parseError) {
-          errorText = await response.text();
+          // If JSON parsing fails, try to get text from the cloned response
+          try {
+            errorText = await responseClone.text();
+          } catch (textError) {
+            // If both fail, use status text
+            errorText = response.statusText || `HTTP error! status: ${response.status}`;
+          }
         }
         
         if (response.status === 429) {
@@ -62,8 +72,8 @@ export function useHomeSearch() {
           setState({
             loading: false,
             articles: [],
-            error: `Daily refresh limit reached. You have ${errorData.refreshesRemaining} refreshes remaining.`,
-            refreshesRemaining: errorData.refreshesRemaining
+            error: `Daily refresh limit reached. You have ${errorData?.refreshesRemaining || 0} refreshes remaining.`,
+            refreshesRemaining: errorData?.refreshesRemaining
           });
           return;
         }
