@@ -4,18 +4,22 @@ import { performVectorSearch } from "@/lib/vectorSearch";
 import { GoogleGenAI } from "@google/genai";
 import { Article } from "@/types";
 import { DEFAULT_CONTENT_INTERESTS, DEFAULT_PRESENTATION_STYLE } from "@/utils/preferences";
+import { createHash } from 'crypto';
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 // Helper function to hash content preferences
 function hashContentPreferences(contentInterests: string): string {
-  // Simple hash function - in production you might want to use crypto
-  return btoa(contentInterests.toLowerCase().trim()).slice(0, 64);
+  return createHash('sha256')
+    .update(contentInterests.trim())
+    .digest('hex');
 }
 
 // Helper function to hash style preferences
 function hashStylePreferences(presentationStyle: string): string {
-  return btoa(presentationStyle.toLowerCase().trim()).slice(0, 64);
+  return createHash('sha256')
+    .update(presentationStyle.trim())
+    .digest('hex');
 }
 
 // Helper function to enhance a single article
@@ -408,7 +412,7 @@ export async function GET(request: NextRequest) {
         
         // Add delay even for failed articles
         if (articlesToEnhance.indexOf(article) < articlesToEnhance.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
     }
