@@ -550,42 +550,146 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
           </div>
         </div>
 
-        {/* Recommended Articles Sidebar - Only on desktop, hidden when chat is open */}
+        {/* Sidebar area: Only one is rendered at a time on desktop */}
         {!isMobile && (
-          <div 
-            className={`
-              w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out
-              ${chatVisible ? 'hidden' : 'block'}
-            `}
-          >
-            <div className="p-6">
-              <RecommendedArticles 
-                currentArticleId={article.article_id}
-                onArticleClick={() => setChatVisible(false)}
-                layout="sidebar"
-              />
+          chatVisible ? (
+            <div className="w-1/3 flex flex-col overflow-hidden h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800 transition-all duration-500 ease-in-out">
+              {/* Chat Section */}
+              <div className="flex-1 flex flex-col h-full">
+                {/* Chat Messages and Input (move from previous chat section) */}
+                {/* Mobile Back to Article Button */}
+                {isMobile && (
+                  <div className={`
+                    border-b border-zinc-200 dark:border-zinc-800 p-4
+                    transition-all duration-200 ease-out delay-300
+                    ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+                  `}>
+                    <Button
+                      onClick={toggleChat}
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Back to Article
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pt-6">
+                  <div className={`
+                    transition-all duration-200 ease-out delay-300 w-full
+                    ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+                  `}>
+                    {messages.length > 0 && (
+                      <div className="space-y-4 w-full">
+                        {messages.map((message) => (
+                          <div
+                            key={message.id}
+                            className={`flex w-full ${
+                              message.role === 'user' ? 'justify-end' : 'justify-start'
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg px-4 py-2 break-words ${
+                                message.role === 'user'
+                                  ? 'bg-zinc-800 text-zinc-100'
+                                  : 'bg-zinc-100 dark:bg-zinc-800'
+                              }`}
+                            >
+                              <div className="text-sm [&_p]:mb-4 break-words">
+                                {message.role === 'assistant' ? (
+                                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                                ) : (
+                                  message.content
+                                )}
+                              </div>
+                              <div className={`text-xs mt-1 ${
+                                message.role === 'user' 
+                                  ? 'text-zinc-400' 
+                                  : 'text-muted-foreground'
+                              }`}>
+                                {message.timestamp instanceof Date 
+                                  ? message.timestamp.toLocaleTimeString() 
+                                  : new Date(message.timestamp).toLocaleTimeString()
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {isLoading && (
+                          <div className="flex justify-start w-full">
+                            <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="flex space-x-1">
+                                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Chat Input */}
+                <div className={`
+                  sticky bottom-0 bg-background border-t border-zinc-200 dark:border-zinc-800 p-6 w-full overflow-hidden
+                  transition-all duration-200 ease-out delay-300
+                  ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+                `}>
+                  <div className="flex items-center gap-4 w-full min-w-0">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask something about this article..."
+                      disabled={isLoading}
+                      className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
+                    />
+                    <Button 
+                      onClick={() => handleSendMessage()}
+                      disabled={isLoading || !chatInput.trim()}
+                      variant="secondary"
+                      className="flex-shrink-0"
+                    >
+                      {isLoading ? 'Sending...' : 'Send'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out">
+              <div className="p-6">
+                <RecommendedArticles 
+                  currentArticleId={article.article_id}
+                  onArticleClick={() => setChatVisible(false)}
+                  layout="sidebar"
+                />
+              </div>
+            </div>
+          )
         )}
 
-        {/* Chat Section - Slides over the recommended articles section */}
-        <div 
-          className={`
-            transition-all duration-500 ease-in-out
-            ${isMobile 
-              ? (chatVisible 
-                  ? 'w-full absolute inset-0 top-[97px] z-30 bg-background overflow-hidden' 
-                  : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none overflow-hidden'
-                )
-              : (chatVisible 
-                  ? 'w-1/3 flex flex-col overflow-hidden absolute right-0 top-0 h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800' 
-                  : 'w-1/3 flex flex-col overflow-hidden absolute right-0 top-0 h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800 translate-x-full pointer-events-none'
-                )
-            }
-          `}
-          aria-hidden={!chatVisible}
-        >
-          <div className="flex-1 flex flex-col h-full">
+        {/* Mobile Chat Section - remains as overlay */}
+        {isMobile && (
+          <div 
+            className={`
+              transition-all duration-500 ease-in-out
+              ${chatVisible 
+                ? 'w-full absolute inset-0 top-[97px] z-30 bg-background overflow-hidden' 
+                : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none overflow-hidden'
+              }
+            `}
+            aria-hidden={!chatVisible}
+          >
             {/* Mobile Back to Article Button */}
             {isMobile && (
               <div className={`
@@ -693,7 +797,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { createClientForServer } from "@/utils/supabase/server";
 import { performVectorSearch } from "@/lib/vectorSearch";
 import { GoogleGenAI } from "@google/genai";
 import { Article } from "@/types";
+import { DEFAULT_CONTENT_INTERESTS, DEFAULT_PRESENTATION_STYLE } from "@/utils/preferences";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
@@ -165,6 +166,12 @@ export async function GET(request: NextRequest) {
     const userId: string | null = searchParams.get('userId') || null;
     const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
+    console.log(`[Enhanced Articles API] Request received:`);
+    console.log(`  - contentInterests: "${contentInterests}"`);
+    console.log(`  - presentationStyle: "${presentationStyle}"`);
+    console.log(`  - userId: "${userId}"`);
+    console.log(`  - forceRefresh: ${forceRefresh}`);
+
     // For unauthenticated users, just return general articles from today
     if (!userId) {
       console.log('[Enhanced Articles API] Unauthenticated user - fetching general articles from today');
@@ -202,17 +209,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // For authenticated users, continue with preference-based logic
-    if (!contentInterests || !presentationStyle) {
-      return NextResponse.json(
-        { error: 'Content interests and presentation style are required' },
-        { status: 400 }
-      );
-    }
+    // For authenticated users, provide defaults if parameters are empty
+    const safeContentInterests = contentInterests || DEFAULT_CONTENT_INTERESTS;
+    const safePresentationStyle = presentationStyle || DEFAULT_PRESENTATION_STYLE;
 
-    // TypeScript type guards - we know these are not null after the check above
-    const safeContentInterests = contentInterests as string;
-    const safePresentationStyle = presentationStyle as string;
+    console.log(`[Enhanced Articles API] Using preferences:`);
+    console.log(`  - safeContentInterests: "${safeContentInterests}"`);
+    console.log(`  - safePresentationStyle: "${safePresentationStyle}"`);
 
     const contentHash = hashContentPreferences(safeContentInterests);
     const styleHash = hashStylePreferences(safePresentationStyle);

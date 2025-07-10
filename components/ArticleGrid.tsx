@@ -9,35 +9,50 @@ import { createClient } from "@/utils/supabase/client";
 
 export default function ArticleGrid() {
   const { loading, articles, error, search } = useHomeSearch();
-  const { getContentInterests, getPresentationStyle, isLoaded } = usePreferences();
+  const { getContentInterests, getPresentationStyle, isLoaded, user } = usePreferences();
   const { triggerPreload } = usePreloadDiscover();
   const hasSearched = useRef(false);
   const hasTriggeredPreload = useRef(false);
 
-  // Auto-search when preferences are loaded (only for authenticated users)
+  // Auto-search when preferences are loaded and user auth state is established
   useEffect(() => {
     async function initializeArticles() {
       if (isLoaded && !hasSearched.current) {
+        // Wait for user authentication state to be established
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
 
-        if (user) {
+        console.log(`[ArticleGrid] Auth check - isLoaded: ${isLoaded}, authUser: ${authUser ? 'authenticated' : 'not authenticated'}`);
+
+        if (authUser) {
           // For authenticated users, use their preferences
           const contentInterests = getContentInterests();
           const presentationStyle = getPresentationStyle();
-          console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
-          search(contentInterests, presentationStyle);
+          
+          console.log(`[ArticleGrid] User preferences - contentInterests: "${contentInterests}", presentationStyle: "${presentationStyle}"`);
+          
+          // Only proceed if we have valid preferences
+          if (contentInterests && presentationStyle && contentInterests.trim() && presentationStyle.trim()) {
+            console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+            search(contentInterests, presentationStyle);
+            hasSearched.current = true;
+          } else {
+            console.log('[ArticleGrid] User authenticated but preferences not ready yet, waiting...');
+            // Don't set hasSearched to true, let the effect run again when preferences are ready
+          }
         } else {
           // For unauthenticated users, just fetch articles (server will handle defaults)
           console.log('[ArticleGrid] Unauthenticated user, fetching general articles');
           search('', '');
+          hasSearched.current = true;
         }
-        hasSearched.current = true;
       }
     }
 
-    initializeArticles();
-  }, [isLoaded, search, getContentInterests, getPresentationStyle]);
+    // Add a small delay to ensure auth state is properly established
+    const timer = setTimeout(initializeArticles, 100);
+    return () => clearTimeout(timer);
+  }, [isLoaded, user, search, getContentInterests, getPresentationStyle]);
 
   // Trigger discover preload when home page finishes loading
   useEffect(() => {
