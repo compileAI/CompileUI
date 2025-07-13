@@ -94,3 +94,7 @@ export interface FAQ {
   created_at: string;
   question_short: string;
 }
+export interface VectorSearchResponse {
+  articleIds: string[];
+  scores: (number | undefined)[];
+}

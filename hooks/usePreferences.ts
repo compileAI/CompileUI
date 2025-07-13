@@ -83,27 +83,10 @@ export function usePreferences() {
 
       const dbUserPrefs = mapDatabaseToUser(databasePrefs);
       
-      if (!localPrefs || (isEmpty(localPrefs.contentInterests) && isEmpty(localPrefs.presentationStyle))) {
-        // No local preferences - use database
-        setPreferences(dbUserPrefs);
-        saveToLocalStorage(dbUserPrefs);
-        return;
-      }
-
-      // Check for conflicts
-      const conflictData = detectConflicts(localPrefs, dbUserPrefs);
+      setPreferences(dbUserPrefs);
+      saveToLocalStorage(dbUserPrefs);
+      return;
       
-      if (conflictData.hasContentConflict || conflictData.hasStyleConflict) {
-        // Show conflict resolution dialog
-        setConflict(conflictData);
-        setIsConflictDialogOpen(true);
-      } else {
-        // No conflicts - merge preferences (prefer non-empty values)
-        const resolved = resolveConflicts(conflictData, {});
-        setPreferences(resolved);
-        saveToLocalStorage(resolved);
-        await saveDatabasePreferences(resolved);
-      }
     } catch (error) {
       console.error('Error syncing preferences:', error);
       // Silent error handling - no toast notifications
@@ -204,36 +187,6 @@ export function usePreferences() {
     }
   }, [user, saveToLocalStorage]);
 
-  // Handle conflict resolution (silent - no toasts)
-  const resolveConflict = useCallback(async (resolution: ConflictResolution) => {
-    if (!conflict) return;
-    
-    try {
-      const resolved = resolveConflicts(conflict, resolution);
-      setPreferences(resolved);
-      saveToLocalStorage(resolved);
-      
-      if (user) {
-        await saveDatabasePreferences(resolved);
-      }
-      
-      setConflict(null);
-      setIsConflictDialogOpen(false);
-      
-      // Clear cache and redirect to home
-      clearArticleCache();
-      
-      // Redirect after a brief delay
-      setTimeout(() => {
-        window.location.href = '/home';
-      }, 1500);
-      
-    } catch (error) {
-      console.error('Error resolving conflict:', error);
-      // Silent error handling - UI should handle error display
-    }
-  }, [conflict, user, saveToLocalStorage]);
-
   // Clear preferences
   const clearPreferences = useCallback(() => {
     try {
@@ -269,9 +222,5 @@ export function usePreferences() {
     getPresentationStyle,
     hasPreferences,
     defaultPreferences: DEFAULT_PREFERENCES,
-    // Conflict resolution
-    conflict,
-    isConflictDialogOpen,
-    resolveConflict,
   };
 } 

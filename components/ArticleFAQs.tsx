@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { FAQ } from "@/types";
 import { fetchFAQsForArticle } from "@/lib/fetchFAQs";
+import MarkdownWithLatex from "@/components/ui/markdown-with-latex";
 
 interface ArticleFAQsProps {
   articleId: string;
@@ -112,7 +113,7 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile, layout = 
               onClick={() => handleFAQClick(faq)}
               className="w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
             >
-              {faq.question_short}
+              <MarkdownWithLatex>{faq.question_short}</MarkdownWithLatex>
             </button>
           ))}
         </div>

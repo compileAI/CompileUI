@@ -1,30 +1,14 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { signInWithMagicLink } from "@/utils/actions";
 import { FcGoogle } from "react-icons/fc";
-import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import EmailValidator from "email-validator";
-import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 
 const AuthForm = () => {
-    const [email, setEmail] = useState<string>('');
     const [alert, setAlert] = useState<{ status: string, description: string } | null>(null);
     const supabase = createClient();
-
-    const handleMagicLinkSignIn = async (formData: FormData) => {
-        const email = formData.get("email") as string;
-        if (!EmailValidator.validate(email)) {
-            setAlert({ status: "error", description: "Invalid email address" });
-        }
-        else {
-            const response = await signInWithMagicLink(formData);
-            setAlert(response);
-        }
-    };
 
     useEffect(() => {
         if (alert) {
@@ -50,22 +34,6 @@ const AuthForm = () => {
                 </div>
             )}
             <form className="flex flex-col gap-4 items-center">
-                <Input 
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full"
-                />
-                <Button variant="outline" formAction={handleMagicLinkSignIn} className="w-full mb-5">
-                    <Image
-                        src="/supabase-logo-icon.png"
-                        alt="Supabase"
-                        width={15}
-                        height={15} />
-                    <span>Sign in with MagicLink</span>
-                </Button>
                 <Button
                     className="w-full"
                     type="button"

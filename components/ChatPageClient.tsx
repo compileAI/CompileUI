@@ -2,15 +2,17 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Article, ChatMessage } from "../types";
+import MarkdownWithLatex from "@/components/ui/markdown-with-latex";
 import { ChevronUp, ChevronDown, MessageCircle, X, ArrowLeft } from "lucide-react";
 import RecommendedArticles from "./RecommendedArticles";
-import { addRecentlyVisited } from "@/utils/recentlyVisited";
 import { createClient } from "@/utils/supabase/client";
 import Header from "./Header";
 import ArticleFAQs from "./ArticleFAQs";
+import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
+import { getRecentlyVisited, addRecentlyVisited } from '@/utils/recentlyVisited';
+
 
 interface ChatPageClientProps {
   article: Article;
@@ -31,6 +33,9 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const [citations, setCitations] = useState<Citation[]>([]);
   const [citationsLoading, setCitationsLoading] = useState(false);
   const [citationsError, setCitationsError] = useState<string | null>(null);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsError, setRecsError] = useState<boolean>(true);
+  const [recs, setRecs] = useState<Article[]>([]);
   const [isCitationsOpen, setIsCitationsOpen] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [chatMessagesVisible, setChatMessagesVisible] = useState(false);
@@ -50,7 +55,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   // Check if mobile on mount and window resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024); // 768px is the correct breakpoint for mobile, but I actually want it to use the mobile formatting at 1024px
     };
     
     checkMobile();
@@ -86,7 +91,6 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   useEffect(() => {
     const fetchCitations = async () => {
       try {
-        console.log("CITATIONS DEBUG - article.citations: ", article.citations);
         setCitationsLoading(true);
         setCitationsError(null);
         
@@ -118,6 +122,43 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
 
     fetchCitations();
   }, [article.article_id, article.citations]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setRecsLoading(true);
+        setRecsError(false);
+        
+        const excludeIds = getRecentlyVisited();
+        
+        const response = await fetch('/api/recommended-articles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            articleId: article.article_id,
+            excludeIds,
+            limit: RECOMMENDATIONS_CONFIG.DEFAULT_COUNT
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setRecs(data.articles || []);
+      } catch (error) {
+        console.error('Error fetching recommended articles:', error);
+        setRecsError(true);
+      } finally {
+        setRecsLoading(false);
+      }
+    };
+
+    if (article.article_id) {
+      fetchRecommendations();
+    }
+  }, [article.article_id]);
 
   // Load chat history for authenticated users
   useEffect(() => {
@@ -390,7 +431,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       {/* Header */}
       <Header />
       
-      <div className="flex-1 flex overflow-hidden">
+      <div className={`flex-1 flex overflow-hidden ${chatVisible ? '' : 'max-w-[2000px] mx-auto'}`}>
         {/* Article Section - Takes 2/3 width on desktop, full width on mobile */}
         <div 
           ref={articleContentRef}
@@ -398,14 +439,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
           className={`
             h-full overflow-y-auto transition-all duration-500 ease-in-out
             ${isMobile 
-              ? (chatVisible ? 'hidden' : 'w-full')
-              : 'w-2/3' // Always 2/3 width on desktop
+              ? (chatVisible ? 'hidden' : 'w-full') // always full width on mobile, hidden when chat is open
+              : (chatVisible ? 'w-1/2' : 'w-2/3') // 1/2 width on desktop when chat is open, 2/3 width (of max-w-[2000px]) when chat is closed
             }
-            ''
           `}
         >
           <div className="p-8">
-            <div className="mx-auto max-w-4xl">
+            <div className=" max-w-4xl"> {/* removed mx-auto */}
               {/* Article Header */}
               <div className="mb-8">
                 <div className={`${isMobile ? 'mb-4' : 'flex justify-between items-start mb-4'}`}>
@@ -453,7 +493,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 )}
                 
                 <div className="prose prose-lg dark:prose-invert max-w-none [&_p]:mb-4">
-                  <ReactMarkdown>{article.content}</ReactMarkdown>
+                  <MarkdownWithLatex>{article.content}</MarkdownWithLatex>
                 </div>
 
                 {/* Bottom controls - Citations on right, Back button on left */}
@@ -536,10 +576,11 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 </div>
 
                 {/* Mobile Recommended Articles - Only show on mobile */}
-                {isMobile && (
+                {isMobile && !recsError && (
                   <div className="mt-8 max-w-none">
                     <RecommendedArticles 
-                      currentArticleId={article.article_id}
+                      articles={recs}
+                      loading={recsLoading}
                       onArticleClick={() => setChatVisible(false)}
                       layout="bottom"
                     />
@@ -553,29 +594,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         {/* Sidebar area: Only one is rendered at a time on desktop */}
         {!isMobile && (
           chatVisible ? (
-            <div className="w-1/3 flex flex-col overflow-hidden h-full z-20 bg-background border-l border-zinc-200 dark:border-zinc-800 transition-all duration-500 ease-in-out">
-              {/* Chat Section */}
+            <div className="relative w-1/2 h-full z-20">
+              {/* Border that appears immediately */}
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-200 dark:bg-zinc-800 z-10"></div>
+              {/* Chat container with transition */}
+              <div className="w-full flex flex-col overflow-hidden h-full bg-background transition-all duration-500 ease-in-out">
+                {/* Chat Section */}
               <div className="flex-1 flex flex-col h-full">
-                {/* Chat Messages and Input (move from previous chat section) */}
-                {/* Mobile Back to Article Button */}
-                {isMobile && (
-                  <div className={`
-                    border-b border-zinc-200 dark:border-zinc-800 p-4
-                    transition-all duration-200 ease-out delay-300
-                    ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
-                  `}>
-                    <Button
-                      onClick={toggleChat}
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <X className="h-4 w-4" />
-                      Back to Article
-                    </Button>
-                  </div>
-                )}
-                
                 {/* Chat Messages */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pt-6">
                   <div className={`
@@ -600,7 +625,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                             >
                               <div className="text-sm [&_p]:mb-4 break-words">
                                 {message.role === 'assistant' ? (
-                                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                                  <MarkdownWithLatex>{message.content}</MarkdownWithLatex>
                                 ) : (
                                   message.content
                                 )}
@@ -664,17 +689,21 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           ) : (
-            <div className="w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out">
+            !recsError && (
+              <div className="w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out">
               <div className="p-6">
                 <RecommendedArticles 
-                  currentArticleId={article.article_id}
+                  articles={recs}
+                  loading={recsLoading}
                   onArticleClick={() => setChatVisible(false)}
                   layout="sidebar"
                 />
               </div>
             </div>
+            )
           )
         )}
 
@@ -684,10 +713,14 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             className={`
               transition-all duration-500 ease-in-out
               ${chatVisible 
-                ? 'w-full absolute inset-0 top-[97px] z-30 bg-background overflow-hidden' 
+                ? 'w-full flex flex-col h-full absolute inset-0 top-[97px] z-30 bg-background overflow-hidden' 
                 : 'w-full absolute inset-0 top-[97px] z-30 bg-background translate-x-full pointer-events-none overflow-hidden'
               }
             `}
+            style={{
+              top: "var(--header-height)",
+              height: "calc(100vh - var(--header-height))",
+            }}
             aria-hidden={!chatVisible}
           >
             {/* Mobile Back to Article Button */}
@@ -733,7 +766,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                         >
                           <div className="text-sm [&_p]:mb-4 break-words">
                             {message.role === 'assistant' ? (
-                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                              <MarkdownWithLatex>{message.content}</MarkdownWithLatex>
                             ) : (
                               message.content
                             )}
@@ -781,7 +814,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   placeholder="Ask something about this article..."
                   disabled={isLoading}
                   className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"

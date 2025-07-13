@@ -100,6 +100,13 @@ body {
   --chart-5: oklch(0.645 0.246 16.439);
 }
 
+/* This is to prevent the blank space on the right in mobile view */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

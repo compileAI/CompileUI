@@ -4,15 +4,27 @@ import { useHomeSearch } from "@/hooks/useHomeSearch";
 import { usePreferences } from "@/hooks/usePreferences";
 import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
 import ArticleTile from "./ArticleTile";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export default function ArticleGrid() {
+  const [isMobile, setIsMobile] = useState(false);
   const { loading, articles, error, search } = useHomeSearch();
   const { getContentInterests, getPresentationStyle, isLoaded, user } = usePreferences();
   const { triggerPreload } = usePreloadDiscover();
   const hasSearched = useRef(false);
   const hasTriggeredPreload = useRef(false);
+
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Auto-search when preferences are loaded and user auth state is established
   useEffect(() => {
@@ -119,9 +131,11 @@ export default function ArticleGrid() {
               <ArticleTile
                 key={article.article_id}
                 article={article}
-                size={getSizeForIndex(index)}
+                size={isMobile ? "hero" : getSizeForIndex(index)}
               />
             ))}
+            {/* ^^ if mobile, use hero size, because its easiest to read, otherwise use the size for the index */}
+
           </div>
         )}
       </div>

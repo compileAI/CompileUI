@@ -23,10 +23,11 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
 import { createClient } from "@/utils/supabase/client";
-import PreferenceConflictDialog from "@/components/PreferenceConflictDialog";
 import LoadingOverlay from "./ui/loading-overlay";
 import PreferenceForm from "@/components/PreferenceForm";
 import { ThemeToggle } from "./ui/theme-toggle";
+import { User } from "lucide-react";
+
 
 interface CacheStatus {
   contentInterests: string;
@@ -68,10 +69,7 @@ export default function Header() {
     preferences, 
     savePreferences, 
     hasPreferences, 
-    user,
-    conflict,
-    isConflictDialogOpen,
-    resolveConflict
+    user
   } = usePreferences();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,15 +109,24 @@ export default function Header() {
     setIsPreferencesOpen(true);
   };
 
+  useEffect(() => {
+    const header = document.getElementById('full-header');
+    if (header) {
+      document.documentElement.style.setProperty('--header-height', `${header.offsetHeight}px`);
+    }
+    const handleResize = () => {
+      if (header) {
+        document.documentElement.style.setProperty('--header-height', `${header.offsetHeight}px`);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleSavePreferences = async (preferences: { contentInterests: string; presentationStyle: string }) => {
     console.log('Header handleSavePreferences called with:', preferences);
     await savePreferences(preferences);
     console.log('Header preferences saved successfully');
-    
-    // Clear any existing conflicts since we just saved new preferences
-    if (conflict) {
-      console.log('Clearing existing conflict state');
-    }
   };
 
   const handleSearch = async (query?: string) => {
@@ -128,8 +135,10 @@ export default function Header() {
 
     setIsLoading(true);
     try {
-      // Navigate to discover page with search query - DiscoverClient will handle vector search
-      await navigateTo(`/discover?search=${encodeURIComponent(searchTerm)}`, 'Searching...');
+      // Add timestamp to ensure navigation triggers even for same search terms
+      // This forces the URL to be different and ensures search is re-executed
+      const timestamp = Date.now();
+      await navigateTo(`/discover?search=${encodeURIComponent(searchTerm)}&t=${timestamp}`, 'Searching...');
     } catch (error) {
       console.error('Error navigating to discover page:', error);
     } finally {
@@ -149,9 +158,11 @@ export default function Header() {
     return "Home"; // Default to Home for any other page
   };
 
+
+
   return (
     <>
-      <div className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
+      <div id="full-header" className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
         {/* Desktop Layout - Hidden on mobile */}
         <div className="hidden md:flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -308,54 +319,52 @@ export default function Header() {
             </div>
 
             {/* Settings/Auth Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-2">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleSettingsClick}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1.5 flex items-center justify-between">
-                  <span className="text-sm">Theme</span>
-                  <ThemeToggle />
-                </div>
-                {user ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5 flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        {user.user_metadata?.avatar_url ? (
-                          <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
-                        ) : (
-                          <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
-                        )}
-                      </Avatar>
-                      <span className="text-sm truncate">{user.email}</span>
-                    </div>
-                    <DropdownMenuItem 
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        window.location.reload();
-                      }}
-                    >
-                      Sign Out
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setAuthModalOpen(true)}>
-                      Auth
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-row items-center gap-2">
+              <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSettingsClick}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {user ? (
+                    <>
+                      <div className="px-2 py-1.5 flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          {user.user_metadata?.avatar_url ? (
+                            <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
+                          ) : (
+                            <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
+                          )}
+                        </Avatar>
+                        <span className="text-sm truncate">{user.email}</span>
+                      </div>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          window.location.reload();
+                        }}
+                      >
+                        Sign Out
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem onClick={() => setAuthModalOpen(true)}>
+                        <User className="h-4 w-4 mr-2" />
+                        Sign In
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Bottom Row - Search */}
@@ -400,15 +409,6 @@ export default function Header() {
             <AuthForm />
           </DialogContent>
         </Dialog>
-
-        {/* Conflict Resolution Dialog */}
-        {conflict && (
-          <PreferenceConflictDialog
-            open={isConflictDialogOpen}
-            conflict={conflict}
-            onResolve={resolveConflict}
-          />
-        )}
       </div>
 
       {/* Navigation Loading Overlay */}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Article } from "@/types";
 
 interface DiscoverState {
@@ -80,8 +80,9 @@ export function useDiscoverArticles() {
   };
 
   const fetchArticles = useCallback(async (searchQuery?: string, page = 0, append = false) => {
-    // If it's a new search or initial load, check cache first
-    if (!append) {
+    // Only check cache for general article fetching (no search query)
+    // Don't cache search results to ensure fresh results
+    if (!append && !searchQuery?.trim()) {
       const cachedArticles = getCachedResults(searchQuery);
       if (cachedArticles) {
         // Calculate pagination for cached results
@@ -162,8 +163,8 @@ export function useDiscoverArticles() {
         fullDataset: append ? prev.fullDataset : articles, // Store full dataset
       }));
 
-      // Cache the full results only on initial load (not append)
-      if (!append) {
+      // Only cache general article fetching (not search results)
+      if (!append && !searchQuery?.trim()) {
         cacheResults(articles, searchQuery);
       }
 

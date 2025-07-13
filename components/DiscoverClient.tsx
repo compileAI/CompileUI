@@ -26,7 +26,7 @@ export default function DiscoverClient() {
     const urlSearchQuery = searchParams.get('search');
     
     if (urlSearchQuery) {
-      // Search with query from URL
+      // Search with query from URL (ignore timestamp parameter)
       search(urlSearchQuery);
     } else {
       // Load all articles

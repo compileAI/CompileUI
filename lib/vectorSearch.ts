@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClientForServer } from "@/utils/supabase/server";
-import { Article, Citation } from "@/types";
+import { Article, Citation, VectorSearchResponse } from "@/types";
 
 // Initialize Pinecone client
 const pinecone = new Pinecone({
@@ -38,7 +38,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 export async function searchSimilarVectors(
   queryEmbedding: number[], 
   topK: number = 10
-): Promise<string[]> {
+): Promise<VectorSearchResponse> {
   try {
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!).namespace("generated");
     
@@ -48,9 +48,11 @@ export async function searchSimilarVectors(
       includeMetadata: true
     });
 
-    // Extract article IDs from the matches
-    const articleIds = queryResponse.matches?.map(match => match.id) || [];
-    return articleIds;
+    // Extract article IDs and metadata from the matches
+    const articleIds: string[] = queryResponse.matches?.map(match => match.id) || [];
+    const scores: (number | undefined)[] = queryResponse.matches?.map(match => match.score) || [];
+
+    return { articleIds, scores };
   } catch (error) {
     console.error('Error searching Pinecone:', error);
     throw new Error('Failed to search vector database');
@@ -224,6 +226,15 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
   }
 }
 
+// score is the cosine similarity score from Pinecone (I've confirmed that it is cosine similarity, not distance, so higher is more similar)
+export function calculateDisplayScore(article: Article, score: number): number {
+  const HALF_LIFE_DAYS = 14; // The number of days for the recency to decay to half of its value
+  const LAMBDA = 0.2; // This represents the weighting of the recency vs. similarity
+  const ageDays = (Date.now() - article.date.getTime()) / (1000 * 60 * 60 * 24); // Convert to days
+  const recency = Math.exp(-Math.log(2) * ageDays / HALF_LIFE_DAYS);
+  return LAMBDA * recency + (1 - LAMBDA) * score;
+}
+
 /**
  * Complete vector search pipeline: embed query -> search Pinecone -> fetch from Supabase
  * Ensures we return exactly the requested number of articles by fetching more initially
@@ -242,14 +253,25 @@ export async function performVectorSearch(
     // Step 2: Search Pinecone for more articles than needed to account for date filtering
     // Fetch 5x the limit to ensure we have enough after date filtering
     const searchLimit = Math.max(limit * 5, 50);
-    const similarArticleIds = await searchSimilarVectors(queryEmbedding, searchLimit);
-    console.log(`[Vector Search] Found ${similarArticleIds.length} similar articles from expanded search (limit: ${searchLimit})`);
+    const { articleIds, scores } = await searchSimilarVectors(queryEmbedding, searchLimit);
+    console.log(`[Vector Search] Found ${articleIds.length} similar articles from expanded search (limit: ${searchLimit})`);
     
     // Step 3: Fetch full article data from Supabase with date filtering
-    const articles = await fetchArticlesByIds(similarArticleIds, limit);
+    const articles = await fetchArticlesByIds(articleIds, limit);
     console.log(`[Vector Search] Successfully fetched ${articles.length} articles from Supabase after date filtering`);
-    
-    // Step 4: Return exactly the requested number of articles (or all if fewer available)
+
+    // Step 4: Sort by the display score for each article. Javascript sort puts b before a if b - a is positive (descending order)
+    articles.sort((a, b) => {
+      const indexA = articleIds.indexOf(a.article_id);
+      const indexB = articleIds.indexOf(b.article_id);
+      const scoreA = scores[indexA] ?? 0; // Use 0 as fallback if score is undefined
+      const scoreB = scores[indexB] ?? 0; // Use 0 as fallback if score is undefined
+      const displayScoreA = calculateDisplayScore(a, scoreA);
+      const displayScoreB = calculateDisplayScore(b, scoreB);
+      return displayScoreB - displayScoreA;
+    });
+
+    // Step 5: Return exactly the requested number of articles (or all if fewer available)
     const finalArticles = articles.slice(0, limit);
     console.log(`[Vector Search] Returning ${finalArticles.length} articles (requested: ${limit})`);
     
