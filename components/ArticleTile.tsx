@@ -7,7 +7,7 @@ import { useEnhancedArticle } from "@/context/EnhancedArticleContext";
 
 interface ArticleTileProps {
   article: EnhancedArticle;
-  size: "hero" | "medium" | "small";
+  size: "hero" | "small";
 }
 
 export default function ArticleTile({ article, size }: ArticleTileProps) {
@@ -16,19 +16,16 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
   
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
-    medium: "col-span-12 md:col-span-4 row-span-1", 
     small: "col-span-12 md:col-span-4 row-span-1"
   };
 
   const titleClasses = {
     hero: "text-2xl md:text-3xl font-bold",
-    medium: "text-xl font-semibold",
     small: "text-lg font-semibold"
   };
 
   const contentClasses = {
     hero: "text-base line-clamp-8",
-    medium: "text-sm line-clamp-5", 
     small: "text-sm line-clamp-4"
   };
 
@@ -111,11 +108,11 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
         {article.title}
       </h2>
       {/* Enhanced content */}
-      <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow`}>
+      <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow fade-text-out`}>
         {displayContent}
       </div>
       {/* Footer with citations count */}
-      <div className="mt-3 pt-2 border-t border-border flex-shrink-0">
+      <div className={`${size != "hero" ? "mt-1 pt-1" : "mt-3 pt-2"} border-t border-border flex-shrink-0`}>
         <span className="text-xs text-muted-foreground">
           {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''}
         </span>
@@ -123,3 +120,4 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
     </article>
   );
 }
+

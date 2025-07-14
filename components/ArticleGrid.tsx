@@ -75,9 +75,8 @@ export default function ArticleGrid() {
     }
   }, [loading, articles.length, triggerPreload]);
 
-  const getSizeForIndex = (index: number): "hero" | "medium" | "small" => {
-    if (index === 0) return "hero";
-    if (index <= 2) return "medium";
+  const getSizeForIndex = (index: number): "hero" | "small" => {
+    if (index === 0 || isMobile) return "hero";
     return "small";
   };
 
@@ -101,7 +100,7 @@ export default function ArticleGrid() {
               <div
                 key={i}
                 className={`
-                  ${i === 0 ? "col-span-12 md:col-span-8 row-span-2" : "col-span-12 md:col-span-4 row-span-1"}
+                  ${getSizeForIndex(i) === "hero" ? "col-span-12 md:col-span-8 row-span-2" : "col-span-12 md:col-span-4 row-span-1"}
                   bg-muted
                   rounded-xl 
                   animate-pulse

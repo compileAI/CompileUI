@@ -125,3 +125,9 @@ html, body {
   from { height: var(--radix-accordion-content-height); }
   to   { height: 0; }
 }
+
+/* Fade out text at the bottom using a mask gradient */
+.fade-text-out {
+  mask-image: linear-gradient(to top, transparent 0%, black 30px, black 100%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30px, black 100%);
+}
