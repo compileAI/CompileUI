@@ -40,7 +40,7 @@ export async function searchSimilarVectors(
   topK: number = 10
 ): Promise<VectorSearchResponse> {
   try {
-    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!).namespace("generated");
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!).namespace("cluster_generated");
     
     const queryResponse = await index.query({
       vector: queryEmbedding,
@@ -110,7 +110,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
           )
         `)
         .in("article_id", articleIds)
-        .in("tag", ["VDB_IMPROVED", "CLUSTER"])
+        .eq("tag", "CLUSTER")
         .gte("date", startDate.toISOString())
         .lte("date", endDate.toISOString())
         .order("date", { ascending: false });
@@ -244,7 +244,7 @@ export async function performVectorSearch(
   limit: number = 10
 ): Promise<Article[]> {
   try {
-    console.log(`[Vector Search] Starting search for query: "${userQuery}" with target limit: ${limit}`);
+    console.log(`[Vector Search] Starting search for query: "${userQuery.substring(0, 100)}${userQuery.length > 100 ? '...' : ''}" with target limit: ${limit}`);
     
     // Step 1: Generate embedding for the user query
     const queryEmbedding = await generateEmbedding(userQuery);
@@ -254,7 +254,7 @@ export async function performVectorSearch(
     // Fetch 5x the limit to ensure we have enough after date filtering
     const searchLimit = Math.max(limit * 5, 50);
     const { articleIds, scores } = await searchSimilarVectors(queryEmbedding, searchLimit);
-    console.log(`[Vector Search] Found ${articleIds.length} similar articles from expanded search (limit: ${searchLimit})`);
+    console.log(`[Vector Search] Found ${articleIds.length} similar articles from cluster_generated namespace (limit: ${searchLimit})`);
     
     // Step 3: Fetch full article data from Supabase with date filtering
     const articles = await fetchArticlesByIds(articleIds, limit);
@@ -274,6 +274,10 @@ export async function performVectorSearch(
     // Step 5: Return exactly the requested number of articles (or all if fewer available)
     const finalArticles = articles.slice(0, limit);
     console.log(`[Vector Search] Returning ${finalArticles.length} articles (requested: ${limit})`);
+    
+    if (finalArticles.length > 0) {
+      console.log(`[Vector Search] Sample article: "${finalArticles[0].title.substring(0, 80)}${finalArticles[0].title.length > 80 ? '...' : ''}"`);
+    }
     
     return finalArticles;
     

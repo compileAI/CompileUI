@@ -139,9 +139,12 @@ export function useHomeSearch() {
             realCitations = Array.from(citationsMap.values());
           }
 
+          // Get the original article date from metadata, fallback to generated_at if not available
+          const originalDate = article.enhancement_metadata?.original_article_date || article.generated_at;
+          
           return {
             article_id: String(article.gen_article_id),
-            date: new Date(article.generated_at || Date.now()),
+            date: new Date(originalDate || Date.now()),
             title: article.title,
             content: article.content,
             fingerprint: '',
