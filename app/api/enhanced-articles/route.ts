@@ -11,14 +11,14 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 // Helper function to hash content preferences
 function hashContentPreferences(contentInterests: string): string {
   return createHash('sha256')
-    .update(contentInterests.trim())
+    .update(contentInterests)
     .digest('hex');
 }
 
 // Helper function to hash style preferences
 function hashStylePreferences(presentationStyle: string): string {
   return createHash('sha256')
-    .update(presentationStyle.trim())
+    .update(presentationStyle)
     .digest('hex');
 }
 
