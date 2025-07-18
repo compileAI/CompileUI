@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { X, Search, FileText, Target, Microscope, Clipboard, Zap, Plus, Edit3 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -86,6 +87,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const { refresh, refreshesRemaining, isDisabled: isRefreshDisabled, isAuthenticated, fetchRefreshCount } = useRefresh();
+  const router = useRouter();
   
   const form = useForm<PreferenceFormData>({
     defaultValues: {
@@ -227,9 +229,9 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
       
       console.log('PreferenceForm save completed');
       
-      // Clear article cache to trigger refresh
-      localStorage.removeItem("compile-enhanced-articles");
-      window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
+      // Clear discover cache and notify about preference changes
+      localStorage.removeItem("compile-discover-articles");
+      window.dispatchEvent(new CustomEvent('preferencesChanged', { detail: null }));
       
       // If user is authenticated and has refreshes remaining, trigger refresh
       if (isAuthenticated && refreshesRemaining > 0) {
@@ -251,14 +253,13 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
       
       setShowSavedMessage(true);
       
-      // Hide the saved message and close modal after 1.5 seconds
+      // Hide the saved message and close modal after a short delay
       setTimeout(() => {
         setShowSavedMessage(false);
         onClose();
         
-        // Navigate to home to refresh with new preferences
-        window.location.href = '/home';
-      }, 1500);
+        // No need to navigate - the cache update event will refresh the articles automatically
+      }, 800);
       
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -293,7 +294,7 @@ export default function PreferenceForm({ isOpen, onClose, onSave, initialPrefere
             
             <div className="space-y-3">
               <Button 
-                onClick={() => window.location.href = '/auth'}
+                onClick={() => router.push('/auth')}
                 className="w-full"
               >
                 Sign In

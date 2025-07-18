@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { UserPreferences, PreferenceConflict, ConflictResolution, DatabasePreferences } from '@/types/preferences';
 import { 
@@ -42,6 +42,20 @@ export function usePreferences() {
       const newUser = session?.user ?? null;
       setUser(newUser);
       
+      if (event === 'SIGNED_OUT') {
+        // Clear preferences and discover cache when user signs out
+        console.log('[usePreferences] User signed out, clearing preferences and cache');
+        try {
+          localStorage.removeItem(PREFERENCES_KEY);
+          localStorage.removeItem("compile-discover-articles");
+          setPreferences(null);
+          // Dispatch cache update event to notify other components
+          window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
+        } catch (error) {
+          console.warn('Error clearing preferences from localStorage:', error);
+        }
+      }
+      
       // Handle actual sign-in events (user authentication)
       if (event === 'SIGNED_IN' && newUser && isLoaded) {
         // Add a small delay to ensure server-side session is established
@@ -66,25 +80,40 @@ export function usePreferences() {
     
     try {
       const databasePrefs = await fetchDatabasePreferences();
-      const localPrefs = preferences;
       
       if (!databasePrefs) {
-        // No database preferences - save local to database
-        if (localPrefs) {
-          await saveDatabasePreferences(localPrefs);
-        } else {
-          // No local preferences either - save defaults to database
-          await saveDatabasePreferences(DEFAULT_PREFERENCES);
-          setPreferences(DEFAULT_PREFERENCES);
-          saveToLocalStorage(DEFAULT_PREFERENCES);
+        // New user with no database preferences - clear any local preferences and leave preferences null
+        console.log('[usePreferences] New user, clearing local preferences and leaving null for general articles');
+        try {
+          localStorage.removeItem(PREFERENCES_KEY);
+          localStorage.removeItem("compile-discover-articles");
+        } catch (error) {
+          console.warn('Error clearing preferences from localStorage:', error);
         }
+        
+        // DO NOT save defaults to database - leave preferences null so user gets general articles
+        setPreferences(null);
+        
+        // Dispatch cache update event to notify other components
+        window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
         return;
       }
 
-      const dbUserPrefs = mapDatabaseToUser(databasePrefs);
+      // User has database preferences - use them and clear any local preferences
+      console.log('[usePreferences] User has database preferences, using them');
+      try {
+        localStorage.removeItem(PREFERENCES_KEY);
+        localStorage.removeItem("compile-discover-articles");
+      } catch (error) {
+        console.warn('Error clearing preferences from localStorage:', error);
+      }
       
+      const dbUserPrefs = mapDatabaseToUser(databasePrefs);
       setPreferences(dbUserPrefs);
       saveToLocalStorage(dbUserPrefs);
+      
+      // Dispatch cache update event to notify other components
+      window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
       return;
       
     } catch (error) {
@@ -174,6 +203,9 @@ export function usePreferences() {
       // Clear cache to trigger refresh
       clearArticleCache();
       
+      // Notify that preferences were changed by user action
+      window.dispatchEvent(new CustomEvent('preferencesChanged', { detail: null }));
+      
       return true;
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -197,14 +229,14 @@ export function usePreferences() {
     }
   }, []);
 
-  // Get the effective content interests (user preference or default)
+  // Get the effective content interests (user preference only - no defaults)
   const getContentInterests = useCallback(() => {
-    return preferences?.contentInterests || DEFAULT_PREFERENCES.contentInterests;
+    return preferences?.contentInterests || null;
   }, [preferences]);
 
-  // Get the effective presentation style (user preference or default)
+  // Get the effective presentation style (user preference only - no defaults)
   const getPresentationStyle = useCallback(() => {
-    return preferences?.presentationStyle || DEFAULT_PREFERENCES.presentationStyle;
+    return preferences?.presentationStyle || null;
   }, [preferences]);
 
   // Check if preferences are set
