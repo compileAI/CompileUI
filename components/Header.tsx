@@ -29,37 +29,7 @@ import { ThemeToggle } from "./ui/theme-toggle";
 import { User } from "lucide-react";
 
 
-interface CacheStatus {
-  contentInterests: string;
-  presentationStyle: string;
-  articleCount: number;
-  timestamp: number;
-}
 
-// Helper function to check if cache exists
-const getCacheStatus = () => {
-  try {
-    const cached = localStorage.getItem("compile-enhanced-articles");
-    if (!cached) return null;
-    
-    const cachedData = JSON.parse(cached);
-    const isExpired = Date.now() > cachedData.expiresAt;
-    
-    if (isExpired) {
-      localStorage.removeItem("compile-enhanced-articles");
-      return null;
-    }
-    
-    return {
-      contentInterests: cachedData.contentInterests,
-      presentationStyle: cachedData.presentationStyle,
-      articleCount: cachedData.articles.length,
-      timestamp: cachedData.timestamp
-    };
-  } catch {
-    return null;
-  }
-};
 
 export default function Header() {
   const pathname = usePathname();
@@ -68,42 +38,17 @@ export default function Header() {
   const { 
     preferences, 
     savePreferences, 
-    hasPreferences, 
     user
   } = usePreferences();
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [cacheStatus, setCacheStatus] = useState<CacheStatus | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-
-  // Track when component has mounted to prevent hydration issues
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    setCacheStatus(getCacheStatus());
-  }, [isMounted]);
 
   // Clear navigation state when route changes
   useEffect(() => {
     clearNavigation();
   }, [pathname, clearNavigation]);
-
-  // Listen for cache updates from useHomeSearch
-  useEffect(() => {
-    const handleCacheUpdate = () => {
-      setCacheStatus(getCacheStatus());
-    };
-
-    window.addEventListener('cacheUpdated', handleCacheUpdate);
-    
-    return () => {
-      window.removeEventListener('cacheUpdated', handleCacheUpdate);
-    };
-  }, []);
 
   const handleSettingsClick = () => {
     setIsPreferencesOpen(true);
@@ -216,27 +161,11 @@ export default function Header() {
               </Button>
             </div>
 
-            {/* Cache status indicator - only show after mount and on desktop */}
-            {isMounted && cacheStatus && (
-              <div className="flex items-center gap-2 bg-accent/50 border border-accent rounded-lg px-3 py-1.5">
-                <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
-                <span className="text-xs text-accent-foreground font-medium">
-                  Cached ({cacheStatus.articleCount})
-                </span>
-              </div>
-            )}
+
             
 
 
-            {/* No preferences notification - only show after mount and on desktop */}
-            {isMounted && !hasPreferences() && (
-              <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <span className="text-xs text-primary font-medium">
-                  Set preferences →
-                </span>
-              </div>
-            )}
+
 
             {/* Theme Toggle Button */}
             <ThemeToggle />
@@ -246,9 +175,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               onClick={handleSettingsClick}
-              className={`p-2 hover:bg-muted rounded-md transition-all ${
-                isMounted && !hasPreferences() ? 'bg-primary/10 border border-primary/20' : ''
-              }`}
+              className="p-2 hover:bg-muted rounded-md transition-all"
               title="Settings"
             >
               <Settings className="h-4 w-4" />

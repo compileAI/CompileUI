@@ -83,8 +83,8 @@ export function useRefresh() {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Clear the cache
-        localStorage.removeItem("compile-enhanced-articles");
+        // Clear the discover cache
+        localStorage.removeItem("compile-discover-articles");
         window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
         
         // Update state

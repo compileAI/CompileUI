@@ -97,9 +97,9 @@ export function resolveConflicts(
 }
 
 /**
- * Clear the articles cache to trigger refresh
+ * Clear the discover articles cache to trigger refresh
  */
 export function clearArticleCache(): void {
-  localStorage.removeItem("compile-enhanced-articles");
+  localStorage.removeItem("compile-discover-articles");
   window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
 } 

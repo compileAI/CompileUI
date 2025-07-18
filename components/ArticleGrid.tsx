@@ -37,20 +37,22 @@ export default function ArticleGrid() {
         console.log(`[ArticleGrid] Auth check - isLoaded: ${isLoaded}, authUser: ${authUser ? 'authenticated' : 'not authenticated'}`);
 
         if (authUser) {
-          // For authenticated users, use their preferences
+          // For authenticated users, check if they have saved preferences
           const contentInterests = getContentInterests();
           const presentationStyle = getPresentationStyle();
           
           console.log(`[ArticleGrid] User preferences - contentInterests: "${contentInterests}", presentationStyle: "${presentationStyle}"`);
           
-          // Only proceed if we have valid preferences
+          // If user has saved preferences, use them
           if (contentInterests && presentationStyle && contentInterests.trim() && presentationStyle.trim()) {
-            console.log(`[ArticleGrid] Auto-searching with content interests: "${contentInterests}" and presentation style: "${presentationStyle}"`);
+            console.log(`[ArticleGrid] Auto-searching with saved preferences: "${contentInterests}" and "${presentationStyle}"`);
             search(contentInterests, presentationStyle);
             hasSearched.current = true;
           } else {
-            console.log('[ArticleGrid] User authenticated but preferences not ready yet, waiting...');
-            // Don't set hasSearched to true, let the effect run again when preferences are ready
+            // User has no saved preferences - get general articles
+            console.log('[ArticleGrid] Authenticated user has no saved preferences, fetching general articles');
+            search('', '');
+            hasSearched.current = true;
           }
         } else {
           // For unauthenticated users, just fetch articles (server will handle defaults)
@@ -64,6 +66,38 @@ export default function ArticleGrid() {
     // Add a small delay to ensure auth state is properly established
     const timer = setTimeout(initializeArticles, 100);
     return () => clearTimeout(timer);
+  }, [isLoaded, user, search, getContentInterests, getPresentationStyle]);
+
+  // Listen for preference change events (only when user explicitly changes preferences)
+  useEffect(() => {
+    async function handlePreferenceChange() {
+      // Only refresh if we've already done the initial search
+      if (hasSearched.current && isLoaded && user) {
+        console.log('[ArticleGrid] Preferences changed by user, refreshing articles');
+        
+        const contentInterests = getContentInterests();
+        const presentationStyle = getPresentationStyle();
+        
+        console.log(`[ArticleGrid] Refreshing with preferences - contentInterests: "${contentInterests}", presentationStyle: "${presentationStyle}"`);
+        
+        // If user has saved preferences, use them
+        if (contentInterests && presentationStyle && contentInterests.trim() && presentationStyle.trim()) {
+          console.log(`[ArticleGrid] Refreshing with saved preferences: "${contentInterests}" and "${presentationStyle}"`);
+          search(contentInterests, presentationStyle);
+        } else {
+          // User has no saved preferences - get general articles
+          console.log('[ArticleGrid] User has no saved preferences, refreshing with general articles');
+          search('', '');
+        }
+      }
+    }
+
+    // Listen for preference change events (not all cache updates)
+    window.addEventListener('preferencesChanged', handlePreferenceChange);
+    
+    return () => {
+      window.removeEventListener('preferencesChanged', handlePreferenceChange);
+    };
   }, [isLoaded, user, search, getContentInterests, getPresentationStyle]);
 
   // Trigger discover preload when home page finishes loading
