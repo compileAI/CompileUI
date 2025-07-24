@@ -100,6 +100,7 @@ export default function Header() {
   // Get current page label for mobile navigation dropdown
   const getCurrentPageLabel = () => {
     if (pathname === "/discover") return "Discover";
+    if (pathname === "/summaries") return "Summaries";
     return "Home"; // Default to Home for any other page
   };
 
@@ -133,6 +134,14 @@ export default function Header() {
                 disabled={isNavigating}
               >
                 Discover
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigateTo("/summaries", "Loading summaries...")}
+                className={`h-8 hover:bg-gray-200 ${pathname === "/summaries" ? "bg-gray-200" : ""}`}
+                disabled={isNavigating}
+              >
+                Summaries
               </Button>
             </div>
           </div>
@@ -241,6 +250,9 @@ export default function Header() {
                   <DropdownMenuItem onClick={() => navigateTo("/discover", "Loading articles...")}>
                     Discover
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigateTo("/summaries", "Loading summaries...")}>
+                    Summaries
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -343,7 +355,11 @@ export default function Header() {
         isVisible={isNavigating} 
         message={
           isNavigating 
-            ? (destination === "/home" ? "Loading your personalized feed..." : "Loading articles...")
+            ? (destination === "/home" 
+                ? "Loading your personalized feed..." 
+                : destination === "/summaries" 
+                  ? "Loading summaries..."
+                  : "Loading articles...")
             : undefined
         } 
       />

@@ -14,6 +14,26 @@ export interface Article { // This is GenArticle
   citations: Citation[];
 }
 
+// Raw database response structure for articles with nested citations from Supabase joins
+// Used when fetching from gen_articles with citations_ref -> source_articles -> master_sources
+export interface ArticleWithCitations {
+  article_id: string;
+  date: string;
+  title: string;
+  content: string;
+  fingerprint: string;
+  tag: string;
+  citations: Array<{
+    source_articles: {
+      title: string | null;
+      url: string | null;
+      master_sources: {
+        name: string;
+      };
+    };
+  }>;
+}
+
 export interface EnhancedArticle extends Article {
   tuned: string;
 }
@@ -97,4 +117,20 @@ export interface FAQ {
 export interface VectorSearchResponse {
   articleIds: string[];
   scores: (number | undefined)[];
+}
+
+export interface HlcArticle {
+  id: string;
+  created_at: string;
+  topic: string;
+  title: string;
+  content: string;
+  gen_article_ids: string[];
+  articles?: Article[]; // Populated gen_articles with rehydrated citations
+}
+
+export interface HlcArticlesResponse {
+  success: boolean;
+  summaries?: HlcArticle[];
+  error?: string;
 }
