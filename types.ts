@@ -102,6 +102,7 @@ export interface AutomationParams {
   retrieval_prompt: string;
   content_prompt: string;
   style_prompt: string;
+  name: string; // Add name to params
 }
 
 export interface Automation {

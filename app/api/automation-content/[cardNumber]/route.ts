@@ -12,14 +12,6 @@ export async function GET(
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !user) {
-      console.error('Auth error in GET /api/automation-content/[cardNumber]:', userError);
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { cardNumber: cardNumberStr } = await params;
     const cardNumber = parseInt(cardNumberStr);
 
@@ -36,7 +28,52 @@ export async function GET(
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // Fetch today's automation content for this card
+    // If no user is authenticated, return demo content
+    if (userError || !user) {
+      console.log('No authenticated user, returning demo content');
+      
+      // Fetch demo content using NULL user_id (demo content)
+      const { data: demoContent, error: demoContentError } = await supabase
+        .from('automation_content')
+        .select('*')
+        .is('user_id', null)
+        .eq('card_number', cardNumber)
+        .gte('created_at', todayStart.toISOString())
+        .lt('created_at', todayEnd.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (demoContentError) {
+        if (demoContentError.code === 'PGRST116') {
+          // No demo content found for today
+          return NextResponse.json({
+            success: true,
+            content: null
+          });
+        }
+        
+        console.error('Error fetching demo content:', demoContentError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to fetch demo content' },
+          { status: 500 }
+        );
+      }
+
+      // Convert database format to our types (id as string)
+      const typedDemoContent = {
+        ...demoContent,
+        id: demoContent.id.toString(),
+        automation_id: demoContent.automation_id.toString()
+      };
+
+      return NextResponse.json({
+        success: true,
+        content: typedDemoContent
+      });
+    }
+
+    // Fetch today's automation content for this card (authenticated user)
     const { data: content, error: contentError } = await supabase
       .from('automation_content')
       .select('*')

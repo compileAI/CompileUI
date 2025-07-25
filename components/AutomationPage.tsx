@@ -2,17 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit, AlertCircle, Eye, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAutomations } from "@/hooks/useAutomations";
 import { AutomationContent } from "@/types";
 import AutomationForm from "./AutomationForm";
 import Header from "./Header";
 import toast from 'react-hot-toast';
-import { useState as useReactState } from "react";
+import MarkdownWithLatex from "@/components/ui/markdown-with-latex";
 
 interface AutomationPageProps {
   cardNumber: number;
@@ -22,7 +19,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState<AutomationContent | null>(null);
-  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
   const [automationName, setAutomationName] = useState("");
   
@@ -52,26 +48,23 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     setAutomationName(placeholderNames[cardNumber] || `Automation ${cardNumber + 1}`);
   }, [cardNumber]);
 
-  // Redirect to auth if not authenticated
+  // Load content when automation is available (works for both demo and authenticated users)
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth');
-    }
-  }, [loading, user, router]);
-
-  // Load content only when component first mounts and has automation
-  useEffect(() => {
-    if (automation && user && !content) {
+    if (automation && !content) {
       loadContent();
     }
-  }, [automation, user]); // Removed activeTab and content dependencies to prevent re-loading
+  }, [automation]);
 
-  // Set initial editing state based on whether automation exists, but only after loading
+  // Set initial editing state based on whether automation exists and user is authenticated
   useEffect(() => {
-    if (!loading && !automation) {
+    if (!loading && !automation && user) {
+      // Only start in editing mode if user is authenticated and no automation exists
       setIsEditing(true);
+    } else if (!loading && !user) {
+      // For demo users, always start in view mode (but they can switch to edit to see params)
+      setIsEditing(false);
     }
-  }, [loading, automation]);
+  }, [loading, automation, user]);
 
   // Scroll to top on mount to fix header off-screen after refresh
   const pageRef = useRef<HTMLDivElement>(null);
@@ -84,7 +77,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   const loadContent = async () => {
     if (!automation) return;
     
-    setIsLoadingContent(true);
     setContentError(null);
     
     try {
@@ -93,15 +85,19 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     } catch (error) {
       console.error('Error loading automation content:', error);
       setContentError('Failed to load content');
-    } finally {
-      setIsLoadingContent(false);
     }
   };
 
   const handleAutomationUpdate = async (
     _: number, 
-    params: { retrieval_prompt: string; content_prompt: string; style_prompt: string }
+    params: { retrieval_prompt: string; content_prompt: string; style_prompt: string; name: string }
   ) => {
+    // Redirect to auth if user is not authenticated
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+
     try {
       toast.loading('Saving automation...', { id: `save-${cardNumber}` });
       
@@ -126,11 +122,16 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   };
 
   const handleDiscardChanges = () => {
-    if (!automation) {
+    if (!automation || !user) {
       router.push('/home');
     } else {
       setIsEditing(false);
     }
+  };
+
+  const handleEditClick = () => {
+    // Allow demo users to view edit page but they can't save
+    setIsEditing(true);
   };
 
   const formatDate = (date: Date | string) => {
@@ -154,22 +155,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     }
   };
 
-  // Animated dots for loading
-  function LoadingDots() {
-    const [dotCount, setDotCount] = useReactState(1);
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setDotCount((c) => (c % 3) + 1);
-      }, 400);
-      return () => clearInterval(interval);
-    }, []);
-    return <span>{'.'.repeat(dotCount)}</span>;
-  }
-
-  function InlineSpinner() {
-    return <Loader2 className="inline-block w-4 h-4 mr-2 animate-spin text-muted-foreground align-middle" />;
-  }
-
   // Show loading state while checking auth and loading automations
   if (loading) {
     return (
@@ -184,12 +169,10 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
               </div>
               <div className="border-b border-gray-200 w-full mt-4" />
             </div>
-            <div className="bg-white rounded-3xl min-h-[400px]">
-              <div className="text-left pt-0 pl-0 flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-foreground mb-2 mt-0 flex items-center">
-                  <InlineSpinner />
-                  Loading automation<LoadingDots />
-                </h2>
+            <div className="bg-white rounded-3xl min-h-[400px] flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading automation...</p>
               </div>
             </div>
           </div>
@@ -218,10 +201,39 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     );
   }
 
+  const titleWidth = Math.max(automationName.length, 4);   // fallback when empty
+
   return (
     <>
       <Header />
       <div className="min-h-screen" ref={pageRef}>
+        {/* Demo Banner for non-authenticated users */}
+        {!user && (
+          <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-sm font-medium">Demo Mode</span>
+                  </div>
+                  <span className="text-blue-600 text-sm">
+                    You're viewing sample automation content. Sign in to create and customize your own automations.
+                  </span>
+                </div>
+                <Button 
+                  onClick={() => router.push('/auth')} 
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                >
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Content Container */}
         <div className="max-w-6xl mx-auto px-6 pt-8 pb-8">
           {/* Title Bar */}
@@ -234,21 +246,22 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                       type="text"
                       value={automationName}
                       onChange={e => setAutomationName(e.target.value)}
-                      className="text-4xl font-bold text-foreground bg-transparent border-none outline-none focus:ring-0 p-0 m-0 w-full"
-                      style={{ appearance: 'none' }}
-                      aria-label="Automation Name"
+                      /* ------------- classes -------------- */
+                      className="
+                        flex-none                          /* don’t stretch in flex row   */
+                        text-xl sm:text-4xl font-bold
+                        text-foreground bg-transparent
+                        border-none outline-none focus:ring-0
+                        p-0 m-0
+                      "
+                      /* ------------- dynamic width -------- */
+                      style={{ width: `${titleWidth}ch` }}
+                      aria-label="Automation name"
                     />
-                    {/* Active Pill (Edit) */}
-                    {automation?.active && (
-                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
-                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                        Active
-                      </span>
-                    )}
                   </>
                 ) : (
                   <>
-                    <h1 className="text-4xl font-bold text-foreground">{automationName}</h1>
+                    <h1 className="text-xl sm:text-4xl font-bold text-foreground">{automationName}</h1>
                     {/* Active Pill (View) */}
                     {automation?.active && (
                       <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
@@ -257,10 +270,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                       </span>
                     )}
                   </>
-                )}
-                {/* Loading Spinner in place of pill if loading */}
-                {loading && (
-                  <Loader2 className="inline-block w-5 h-5 animate-spin text-muted-foreground align-middle ml-1" />
                 )}
               </div>
               <div className="flex items-end gap-2 ml-4 mt-2">
@@ -273,7 +282,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                 </button>
                 <button
                   className={`px-4 pb-2 text-base font-medium focus:outline-none transition-colors border-b-2 ${isEditing ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-primary'}`}
-                  onClick={() => setIsEditing(true)}
+                  onClick={handleEditClick}
                   type="button"
                 >
                   Edit
@@ -291,20 +300,11 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                 onSave={(params) => handleAutomationUpdate(cardNumber, params)}
                 onDiscard={handleDiscardChanges}
                 size="hero"
+                isDemo={!user}
               />
             ) : (
               <div>
-                {isLoadingContent ? (
-                  <div className="text-left pt-0 pl-0 flex items-center gap-2">
-                    <h2 className="text-xl font-semibold text-foreground mb-2 mt-0 flex items-center">
-                      {/* Empty space for title alignment */}
-                      <span className="inline-block w-0 h-0" />
-                      Loading automation<LoadingDots />
-                    </h2>
-                    {/* Spinner in place of pill */}
-                    <Loader2 className="inline-block w-5 h-5 animate-spin text-muted-foreground align-middle ml-1" />
-                  </div>
-                ) : contentError ? (
+                {contentError ? (
                   <div className="text-center py-16">
                     <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
                     <h2 className="text-xl font-bold text-foreground mb-4">Failed to load content</h2>
@@ -322,16 +322,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                   </div>
                 ) : (
                   <div>
-                    {/* Content Header */}
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                      <div className="text-sm text-muted-foreground">
-                        Generated {formatDate(content.created_at)}
-                      </div>
-                      <Button onClick={loadContent} variant="outline" size="sm">
-                        Refresh
-                      </Button>
-                    </div>
-
                     {/* Title */}
                     <h2 className="text-2xl font-bold text-foreground mb-6 leading-tight">
                       {content.title}
@@ -340,19 +330,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                     {/* Content */}
                     <div className="prose prose-base prose-neutral dark:prose-invert max-w-none">
                       <div className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
-                        {content.content}
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-12 pt-6 border-t border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Generated from automation
-                        </span>
-                        <Badge variant="outline">
-                          {automation?.type.replace('_', ' ')}
-                        </Badge>
+                        <MarkdownWithLatex>{content.content}</MarkdownWithLatex>
                       </div>
                     </div>
                   </div>

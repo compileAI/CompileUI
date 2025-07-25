@@ -28,7 +28,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find the most important AI and technology news from today",
       content_prompt: "Summarize the key developments in AI and tech with actionable insights",
-      style_prompt: "Write in a clear, professional tone with bullet points for key takeaways"
+      style_prompt: "Write in a clear, professional tone with bullet points for key takeaways",
+      name: "Daily Tech News"
     },
     active: true
   },
@@ -37,7 +38,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find startup funding and venture capital news",
       content_prompt: "Highlight the most significant funding rounds and their business implications",
-      style_prompt: "Focus on market trends and investment patterns with concrete numbers"
+      style_prompt: "Focus on market trends and investment patterns with concrete numbers",
+      name: "Investment Deals"
     },
     active: true
   },
@@ -46,7 +48,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find breaking news in artificial intelligence research and breakthroughs",
       content_prompt: "Explain the latest AI research developments and their potential impact",
-      style_prompt: "Use accessible language to explain complex concepts with real-world examples"
+      style_prompt: "Use accessible language to explain complex concepts with real-world examples",
+      name: "AI Research"
     },
     active: true
   },
@@ -55,7 +58,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find news about AI regulation, policy, and government initiatives",
       content_prompt: "Summarize regulatory developments and policy changes affecting AI",
-      style_prompt: "Focus on compliance implications and business impact with clear timelines"
+      style_prompt: "Focus on compliance implications and business impact with clear timelines",
+      name: "AI Policy"
     },
     active: true
   },
@@ -64,7 +68,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find news about big tech companies and their AI strategies",
       content_prompt: "Analyze major tech company moves and strategic decisions in AI",
-      style_prompt: "Highlight competitive positioning and market implications with strategic insights"
+      style_prompt: "Highlight competitive positioning and market implications with strategic insights",
+      name: "Tech Giants"
     },
     active: true
   },
@@ -73,7 +78,8 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
     params: {
       retrieval_prompt: "Find news about AI tools, developer platforms, and open source projects",
       content_prompt: "Cover the latest developer tools and platforms in the AI ecosystem",
-      style_prompt: "Write for technical audiences with practical implementation details"
+      style_prompt: "Write for technical audiences with practical implementation details",
+      name: "Developer Tools"
     },
     active: true
   }
@@ -84,6 +90,9 @@ export function useAutomations(): UseAutomationsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  // Track which user we've initialized to prevent re-initialization
+  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const supabase = createClient();
 
   // Track user authentication state
@@ -92,32 +101,58 @@ export function useAutomations(): UseAutomationsReturn {
       const newUser = session?.user || null;
       setUser(newUser);
       
-      if (newUser) {
-        initializeUserAutomations(newUser);
-      } else {
+      if (event === 'SIGNED_OUT') {
         setAutomations(Array(6).fill(null));
-        setInitializedUserId(null); // Clear initialized user on logout
-        setLoading(false);
+        setInitializedUserId(null);
+        setIsDemo(true);
+        // Load demo automations after sign out
+        loadDemoAutomations();
+      } else if (event === 'SIGNED_IN' && newUser && initializedUserId !== newUser.id) {
+        setIsDemo(false);
+        // Only initialize if this is a new user or first sign-in
+        initializeUserAutomations(newUser);
+      } else if (newUser && !initializedUserId) {
+        setIsDemo(false);
+        // Handle initial load with existing session
+        initializeUserAutomations(newUser);
+      } else if (!newUser && !isDemo) {
+        // No user and not already in demo mode - load demo
+        setIsDemo(true);
+        loadDemoAutomations();
       }
     });
 
-    // Get initial user only if not already initialized
-    if (!initializedUserId) {
-      supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-        setUser(currentUser);
-        if (currentUser) {
-          initializeUserAutomations(currentUser);
-        } else {
-          setLoading(false);
-        }
-      });
-    }
+    // Get initial user only once on mount
+    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
+      setUser(currentUser);
+      if (currentUser && !initializedUserId) {
+        setIsDemo(false);
+        initializeUserAutomations(currentUser);
+      } else if (!currentUser) {
+        setIsDemo(true);
+        loadDemoAutomations();
+      }
+    });
 
     return () => subscription.unsubscribe();
-  }, []); // Empty dependency array to run only once
+  }, [initializedUserId, isDemo]); // Only depend on initializedUserId and isDemo
 
-  // Track which user we've initialized to prevent re-initialization
-  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
+  // Load demo automations for non-authenticated users
+  const loadDemoAutomations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch demo automations (API will handle demo mode automatically)
+      const demoAutomations = await fetchAutomations();
+      populateAutomationArray(demoAutomations);
+    } catch (err) {
+      console.error('Error loading demo automations:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load demo automations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Initialize automations for authenticated user
   const initializeUserAutomations = useCallback(async (authenticatedUser: User) => {
@@ -152,9 +187,9 @@ export function useAutomations(): UseAutomationsReturn {
     } finally {
       setLoading(false);
     }
-  }, [initializedUserId]);
+  }, []);
 
-  // Fetch automations from API
+  // Fetch automations from API (works for both authenticated and demo users)
   const fetchAutomations = async (): Promise<Automation[]> => {
     const response = await fetch('/api/automations', {
       credentials: 'include',
@@ -260,12 +295,12 @@ export function useAutomations(): UseAutomationsReturn {
     }
   }, [user]);
 
-  // Create new automation
+  // Create new automation (requires authentication)
   const createAutomation = useCallback(async (
     cardNumber: number, 
     params: CreateAutomationRequest['params']
   ) => {
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new Error('Please sign in to create automations');
     
     try {
       const response = await fetch('/api/automations', {
@@ -302,12 +337,12 @@ export function useAutomations(): UseAutomationsReturn {
     }
   }, [user, refreshAutomations]);
 
-  // Update existing automation
+  // Update existing automation (requires authentication)
   const updateAutomation = useCallback(async (
     cardNumber: number,
     params: UpdateAutomationRequest['params']
   ) => {
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new Error('Please sign in to edit automations');
     
     const existingAutomation = automations[cardNumber];
     if (!existingAutomation) {
@@ -351,9 +386,9 @@ export function useAutomations(): UseAutomationsReturn {
     }
   }, [user, automations, createAutomation, refreshAutomations]);
 
-  // Delete automation
+  // Delete automation (requires authentication)
   const deleteAutomation = useCallback(async (cardNumber: number) => {
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new Error('Please sign in to delete automations');
     
     const automation = automations[cardNumber];
     if (!automation) return;
@@ -384,10 +419,8 @@ export function useAutomations(): UseAutomationsReturn {
     }
   }, [user, automations, refreshAutomations]);
 
-  // Get automation content for a specific card
+  // Get automation content for a specific card (works for both authenticated and demo users)
   const getAutomationContent = useCallback(async (cardNumber: number): Promise<AutomationContent | null> => {
-    if (!user) return null;
-    
     try {
       const response = await fetch(`/api/automation-content/${cardNumber}`, {
         credentials: 'include',
@@ -408,7 +441,7 @@ export function useAutomations(): UseAutomationsReturn {
       console.error('Error fetching automation content:', error);
       return null;
     }
-  }, [user]);
+  }, []);
 
   return {
     automations,

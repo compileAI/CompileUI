@@ -47,12 +47,12 @@ export default function AutomationCard({
     small: "text-sm line-clamp-3"
   };
 
-  // Load content on mount if automation exists
+  // Load content on mount if automation exists (works for both demo and authenticated users)
   useEffect(() => {
-    if (automation && isAuthenticated) {
+    if (automation) {
       loadContent();
     }
-  }, [automation, isAuthenticated]);
+  }, [automation]);
 
   const loadContent = async () => {
     if (!automation) return;
@@ -102,15 +102,16 @@ export default function AutomationCard({
   };
 
   const handleCardClick = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !automation) {
+      // Only redirect to auth if no automation exists (no demo content)
       router.push('/auth');
       return;
     }
     router.push(`/automation/${cardNumber}`);
   };
 
-  // Show sign-in prompt for unauthenticated users
-  if (!isAuthenticated) {
+  // Show sign-in prompt for unauthenticated users ONLY when no automation exists
+  if (!isAuthenticated && !automation) {
     return (
       <article
         className={`
@@ -142,8 +143,8 @@ export default function AutomationCard({
     );
   }
 
-  // Show placeholder for empty automation slot
-  if (!automation) {
+  // Show placeholder for empty automation slot (authenticated users only)
+  if (!automation && isAuthenticated) {
     return (
         <article
           className={`
@@ -174,15 +175,7 @@ export default function AutomationCard({
 
   // Show automation with content preview
   const displayContent = content ? stripMarkdown(content.content) : '';
-  const placeholderNames = [
-    "Daily Tech News",
-    "Investment Deals",
-    "Market Analysis",
-    "Industry Updates",
-    "Research Papers",
-    "Startup News"
-  ];
-  const automationName = automation ? (automation.name || placeholderNames[cardNumber] || `Automation ${cardNumber + 1}`) : null;
+  const automationName = automation ? automation.params.name : null;
   const title = content?.title || null;
 
   return (
@@ -209,7 +202,7 @@ export default function AutomationCard({
         )}
 
         {/* Content Preview */}
-        <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow`}>
+        <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow fade-text-out`}>
           {isLoadingContent ? (
             <div className="space-y-2">
               <div className="h-4 bg-muted rounded animate-pulse"></div>
@@ -243,7 +236,7 @@ export default function AutomationCard({
               <span className="text-xs text-muted-foreground">
                 {automationName}
               </span>
-              <div className={`w-2 h-2 rounded-full ${automation.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <div className={`w-2 h-2 rounded-full ${automation?.active ? 'bg-green-500' : 'bg-gray-400'}`} />
             </div>
           </div>
         </div>

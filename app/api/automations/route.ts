@@ -14,12 +14,36 @@ export async function GET(request: NextRequest): Promise<NextResponse<Automation
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
+    // If no user is authenticated, return demo automations
     if (userError || !user) {
-      console.error('Auth error in GET /api/automations:', userError);
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      console.log('No authenticated user, returning demo automations');
+      
+      // Fetch demo automations using NULL user_id (demo automations)
+      const { data: demoAutomations, error: demoError } = await supabase
+        .from('automations')
+        .select('*')
+        .is('user_id', null)
+        .eq('active', true)
+        .order('card_number', { ascending: true });
+
+      if (demoError) {
+        console.error('Error fetching demo automations:', demoError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to fetch demo automations' },
+          { status: 500 }
+        );
+      }
+
+      // Convert database format to our types (id as string)
+      const typedDemoAutomations: Automation[] = (demoAutomations || []).map(automation => ({
+        ...automation,
+        id: automation.id.toString()
+      }));
+
+      return NextResponse.json({
+        success: true,
+        automations: typedDemoAutomations
+      });
     }
 
     // Fetch user's automations
@@ -109,6 +133,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
         params: body.params,
         card_number: body.card_number,
         active: body.active ?? true
+      }, {
+        onConflict: 'user_id,card_number'
       })
       .select()
       .single();
