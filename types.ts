@@ -94,6 +94,69 @@ export interface FAQ {
   created_at: string;
   question_short: string;
 }
+
+// Automation types
+export type AutomationType = 'SEMANTIC_SUMMARY';
+
+export interface AutomationParams {
+  retrieval_prompt: string;
+  content_prompt: string;
+  style_prompt: string;
+  name: string; // Add name to params
+}
+
+export interface Automation {
+  id: string; // int8 as string
+  created_at: string;
+  user_id: string; // uuid
+  type: AutomationType;
+  params: AutomationParams;
+  card_number: number; // smallint
+  active: boolean;
+  updated_at: string;
+}
+
+export interface AutomationContent {
+  id: string; // int8 as string
+  automation_id: string; // int8 as string
+  user_id: string; // uuid
+  card_number: number; // smallint
+  title: string;
+  content: string;
+  created_at: string;
+}
+
+// API request/response types for automations
+export interface CreateAutomationRequest {
+  type: AutomationType;
+  params: AutomationParams;
+  card_number: number;
+  active?: boolean;
+}
+
+export interface UpdateAutomationRequest {
+  params?: AutomationParams;
+  active?: boolean;
+}
+
+export interface AutomationApiResponse {
+  success: boolean;
+  automation?: Automation;
+  error?: string;
+}
+
+export interface AutomationsApiResponse {
+  success: boolean;
+  automations?: Automation[];
+  error?: string;
+}
+
+export interface AutomationContentApiResponse {
+  success: boolean;
+  content?: AutomationContent | null;
+  error?: string;
+}
+
 export interface VectorSearchResponse {
   articleIds: string[];
   scores: (number | undefined)[];

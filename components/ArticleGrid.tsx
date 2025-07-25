@@ -1,19 +1,22 @@
 "use client";
 
-import { useHomeSearch } from "@/hooks/useHomeSearch";
-import { usePreferences } from "@/hooks/usePreferences";
-import { usePreloadDiscover } from "@/hooks/usePreloadDiscover";
-import ArticleTile from "./ArticleTile";
-import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useAutomations } from "@/hooks/useAutomations";
+import AutomationCard from "./AutomationCard";
+import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 
 export default function ArticleGrid() {
   const [isMobile, setIsMobile] = useState(false);
-  const { loading, articles, error, search } = useHomeSearch();
-  const { getContentInterests, getPresentationStyle, isLoaded, user } = usePreferences();
-  const { triggerPreload } = usePreloadDiscover();
-  const hasSearched = useRef(false);
-  const hasTriggeredPreload = useRef(false);
+  const { 
+    automations, 
+    loading, 
+    error, 
+    user, 
+    createAutomation, 
+    updateAutomation, 
+    deleteAutomation,
+    getAutomationContent 
+  } = useAutomations();
 
   // Check if mobile on mount and window resize
   useEffect(() => {
@@ -26,92 +29,43 @@ export default function ArticleGrid() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-search when preferences are loaded and user auth state is established
-  useEffect(() => {
-    async function initializeArticles() {
-      if (isLoaded && !hasSearched.current) {
-        // Wait for user authentication state to be established
-        const supabase = createClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-
-        console.log(`[ArticleGrid] Auth check - isLoaded: ${isLoaded}, authUser: ${authUser ? 'authenticated' : 'not authenticated'}`);
-
-        if (authUser) {
-          // For authenticated users, check if they have saved preferences
-          const contentInterests = getContentInterests();
-          const presentationStyle = getPresentationStyle();
-          
-          console.log(`[ArticleGrid] User preferences - contentInterests: "${contentInterests}", presentationStyle: "${presentationStyle}"`);
-          
-          // If user has saved preferences, use them
-          if (contentInterests && presentationStyle && contentInterests.trim() && presentationStyle.trim()) {
-            console.log(`[ArticleGrid] Auto-searching with saved preferences: "${contentInterests}" and "${presentationStyle}"`);
-            search(contentInterests, presentationStyle);
-            hasSearched.current = true;
-          } else {
-            // User has no saved preferences - get general articles
-            console.log('[ArticleGrid] Authenticated user has no saved preferences, fetching general articles');
-            search('', '');
-            hasSearched.current = true;
-          }
-        } else {
-          // For unauthenticated users, just fetch articles (server will handle defaults)
-          console.log('[ArticleGrid] Unauthenticated user, fetching general articles');
-          search('', '');
-          hasSearched.current = true;
-        }
-      }
-    }
-
-    // Add a small delay to ensure auth state is properly established
-    const timer = setTimeout(initializeArticles, 100);
-    return () => clearTimeout(timer);
-  }, [isLoaded, user, search, getContentInterests, getPresentationStyle]);
-
-  // Listen for preference change events (only when user explicitly changes preferences)
-  useEffect(() => {
-    async function handlePreferenceChange() {
-      // Only refresh if we've already done the initial search
-      if (hasSearched.current && isLoaded && user) {
-        console.log('[ArticleGrid] Preferences changed by user, refreshing articles');
-        
-        const contentInterests = getContentInterests();
-        const presentationStyle = getPresentationStyle();
-        
-        console.log(`[ArticleGrid] Refreshing with preferences - contentInterests: "${contentInterests}", presentationStyle: "${presentationStyle}"`);
-        
-        // If user has saved preferences, use them
-        if (contentInterests && presentationStyle && contentInterests.trim() && presentationStyle.trim()) {
-          console.log(`[ArticleGrid] Refreshing with saved preferences: "${contentInterests}" and "${presentationStyle}"`);
-          search(contentInterests, presentationStyle);
-        } else {
-          // User has no saved preferences - get general articles
-          console.log('[ArticleGrid] User has no saved preferences, refreshing with general articles');
-          search('', '');
-        }
-      }
-    }
-
-    // Listen for preference change events (not all cache updates)
-    window.addEventListener('preferencesChanged', handlePreferenceChange);
-    
-    return () => {
-      window.removeEventListener('preferencesChanged', handlePreferenceChange);
-    };
-  }, [isLoaded, user, search, getContentInterests, getPresentationStyle]);
-
-  // Trigger discover preload when home page finishes loading
-  useEffect(() => {
-    if (!loading && articles.length > 0 && !hasTriggeredPreload.current) {
-      console.log('[ArticleGrid] Home page loaded successfully, triggering discover preload');
-      triggerPreload(3000); // Wait 3 seconds after home page loads
-      hasTriggeredPreload.current = true;
-    }
-  }, [loading, articles.length, triggerPreload]);
-
   const getSizeForIndex = (index: number): "hero" | "small" => {
     if (index === 0 || isMobile) return "hero";
     return "small";
+  };
+
+  const handleAutomationUpdate = async (
+    cardNumber: number, 
+    params: { retrieval_prompt: string; content_prompt: string; style_prompt: string }
+  ) => {
+    try {
+      toast.loading('Saving automation...', { id: `save-${cardNumber}` });
+      
+      const automation = automations[cardNumber];
+      if (automation) {
+        await updateAutomation(cardNumber, params);
+      } else {
+        await createAutomation(cardNumber, params);
+      }
+      
+      toast.success('Automation saved successfully!', { id: `save-${cardNumber}` });
+    } catch (error) {
+      console.error('Error updating automation:', error);
+      toast.error('Failed to save automation. Please try again.', { id: `save-${cardNumber}` });
+      throw error;
+    }
+  };
+
+  const handleAutomationDelete = async (cardNumber: number) => {
+    try {
+      toast.loading('Deleting automation...', { id: `delete-${cardNumber}` });
+      await deleteAutomation(cardNumber);
+      toast.success('Automation deleted successfully!', { id: `delete-${cardNumber}` });
+    } catch (error) {
+      console.error('Error deleting automation:', error);
+      toast.error('Failed to delete automation. Please try again.', { id: `delete-${cardNumber}` });
+      throw error;
+    }
   };
 
   return (
@@ -125,7 +79,7 @@ export default function ArticleGrid() {
         </div>
       )}
 
-      {/* Grid Container - same position for both skeleton and article grid */}
+      {/* Grid Container */}
       <div className={loading ? "" : "animate-in slide-in-from-bottom-4 duration-500 ease-out"}>
         {/* Loading Skeleton Grid */}
         {loading && (
@@ -157,40 +111,24 @@ export default function ArticleGrid() {
           </div>
         )}
 
-        {/* Results Grid */}
-        {!loading && !error && articles.length > 0 && (
+        {/* Automation Cards Grid */}
+        {!loading && (
           <div className="grid grid-cols-12 gap-3 auto-rows-[25vh]">
-            {articles.map((article, index) => (
-              <ArticleTile
-                key={article.article_id}
-                article={article}
+            {Array.from({ length: 6 }).map((_, index) => (
+              <AutomationCard
+                key={`automation-card-${index}`}
+                automation={automations[index]}
+                cardNumber={index}
                 size={isMobile ? "hero" : getSizeForIndex(index)}
+                onAutomationUpdate={handleAutomationUpdate}
+                onAutomationDelete={handleAutomationDelete}
+                getAutomationContent={getAutomationContent}
+                isAuthenticated={!!user}
               />
             ))}
-            {/* ^^ if mobile, use hero size, because its easiest to read, otherwise use the size for the index */}
-
           </div>
         )}
       </div>
-
-      {/* Empty State (when search returns no results) */}
-      {!loading && !error && articles.length === 0 && isLoaded && hasSearched.current && (
-        <div className="text-center py-12">
-          <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              No recent articles found
-            </h3>
-            <p className="text-muted-foreground">
-              We couldn&apos;t find any articles from today or yesterday. Please check back later for new content.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

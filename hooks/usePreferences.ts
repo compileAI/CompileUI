@@ -36,6 +36,9 @@ export function usePreferences() {
     }
   }, []);
 
+  // Track which user we've synced to prevent re-syncing
+  const [syncedUserId, setSyncedUserId] = useState<string | null>(null);
+
   // Monitor auth state changes
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -49,6 +52,7 @@ export function usePreferences() {
           localStorage.removeItem(PREFERENCES_KEY);
           localStorage.removeItem("compile-discover-articles");
           setPreferences(null);
+          setSyncedUserId(null);
           // Dispatch cache update event to notify other components
           window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
         } catch (error) {
@@ -56,19 +60,24 @@ export function usePreferences() {
         }
       }
       
-      // Handle actual sign-in events (user authentication)
-      if (event === 'SIGNED_IN' && newUser && isLoaded) {
+      // Handle actual sign-in events (user authentication) - only sync once per user
+      if (event === 'SIGNED_IN' && newUser && isLoaded && syncedUserId !== newUser.id) {
         // Add a small delay to ensure server-side session is established
         setTimeout(async () => {
           await handleUserLogin(newUser);
+          setSyncedUserId(newUser.id);
         }, 1000);
+      } else if (newUser && isLoaded && !syncedUserId) {
+        // Handle initial load with existing session
+        await handleUserLogin(newUser);
+        setSyncedUserId(newUser.id);
       }
     });
 
     return () => {
       listener?.subscription.unsubscribe();
     };
-  }, [isLoaded]);
+  }, [isLoaded, syncedUserId]);
 
   // Handle user login and preference sync (silent - no toasts)
   const handleUserLogin = async (authenticatedUser?: User) => {
