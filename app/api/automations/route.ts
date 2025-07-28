@@ -124,23 +124,62 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
       );
     }
 
-    // Upsert automation (update if exists for this user/card combination)
-    const { data: automation, error: upsertError } = await supabase
+    // Check if automation already exists for this user/card combination
+    const { data: existingAutomation, error: fetchError } = await supabase
       .from('automations')
-      .upsert({
-        user_id: user.id,
-        type: body.type,
-        params: body.params,
-        card_number: body.card_number,
-        active: body.active ?? true
-      }, {
-        onConflict: 'user_id,card_number'
-      })
-      .select()
-      .single();
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('card_number', body.card_number)
+      .maybeSingle();
 
-    if (upsertError) {
-      console.error('Error upserting automation:', upsertError);
+    if (fetchError) {
+      console.error('Error checking existing automation:', fetchError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to check existing automation' },
+        { status: 500 }
+      );
+    }
+
+    let automation;
+    let operationError;
+
+    if (existingAutomation) {
+      // Update existing automation
+      const { data, error } = await supabase
+        .from('automations')
+        .update({
+          type: body.type,
+          params: body.params,
+          active: body.active ?? true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('card_number', body.card_number)
+        .select()
+        .single();
+      
+      automation = data;
+      operationError = error;
+    } else {
+      // Insert new automation
+      const { data, error } = await supabase
+        .from('automations')
+        .insert({
+          user_id: user.id,
+          type: body.type,
+          params: body.params,
+          card_number: body.card_number,
+          active: body.active ?? true
+        })
+        .select()
+        .single();
+      
+      automation = data;
+      operationError = error;
+    }
+
+    if (operationError) {
+      console.error('Error saving automation:', operationError);
       return NextResponse.json(
         { success: false, error: 'Failed to save automation' },
         { status: 500 }
