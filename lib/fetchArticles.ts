@@ -1,24 +1,6 @@
 import { createClientForServer } from "@/utils/supabase/server";
-import { Article, Citation } from "@/types";
+import { Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
-
-interface ArticleWithCitations {
-  article_id: string;
-  date: string;
-  title: string;
-  content: string;
-  fingerprint: string;
-  tag: string;
-  citations: Array<{
-    source_articles: {
-      title: string | null;
-      url: string | null;
-      master_sources: {
-        name: string;
-      };
-    };
-  }>;
-}
 
 
 export async function getGeneratedArticles(): Promise<Article[]> {
