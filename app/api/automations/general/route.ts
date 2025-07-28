@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerClientForRoutes } from '@/utils/supabase/server';
 import { AutomationsApiResponse, Automation } from '@/types';
 
-export async function GET(request: NextRequest): Promise<NextResponse<AutomationsApiResponse>> {
+export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
   try {
     const supabase = await createServerClientForRoutes();
     

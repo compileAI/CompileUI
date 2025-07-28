@@ -3,7 +3,6 @@
 import { useAutomations } from "@/hooks/useAutomations";
 import AutomationCard from "./AutomationCard";
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
 
 export default function ArticleGrid() {
   const [isMobile, setIsMobile] = useState(false);
@@ -12,9 +11,6 @@ export default function ArticleGrid() {
     loading, 
     error, 
     user, 
-    createAutomation, 
-    updateAutomation, 
-    deleteAutomation,
     getAutomationContent 
   } = useAutomations();
 
@@ -34,39 +30,7 @@ export default function ArticleGrid() {
     return "small";
   };
 
-  const handleAutomationUpdate = async (
-    cardNumber: number, 
-    params: { retrieval_prompt: string; content_prompt: string; style_prompt: string }
-  ) => {
-    try {
-      toast.loading('Saving automation...', { id: `save-${cardNumber}` });
-      
-      const automation = automations[cardNumber];
-      if (automation) {
-        await updateAutomation(cardNumber, params);
-      } else {
-        await createAutomation(cardNumber, params);
-      }
-      
-      toast.success('Automation saved successfully!', { id: `save-${cardNumber}` });
-    } catch (error) {
-      console.error('Error updating automation:', error);
-      toast.error('Failed to save automation. Please try again.', { id: `save-${cardNumber}` });
-      throw error;
-    }
-  };
 
-  const handleAutomationDelete = async (cardNumber: number) => {
-    try {
-      toast.loading('Deleting automation...', { id: `delete-${cardNumber}` });
-      await deleteAutomation(cardNumber);
-      toast.success('Automation deleted successfully!', { id: `delete-${cardNumber}` });
-    } catch (error) {
-      console.error('Error deleting automation:', error);
-      toast.error('Failed to delete automation. Please try again.', { id: `delete-${cardNumber}` });
-      throw error;
-    }
-  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
@@ -120,8 +84,6 @@ export default function ArticleGrid() {
                 automation={automations[index]}
                 cardNumber={index}
                 size={isMobile ? "hero" : getSizeForIndex(index)}
-                onAutomationUpdate={handleAutomationUpdate}
-                onAutomationDelete={handleAutomationDelete}
                 getAutomationContent={getAutomationContent}
                 isAuthenticated={!!user}
               />

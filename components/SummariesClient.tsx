@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { HlcArticle } from "@/types";
 import SummarySection from "./SummarySection";
 import Header from "./Header";
@@ -52,7 +52,7 @@ export default function SummariesClient() {
   }, []);
 
   // Handle scroll to specific section
-  const scrollToSection = (index: number) => {
+  const scrollToSection = useCallback((index: number) => {
     if (!scrollContainerRef.current) return;
     
     const container = scrollContainerRef.current;
@@ -67,20 +67,20 @@ export default function SummariesClient() {
     });
     
     setCurrentIndex(index);
-  };
+  }, []);
 
   // Handle previous/next navigation
-  const navigatePrevious = () => {
+  const navigatePrevious = useCallback(() => {
     if (currentIndex > 0) {
       scrollToSection(currentIndex - 1);
     }
-  };
+  }, [currentIndex, scrollToSection]);
 
-  const navigateNext = () => {
+  const navigateNext = useCallback(() => {
     if (currentIndex < summaries.length - 1) {
       scrollToSection(currentIndex + 1);
     }
-  };
+  }, [currentIndex, summaries.length, scrollToSection]);
 
   // Handle scroll events to update current index and progress dots
   useEffect(() => {

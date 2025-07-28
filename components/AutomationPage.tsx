@@ -29,7 +29,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     user, 
     createAutomation, 
     updateAutomation, 
-    deleteAutomation,
     getAutomationContent 
   } = useAutomations();
 
@@ -53,7 +52,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     if (automation && !content) {
       loadContent();
     }
-  }, [automation]);
+  }, [automation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Set initial editing state based on whether automation exists and user is authenticated
   useEffect(() => {
@@ -121,39 +120,14 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     }
   };
 
-  const handleDiscardChanges = () => {
-    if (!automation || !user) {
-      router.push('/home');
-    } else {
-      setIsEditing(false);
-    }
-  };
+
 
   const handleEditClick = () => {
     // Allow demo users to view edit page but they can't save
     setIsEditing(true);
   };
 
-  const formatDate = (date: Date | string) => {
-    try {
-      const dateObj = date instanceof Date ? date : new Date(date);
-      
-      if (isNaN(dateObj.getTime())) {
-        return "Invalid date";
-      }
-      
-      return new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      }).format(dateObj);
-    } catch (error) {
-      console.warn('Error formatting date:', error, 'Date value:', date);
-      return "Invalid date";
-    }
-  };
+
 
   // Show loading state while checking auth and loading automations
   if (loading) {
@@ -218,7 +192,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                     <span className="text-sm font-medium">Demo Mode</span>
                   </div>
                   <span className="text-blue-600 text-sm">
-                    You're viewing sample automation content. Sign in to create and customize your own automations.
+                    You&apos;re viewing sample automation content. Sign in to create and customize your own automations.
                   </span>
                 </div>
                 <Button 
@@ -298,7 +272,6 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
               <AutomationForm
                 automation={automation}
                 onSave={(params) => handleAutomationUpdate(cardNumber, params)}
-                onDiscard={handleDiscardChanges}
                 size="hero"
                 isDemo={!user}
               />

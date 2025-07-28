@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { X, Save, Bot } from "lucide-react";
+import { Save, Bot } from "lucide-react";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 interface AutomationFormProps {
   automation: Automation | null;
   onSave: (params: { retrieval_prompt: string; content_prompt: string; style_prompt: string; name: string }) => Promise<void>;
-  onDiscard: () => void;
   size: "hero" | "small";
   isDemo?: boolean;
 }
@@ -24,7 +23,7 @@ interface FormData {
   name: string;
 }
 
-export default function AutomationForm({ automation, onSave, onDiscard, size, isDemo = false }: AutomationFormProps) {
+export default function AutomationForm({ automation, onSave, size, isDemo = false }: AutomationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   
   const form = useForm<FormData>({
@@ -56,13 +55,6 @@ export default function AutomationForm({ automation, onSave, onDiscard, size, is
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDiscard = () => {
-    if (isDirty && !confirm('Are you sure you want to discard your changes?')) {
-      return;
-    }
-    onDiscard();
   };
 
   const getCharacterCount = (value: string) => value?.length || 0;
@@ -176,7 +168,7 @@ export default function AutomationForm({ automation, onSave, onDiscard, size, is
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                 <p className="text-blue-700 font-medium mb-2">Demo Mode</p>
                 <p className="text-blue-600 text-sm mb-3">
-                  You're viewing this automation's configuration. Sign in to create and customize your own automations.
+                  You&apos;re viewing this automation&apos;s configuration. Sign in to create and customize your own automations.
                 </p>
                 <Button
                   type="button"

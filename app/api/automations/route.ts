@@ -7,7 +7,7 @@ import {
   Automation 
 } from '@/types';
 
-export async function GET(request: NextRequest): Promise<NextResponse<AutomationsApiResponse>> {
+export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
   try {
     const supabase = await createServerClientForRoutes();
     

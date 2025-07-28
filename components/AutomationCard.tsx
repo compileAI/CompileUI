@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, FileText, Plus, User, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Plus, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Automation, AutomationContent } from "@/types";
 
@@ -12,8 +11,6 @@ interface AutomationCardProps {
   automation: Automation | null;
   cardNumber: number;
   size: "hero" | "small";
-  onAutomationUpdate: (cardNumber: number, params: { retrieval_prompt: string; content_prompt: string; style_prompt: string }) => Promise<void>;
-  onAutomationDelete: (cardNumber: number) => Promise<void>;
   getAutomationContent: (cardNumber: number) => Promise<AutomationContent | null>;
   isAuthenticated: boolean;
 }
@@ -22,8 +19,6 @@ export default function AutomationCard({
   automation, 
   cardNumber, 
   size, 
-  onAutomationUpdate, 
-  onAutomationDelete,
   getAutomationContent,
   isAuthenticated 
 }: AutomationCardProps) {
@@ -47,14 +42,7 @@ export default function AutomationCard({
     small: "text-sm line-clamp-3"
   };
 
-  // Load content on mount if automation exists (works for both demo and authenticated users)
-  useEffect(() => {
-    if (automation) {
-      loadContent();
-    }
-  }, [automation]);
-
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     if (!automation) return;
     
     setIsLoadingContent(true);
@@ -62,13 +50,20 @@ export default function AutomationCard({
     try {
       const automationContent = await getAutomationContent(cardNumber);
       setContent(automationContent);
-    } catch (error) {
-      console.error('Error loading automation content:', error);
+    } catch (_error) {
+      console.error('Error loading automation content:', _error);
       // Don't show error in the card - just fail silently
     } finally {
       setIsLoadingContent(false);
     }
-  };
+  }, [automation, getAutomationContent, cardNumber]);
+
+  // Load content on mount if automation exists (works for both demo and authenticated users)
+  useEffect(() => {
+    if (automation) {
+      loadContent();
+    }
+  }, [automation, loadContent]);
 
   const formatDate = (date: Date | string) => {
     try {
@@ -82,7 +77,7 @@ export default function AutomationCard({
         month: 'short',
         day: 'numeric'
       }).format(dateObj);
-    } catch (error) {
+    } catch {
       return "Invalid date";
     }
   };
