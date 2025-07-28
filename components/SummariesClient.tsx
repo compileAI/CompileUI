@@ -121,7 +121,7 @@ export default function SummariesClient() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, summaries.length]);
+  }, [navigateNext, navigatePrevious]);
 
   return (
     <>
@@ -185,17 +185,16 @@ export default function SummariesClient() {
                 <SummarySection
                   key={summary.id}
                   summary={summary}
-                  isActive={index === currentIndex}
                   index={index}
                 />
               ))}
             </div>
 
-            {/* Vertical Scroll Container - Mobile (unchanged) */}
+            {/* Vertical Scroll Container - Mobile */}
             <div className="lg:hidden h-full overflow-y-auto">
-              <div className="space-y-8 pb-8">
+              <div className="pb-8">
                 {summaries.map((summary, index) => (
-                  <div key={summary.id} className="px-4">
+                  <div key={summary.id}>
                     <SummarySection summary={summary} index={index} />
                   </div>
                 ))}
@@ -204,45 +203,48 @@ export default function SummariesClient() {
 
             {/* Navigation Controls - Desktop Only */}
             <div className="hidden lg:block">
-              {/* Previous Button (Up) */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-4 right-4 z-10 bg-background/80 backdrop-blur-sm"
-                onClick={navigatePrevious}
-                disabled={currentIndex === 0}
-                aria-label="Previous summary"
-              >
-                <ChevronUp className="h-5 w-5" />
-              </Button>
-
-              {/* Next Button (Down) */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute bottom-4 right-4 z-10 bg-background/80 backdrop-blur-sm"
-                onClick={navigateNext}
-                disabled={currentIndex === summaries.length - 1}
-                aria-label="Next summary"
-              >
-                <ChevronDown className="h-5 w-5" />
-              </Button>
-
-              {/* Progress Indicators - Left Side */}
+              {/* Progress Indicators with Navigation Arrows - Left Side */}
               <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
-                <div className="flex flex-col items-center gap-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-4">
-                  {summaries.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                        index === currentIndex 
-                          ? 'bg-primary h-6' 
-                          : 'bg-muted-foreground/40 hover:bg-muted-foreground/60'
-                      }`}
-                      onClick={() => scrollToSection(index)}
-                      aria-label={`Go to summary ${index + 1}`}
-                    />
-                  ))}
+                <div className="flex flex-col items-center gap-4">
+                  {/* Previous Button (Up) */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-background/80 backdrop-blur-sm"
+                    onClick={navigatePrevious}
+                    disabled={currentIndex === 0}
+                    aria-label="Previous summary"
+                  >
+                    <ChevronUp className="h-5 w-5" />
+                  </Button>
+
+                  {/* Progress Indicators */}
+                  <div className="flex flex-col items-center gap-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-4">
+                    {summaries.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                          index === currentIndex 
+                            ? 'bg-primary h-6' 
+                            : 'bg-muted-foreground/40 hover:bg-muted-foreground/60'
+                        }`}
+                        onClick={() => scrollToSection(index)}
+                        aria-label={`Go to summary ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Next Button (Down) */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-background/80 backdrop-blur-sm"
+                    onClick={navigateNext}
+                    disabled={currentIndex === summaries.length - 1}
+                    aria-label="Next summary"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
 
@@ -250,14 +252,6 @@ export default function SummariesClient() {
               <div className="absolute top-6 left-6 z-10">
                 <div className="bg-background/80 backdrop-blur-sm rounded-full px-3 py-1 text-sm text-muted-foreground">
                   {currentIndex + 1} / {summaries.length}
-                </div>
-              </div>
-
-              {/* Scroll Hint */}
-              <div className="absolute bottom-20 right-1/2 translate-x-1/2 z-10 text-muted-foreground/60 text-sm animate-bounce">
-                <div className="flex flex-col items-center gap-1">
-                  <ChevronDown className="h-4 w-4" />
-                  <span>Scroll</span>
                 </div>
               </div>
             </div>
