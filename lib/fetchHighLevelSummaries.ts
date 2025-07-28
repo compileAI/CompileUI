@@ -34,13 +34,13 @@ export async function getHighLevelSummaries(): Promise<HlcArticle[]> {
     }
 
     // Get the most recent entry per topic
-    const latestByTopic = new Map<string, any>();
-    summariesData.forEach((summary: any) => {
+    const latestByTopic = new Map<string, HlcArticle>();
+    summariesData.forEach((summary: HlcArticle) => {
       // Convert gen_article_ids from int8 numbers to strings to avoid JavaScript precision loss
-      const convertedSummary = {
+      const convertedSummary: HlcArticle = {
         ...summary,
         gen_article_ids: Array.isArray(summary.gen_article_ids) 
-          ? summary.gen_article_ids.map((id: any) => String(id))
+          ? summary.gen_article_ids.map((id: string | number) => String(id))
           : summary.gen_article_ids
       };
       
