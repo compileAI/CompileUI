@@ -431,7 +431,9 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       {/* Header */}
       <Header />
       
-      <div className={`flex-1 flex overflow-hidden ${chatVisible ? '' : 'max-w-[2000px] mx-auto'}`}>
+      {/* Main content with sidebar spacing on desktop */}
+      <div className="md:ml-56 flex-1 flex flex-col overflow-hidden">
+        <div className={`flex-1 flex overflow-hidden ${chatVisible ? '' : 'max-w-[2000px] mx-auto'}`}>
         {/* Article Section - Takes 2/3 width on desktop, full width on mobile */}
         <div 
           ref={articleContentRef}
@@ -831,6 +833,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
