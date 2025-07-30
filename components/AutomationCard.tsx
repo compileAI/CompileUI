@@ -208,7 +208,7 @@ export default function AutomationCard({
             displayContent
           ) : (
             <div className="text-left">
-              <p className="text-black font-medium mb-2">Automation is scheduled to run</p>
+              <p className="text-foreground font-medium mb-2">Automation is scheduled to run</p>
               <p className="text-muted-foreground/60 text-sm">
                 Your automation will run each morning and the results will appear here.
               </p>
@@ -231,7 +231,7 @@ export default function AutomationCard({
               <span className="text-xs text-muted-foreground">
                 {automationName}
               </span>
-              <div className={`w-2 h-2 rounded-full ${automation?.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <div className={`w-2 h-2 rounded-full ${automation?.active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
             </div>
           </div>
         </div>

@@ -14,6 +14,7 @@ interface AutomationFormProps {
   onSave: (params: { retrieval_prompt: string; content_prompt: string; style_prompt: string; name: string }) => Promise<void>;
   size: "hero" | "small";
   isDemo?: boolean;
+  titleChanged?: boolean;
 }
 
 interface FormData {
@@ -23,7 +24,7 @@ interface FormData {
   name: string;
 }
 
-export default function AutomationForm({ automation, onSave, size, isDemo = false }: AutomationFormProps) {
+export default function AutomationForm({ automation, onSave, size, isDemo = false, titleChanged = false }: AutomationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   
   const form = useForm<FormData>({
@@ -31,16 +32,19 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
       retrieval_prompt: automation?.params?.retrieval_prompt || "",
       content_prompt: automation?.params?.content_prompt || "",
       style_prompt: automation?.params?.style_prompt || "",
-      name: automation?.params?.name || ""
+      name: ""
     }
   });
 
   const { register, handleSubmit, watch, formState: { errors, isDirty } } = form;
+  
+  // Consider the form dirty if either the form fields changed or the title changed
+  const isFormDirty = isDirty || titleChanged;
 
   const watchedValues = watch();
 
   const onSubmit = async (data: FormData) => {
-    if (!data.retrieval_prompt || !data.content_prompt || !data.style_prompt || !data.name) {
+    if (!data.retrieval_prompt || !data.content_prompt || !data.style_prompt) {
       toast.error('All prompt fields are required');
       return;
     }
@@ -65,27 +69,6 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
   return (
     <div className="h-full flex flex-col">
       <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4">
-        {/* Automation Name */}
-        <div className="space-y-2">
-          <Label htmlFor="name" className="text-base font-medium">
-            Automation Name
-          </Label>
-          <input
-            id="name"
-            type="text"
-            placeholder="e.g., Daily Tech News"
-            className={`w-full ${isCompact ? 'px-3 py-2' : 'px-4 py-3'} text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring ${isDemo ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-            {...register("name", { 
-              required: "Automation name is required",
-              maxLength: { value: 50, message: "Maximum 50 characters" }
-            })}
-            readOnly={isDemo}
-          />
-          {errors.name && (
-            <span className="text-xs text-destructive">{errors.name.message}</span>
-          )}
-        </div>
-
         {/* Retrieval Prompt */}
         <div className="space-y-2">
           <Label htmlFor="retrieval_prompt" className="text-base font-medium">
@@ -184,7 +167,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
           ) : (
             <Button
               type="submit"
-              disabled={isLoading || !isDirty}
+              disabled={isLoading || !isFormDirty}
               className="w-full text-base font-semibold py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-md"
               size="default"
             >

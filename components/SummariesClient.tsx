@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { HlcArticle } from "@/types";
 import SummarySection from "./SummarySection";
 import Header from "./Header";
 import { Button } from "./ui/button";
-import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 export default function SummariesClient() {
   const [summaries, setSummaries] = useState<HlcArticle[]>([]);
@@ -48,15 +48,14 @@ export default function SummariesClient() {
       }
     };
 
-    fetchSummaries();
+        fetchSummaries();
   }, []);
 
   // Handle scroll to specific section
-  const scrollToSection = useCallback((index: number) => {
+  const scrollToSection = (index: number) => {
     if (!scrollContainerRef.current) return;
     
     const container = scrollContainerRef.current;
-    // Each section is calc(100vh-4rem) plus separator, so calculate actual position
     const sectionHeight = window.innerHeight - 64; // 4rem = 64px
     const separatorHeight = 1; // 1px separator
     const targetScrollTop = index * (sectionHeight + separatorHeight);
@@ -67,35 +66,33 @@ export default function SummariesClient() {
     });
     
     setCurrentIndex(index);
-  }, []);
+  };
 
   // Handle previous/next navigation
-  const navigatePrevious = useCallback(() => {
+  const navigatePrevious = () => {
     if (currentIndex > 0) {
       scrollToSection(currentIndex - 1);
     }
-  }, [currentIndex, scrollToSection]);
+  };
 
-  const navigateNext = useCallback(() => {
+  const navigateNext = () => {
     if (currentIndex < summaries.length - 1) {
       scrollToSection(currentIndex + 1);
     }
-  }, [currentIndex, summaries.length, scrollToSection]);
+  };
 
-  // Handle scroll events to update current index and progress dots
+  // Handle scroll events to update current index
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || summaries.length === 0) return;
 
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
-      // Calculate which section we're closest to based on scroll position
       const sectionHeight = window.innerHeight - 64; // 4rem = 64px
       const separatorHeight = 1; // 1px separator
       const totalSectionHeight = sectionHeight + separatorHeight;
-      const newIndex = Math.floor(scrollTop / totalSectionHeight);
+      const newIndex = Math.round(scrollTop / totalSectionHeight);
       
-      // Clamp the index to valid range
       const clampedIndex = Math.max(0, Math.min(newIndex, summaries.length - 1));
       
       if (clampedIndex !== currentIndex) {
@@ -103,160 +100,171 @@ export default function SummariesClient() {
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, [summaries.length, currentIndex]);
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        navigatePrevious();
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        navigateNext();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigateNext, navigatePrevious]);
 
   return (
     <>
       <Header />
       
-      <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-background">
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-lg font-medium text-foreground">Loading summaries...</p>
-            </div>
-          </div>
-        )}
+      {/* Main content with sidebar spacing on desktop */}
+      <div className="md:ml-56 min-h-screen bg-background">
+        <div className="relative min-h-screen lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
+          {/* Loading State */}
+          {loading && (
+            <div className="min-h-screen lg:h-full lg:overflow-y-auto">
+              {Array.from({ length: 3 }).map((_, index) => {
+                const isEven = index % 2 === 0;
+                const sectionBg = isEven ? "bg-background" : "bg-muted/20";
+                
+                return (
+                  <div key={index}>
+                    <section 
+                      className={`min-w-full min-h-screen flex-shrink-0 px-4 sm:px-4 md:px-8 py-6 sm:py-4 lg:py-6 mb-0 ${sectionBg} relative animate-pulse`}
+                    >
+                                              <div className="max-w-6xl mx-auto min-h-full flex flex-col">
+                        {/* Title and Date Skeleton */}
+                        <div className="space-y-1 mb-6">
+                          <div className="h-8 sm:h-10 md:h-12 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-2/3"></div>
+                          <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-32"></div>
+                        </div>
 
-        {/* Error State */}
-        {error && !loading && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md mx-auto px-4">
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-destructive mb-2">
-                  Unable to Load Summaries
-                </h2>
-                <p className="text-destructive/80 mb-4">{error}</p>
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  variant="outline"
-                  size="sm"
-                >
-                  Try Again
-                </Button>
+                        {/* Summary Content Skeleton - Full Width with Border */}
+                        <div className="border-l-4 border-muted-foreground/20 pl-4 sm:pl-6 pr-2 sm:pr-4 mb-4 sm:mb-8">
+                          <div className="space-y-3">
+                            <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-full"></div>
+                            <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-5/6"></div>
+                            <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-4/5"></div>
+                            <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-full"></div>
+                            <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-3/4"></div>
+                          </div>
+                        </div>
+
+                        {/* Featured Article Skeleton */}
+                        <div className="mb-4 sm:mb-8 lg:flex-1 pt-1 sm:pt-4">
+                          <div className="space-y-1 sm:space-y-3">
+                            <div className="h-4 sm:h-5 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-32"></div>
+                            <div className="w-full rounded-xl p-4 sm:p-6 flex items-center justify-between border bg-muted/50">
+                              <div className="flex-1 min-w-0">
+                                <div className="h-5 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded mb-2 w-3/4"></div>
+                                <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-24"></div>
+                              </div>
+                              <div className="flex items-center gap-3 ml-4">
+                                <div className="h-4 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-16"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Simple Articles Section */}
+                        <div className="lg:mt-auto pt-1 sm:pt-4">
+                          <div className="flex items-center justify-between mb-2 sm:mb-5">
+                            <div className="h-4 sm:h-5 bg-muted-foreground/20 dark:bg-muted-foreground/30 rounded w-24"></div>
+                          </div>
+                          <div className="h-20 sm:h-32 bg-muted-foreground/10 dark:bg-muted-foreground/20 rounded-xl"></div>
+                        </div>
+                      </div>
+                    </section>
+                    
+                    {/* Visual Separator */}
+                    <div className="w-full h-px from-transparent via-border to-transparent"></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md mx-auto px-4">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
+                  <h2 className="text-lg font-semibold text-destructive mb-2">
+                    Unable to Load Summaries
+                  </h2>
+                  <p className="text-destructive/80 mb-4">{error}</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    Try Again
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Empty State */}
-        {!loading && !error && summaries.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md mx-auto px-4">
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                No Summaries Available
-              </h2>
-              <p className="text-muted-foreground">
-                High-level summaries will appear here once they are generated.
-              </p>
+          {/* Empty State */}
+          {!loading && !error && summaries.length === 0 && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md mx-auto px-4">
+                <h2 className="text-xl font-semibold text-foreground mb-2">
+                  No Summaries Available
+                </h2>
+                <p className="text-muted-foreground">
+                  High-level summaries will appear here once they are generated.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Main Content */}
-        {!loading && !error && summaries.length > 0 && (
-          <>
-            {/* Vertical Scroll Container - Desktop */}
-            <div 
-              ref={scrollContainerRef}
-              className="hidden lg:block h-full overflow-y-auto overflow-x-hidden scroll-smooth"
-            >
-              {summaries.map((summary, index) => (
-                <SummarySection
-                  key={summary.id}
-                  summary={summary}
-                  index={index}
-                />
-              ))}
-            </div>
-
-            {/* Vertical Scroll Container - Mobile */}
-            <div className="lg:hidden h-full overflow-y-auto">
-              <div className="pb-8">
+          {/* Summaries Content */}
+          {!loading && !error && summaries.length > 0 && (
+            <>
+              {/* Main scrollable content */}
+              <div 
+                ref={scrollContainerRef}
+                className="min-h-screen lg:h-full lg:overflow-y-auto scroll-smooth lg:snap-y lg:snap-mandatory"
+              >
                 {summaries.map((summary, index) => (
-                  <div key={summary.id}>
-                    <SummarySection summary={summary} index={index} />
+                  <div
+                    key={summary.id}
+                    className="min-h-screen lg:h-full flex-shrink-0 lg:snap-start"
+                  >
+                    <SummarySection
+                      summary={summary}
+                      index={index}
+                    />
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* Navigation Controls - Desktop Only */}
-            <div className="hidden lg:block">
-              {/* Progress Indicators with Navigation Arrows - Left Side */}
-              <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
-                <div className="flex flex-col items-center gap-4">
-                  {/* Previous Button (Up) */}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="bg-background/80 backdrop-blur-sm"
-                    onClick={navigatePrevious}
-                    disabled={currentIndex === 0}
-                    aria-label="Previous summary"
-                  >
-                    <ChevronUp className="h-5 w-5" />
-                  </Button>
-
-                  {/* Progress Indicators */}
-                  <div className="flex flex-col items-center gap-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-4">
-                    {summaries.map((_, index) => (
+              {/* Page Navigation Controls */}
+              {summaries.length > 1 && (
+                <div className="absolute top-6 right-6 z-10">
+                  <div className="flex items-center gap-3">
+                    {/* Page indicator */}
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {currentIndex + 1} of {summaries.length}
+                    </span>
+                    
+                    {/* Navigation arrows */}
+                    <div className="flex items-center gap-1">
                       <button
-                        key={index}
-                        className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                          index === currentIndex 
-                            ? 'bg-primary h-6' 
-                            : 'bg-muted-foreground/40 hover:bg-muted-foreground/60'
-                        }`}
-                        onClick={() => scrollToSection(index)}
-                        aria-label={`Go to summary ${index + 1}`}
-                      />
-                    ))}
+                        onClick={navigatePrevious}
+                        disabled={currentIndex === 0}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Previous summary"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={navigateNext}
+                        disabled={currentIndex === summaries.length - 1}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Next summary"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Next Button (Down) */}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="bg-background/80 backdrop-blur-sm"
-                    onClick={navigateNext}
-                    disabled={currentIndex === summaries.length - 1}
-                    aria-label="Next summary"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
                 </div>
-              </div>
-
-              {/* Summary Counter */}
-              <div className="absolute top-6 left-6 z-10">
-                <div className="bg-background/80 backdrop-blur-sm rounded-full px-3 py-1 text-sm text-muted-foreground">
-                  {currentIndex + 1} / {summaries.length}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </div>
     </>
   );

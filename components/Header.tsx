@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Search, Loader2, ChevronDown, Menu } from "lucide-react";
+import { Search, Loader2, ChevronDown, Menu, Home, Compass, FileText, Moon, Sun } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,39 +23,32 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
 import { createClient } from "@/utils/supabase/client";
-import LoadingOverlay from "./ui/loading-overlay";
-import PreferenceForm from "@/components/PreferenceForm";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { User } from "lucide-react";
-
-
-
+import { useTheme } from "next-themes";
 
 export default function Header() {
   const pathname = usePathname();
   const supabase = createClient();
-  const { isNavigating, destination, navigateTo, clearNavigation } = useNavigation();
-  const { 
-    preferences, 
-    savePreferences, 
-    user
-  } = usePreferences();
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const { isNavigating, navigateTo, clearNavigation } = useNavigation();
+  const { user } = usePreferences();
+  const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Clear navigation state when route changes
   useEffect(() => {
     clearNavigation();
   }, [pathname, clearNavigation]);
 
-  const handleSettingsClick = () => {
-    setIsPreferencesOpen(true);
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    const header = document.getElementById('full-header');
+    const header = document.getElementById('mobile-header');
     if (header) {
       document.documentElement.style.setProperty('--header-height', `${header.offsetHeight}px`);
     }
@@ -67,12 +60,6 @@ export default function Header() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleSavePreferences = async (preferences: { contentInterests: string; presentationStyle: string }) => {
-    console.log('Header handleSavePreferences called with:', preferences);
-    await savePreferences(preferences);
-    console.log('Header preferences saved successfully');
-  };
 
   const handleSearch = async (query?: string) => {
     const searchTerm = query || searchQuery;
@@ -104,127 +91,145 @@ export default function Header() {
     return "Home"; // Default to Home for any other page
   };
 
+  const navigationItems = [
+    { 
+      label: "Home", 
+      path: "/home", 
+      icon: Home, 
+      message: "Loading your personalized feed..." 
+    },
+    { 
+      label: "Discover", 
+      path: "/discover", 
+      icon: Compass, 
+      message: "Loading articles..." 
+    },
+    { 
+      label: "Summaries", 
+      path: "/summaries", 
+      icon: FileText, 
+      message: "Loading summaries..." 
+    }
+  ];
 
+  const isDark = mounted ? theme === "dark" : false;
 
   return (
     <>
-      <div id="full-header" className="sticky border-b border-border top-0 z-50 bg-card py-3 lg:px-8 px-4">
-        {/* Desktop Layout - Hidden on mobile */}
-        <div className="hidden md:flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigateTo("/home", "Loading your personalized feed...")}
-              className="text-3xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
-            >
-              Compile.
-            </button>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => navigateTo("/home", "Loading your personalized feed...")}
-                className={`h-8 hover:bg-gray-200 ${pathname === "/home" ? "bg-gray-200" : ""}`}
-                disabled={isNavigating}
-              >
-                Home
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigateTo("/discover", "Loading articles...")}
-                className={`h-8 hover:bg-gray-200 ${pathname === "/discover" ? "bg-gray-200" : ""}`}
-                disabled={isNavigating}
-              >
-                Discover
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigateTo("/summaries", "Loading summaries...")}
-                className={`h-8 hover:bg-gray-200 ${pathname === "/summaries" ? "bg-gray-200" : ""}`}
-                disabled={isNavigating}
-              >
-                Summaries
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Desktop Search */}
-            <div className="relative w-64">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Search..."
-                className="text-sm pr-8 h-8"
-                disabled={isLoading}
-              />
-              <Button 
-                onClick={() => handleSearch()} 
-                disabled={isLoading || !searchQuery.trim()}
-                className="absolute right-0 top-0 h-8 w-8 p-0"
-                variant="ghost"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden md:flex fixed left-0 top-0 h-full w-56 bg-card border-r border-border flex-col z-50">
+        {/* Logo */}
+        <div className="p-4 border-b border-border">
+          <button 
+            onClick={() => navigateTo("/home", "Loading your personalized feed...")}
+            className="text-3xl px-2 font-bold tracking-tight hover:text-primary transition-colors cursor-pointer"
+          >
+            Compile.
+          </button>
+        </div>
 
-
-            
-
-
-
-
-            {/* Theme Toggle Button */}
-            <ThemeToggle />
-
-            {/* Settings Button */}
-            <Button
+        {/* Search - Right below logo */}
+        <div className="px-4 pt-4 pb-2">
+          <div className="relative">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Search..."
+              className="text-sm pr-8 h-10 rounded-xl"
+              disabled={isLoading}
+            />
+            <Button 
+              onClick={() => handleSearch()} 
+              disabled={isLoading || !searchQuery.trim()}
+              className="absolute right-0 top-0 h-10 w-10 p-0 rounded-xl"
               variant="ghost"
-              size="sm"
-              onClick={handleSettingsClick}
-              className="p-2 hover:bg-muted rounded-md transition-all"
-              title="Settings"
             >
-              <Settings className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
             </Button>
-
-            {/* Auth Button */}
-            {user ? (
-              <div className="flex items-center gap-2">
-                <Avatar>
-                  {user.user_metadata?.avatar_url ? (
-                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
-                  ) : (
-                    <AvatarFallback>{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
-                  )}
-                </Avatar>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    window.location.reload();
-                  }}
-                >
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setAuthModalOpen(true)}
-              >
-                Sign In
-              </Button>
-            )}
           </div>
         </div>
 
-        {/* Mobile Layout - Hidden on desktop */}
-        <div className="flex md:hidden flex-col gap-3">
+        {/* Navigation Items */}
+        <div className="flex-1 px-4 py-2 space-y-2">
+          {navigationItems.map(({ label, path, icon: Icon, message }) => (
+            <Button
+              key={path}
+              variant={pathname === path ? "secondary" : "ghost"}
+              className="w-full justify-start gap-3 h-10"
+              onClick={() => navigateTo(path, message)}
+              disabled={isNavigating}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Bottom Section - Theme Toggle and Auth */}
+        <div className="p-4 border-t border-border">
+          {/* Theme Toggle - Full Width */}
+          <Button
+            variant="ghost"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            className="w-full justify-start gap-3 h-10"
+          >
+            {isDark ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+            {isDark ? "Light Mode" : "Dark Mode"}
+          </Button>
+
+          {/* Auth Section */}
+          {user ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 p-2 rounded-md bg-background hover:bg-muted/50 transition-colors">
+                <Avatar className="h-6 w-6 flex-shrink-0">
+                  {user.user_metadata?.avatar_url ? (
+                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
+                  ) : (
+                    <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{user.email?.split('@')[0]}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  window.location.reload();
+                }}
+              >
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => setAuthModalOpen(true)}
+            >
+              <User className="h-4 w-4" />
+              Sign In
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Header - Hidden on desktop */}
+      <div id="mobile-header" className="md:hidden sticky border-b border-border top-0 z-50 bg-card py-3 px-4">
+        <div className="flex flex-col gap-3">
           {/* Top Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -267,10 +272,6 @@ export default function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleSettingsClick}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {user ? (
                     <>
@@ -330,39 +331,19 @@ export default function Header() {
             </Button>
           </div>
         </div>
-
-        {/* Preference Form */}
-        <PreferenceForm
-          isOpen={isPreferencesOpen}
-          onClose={() => setIsPreferencesOpen(false)}
-          onSave={handleSavePreferences}
-          initialPreferences={preferences || undefined}
-        />
-
-        {/* Auth Modal */}
-        <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Sign Up / Sign In</DialogTitle>
-            </DialogHeader>
-            <AuthForm />
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* Navigation Loading Overlay */}
-      <LoadingOverlay 
-        isVisible={isNavigating} 
-        message={
-          isNavigating 
-            ? (destination === "/home" 
-                ? "Loading your personalized feed..." 
-                : destination === "/summaries" 
-                  ? "Loading summaries..."
-                  : "Loading articles...")
-            : undefined
-        } 
-      />
+      {/* Auth Modal */}
+      <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sign Up / Sign In</DialogTitle>
+          </DialogHeader>
+          <AuthForm />
+        </DialogContent>
+      </Dialog>
+
+
     </>
   );
 } 

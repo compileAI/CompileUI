@@ -6,9 +6,13 @@ export default function HomeClient() {
   return (
     <>
       <Header />
-      {/* add some space between the header and the article grid */}
-      <div className="h-2 lg:h-10 md:h-10 sm:h-2"></div>
-      <ArticleGrid />
+      {/* Main content with sidebar spacing on desktop */}
+      <div className="md:ml-56 min-h-screen bg-background">
+        {/* Centered content container */}
+        <div className="flex flex-col items-center pt-8 lg:pt-16">
+          <ArticleGrid />
+        </div>
+      </div>
     </>
   );
 } 

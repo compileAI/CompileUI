@@ -46,7 +46,7 @@ body {
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.98 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -130,4 +130,14 @@ html, body {
 .fade-text-out {
   mask-image: linear-gradient(to top, transparent 0%, black 30px, black 100%);
   -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30px, black 100%);
+}
+
+/* Hide scrollbars for carousel */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
