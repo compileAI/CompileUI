@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAutomations } from "@/hooks/useAutomations";
-import { AutomationContent } from "@/types";
 import AutomationForm from "./AutomationForm";
 import Header from "./Header";
 import toast from 'react-hot-toast';

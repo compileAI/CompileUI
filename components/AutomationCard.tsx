@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AutomationWithContent, AutomationContent } from "@/types";
+import { AutomationWithContent } from "@/types";
 
 
 interface AutomationCardProps {

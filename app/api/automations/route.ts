@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   AutomationsApiResponse, 
   AutomationApiResponse, 
@@ -9,9 +10,20 @@ import {
   AutomationContent
 } from '@/types';
 
+// Interface for database automation content record
+interface DatabaseAutomationContent {
+  id: string | number;
+  automation_id: string | number;
+  card_number: number;
+  title: string;
+  content: string;
+  created_at: string;
+  user_id: string | null;
+}
+
 // Helper function to fetch today's content for multiple automations
 async function fetchAutomationContent(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null,
   cardNumbers: number[]
 ): Promise<Record<number, AutomationContent | null>> {
@@ -56,11 +68,15 @@ async function fetchAutomationContent(
 
     // Populate with found content (convert id fields to strings)
     if (contentArray) {
-      contentArray.forEach((content: any) => {
+      contentArray.forEach((content: DatabaseAutomationContent) => {
         contentMap[content.card_number] = {
-          ...content,
           id: content.id.toString(),
-          automation_id: content.automation_id.toString()
+          automation_id: content.automation_id.toString(),
+          user_id: content.user_id || '', // Handle null user_id for demo content
+          card_number: content.card_number,
+          title: content.title,
+          content: content.content,
+          created_at: content.created_at
         };
       });
     }
