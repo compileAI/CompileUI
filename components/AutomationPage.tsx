@@ -335,6 +335,20 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                 )}
               </div>
             </div>
+
+            {/* Back Button - Bottom left */}
+            <div className="mt-8 mb-8">
+              <Button
+                onClick={() => router.back()}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                title="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            </div>
           </div>
         </div>
       </div>
