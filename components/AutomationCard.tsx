@@ -4,14 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Automation, AutomationContent } from "@/types";
+import { AutomationWithContent, AutomationContent } from "@/types";
 
 
 interface AutomationCardProps {
-  automation: Automation | null;
+  automation: AutomationWithContent | null;
   cardNumber: number;
   size: "hero" | "small";
-  getAutomationContent: (cardNumber: number) => Promise<AutomationContent | null>;
   isAuthenticated: boolean;
 }
 
@@ -19,13 +18,11 @@ export default function AutomationCard({
   automation, 
   cardNumber, 
   size, 
-  getAutomationContent,
   isAuthenticated 
 }: AutomationCardProps) {
   const router = useRouter();
 
-  const [content, setContent] = useState<AutomationContent | null>(null);
-  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  // Content is now embedded in the automation object, no separate loading needed
   
   const sizeClasses = {
     hero: "col-span-12 md:col-span-8 row-span-2",
@@ -42,28 +39,8 @@ export default function AutomationCard({
     small: "text-sm line-clamp-3"
   };
 
-  const loadContent = useCallback(async () => {
-    if (!automation) return;
-    
-    setIsLoadingContent(true);
-    
-    try {
-      const automationContent = await getAutomationContent(cardNumber);
-      setContent(automationContent);
-    } catch (_error) {
-      console.error('Error loading automation content:', _error);
-      // Don't show error in the card - just fail silently
-    } finally {
-      setIsLoadingContent(false);
-    }
-  }, [automation, getAutomationContent, cardNumber]);
-
-  // Load content on mount if automation exists (works for both demo and authenticated users)
-  useEffect(() => {
-    if (automation) {
-      loadContent();
-    }
-  }, [automation, loadContent]);
+  // Get content directly from the automation object (embedded content)
+  const content = automation?.content || null;
 
   const formatDate = (date: Date | string) => {
     try {
@@ -198,13 +175,7 @@ export default function AutomationCard({
 
         {/* Content Preview */}
         <div className={`${contentClasses[size]} text-muted-foreground leading-relaxed flex-grow fade-text-out`}>
-          {isLoadingContent ? (
-            <div className="space-y-2">
-              <div className="h-4 bg-muted rounded animate-pulse"></div>
-              <div className="h-4 bg-muted rounded animate-pulse w-5/6"></div>
-              <div className="h-4 bg-muted rounded animate-pulse w-4/5"></div>
-            </div>
-          ) : displayContent ? (
+          {displayContent ? (
             displayContent
           ) : (
             <div className="text-left">

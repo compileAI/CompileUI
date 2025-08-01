@@ -4,8 +4,77 @@ import {
   AutomationsApiResponse, 
   AutomationApiResponse, 
   CreateAutomationRequest,
-  Automation 
+  Automation,
+  AutomationWithContent,
+  AutomationContent
 } from '@/types';
+
+// Helper function to fetch today's content for multiple automations
+async function fetchAutomationContent(
+  supabase: any,
+  userId: string | null,
+  cardNumbers: number[]
+): Promise<Record<number, AutomationContent | null>> {
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  const contentMap: Record<number, AutomationContent | null> = {};
+
+  try {
+    // Fetch content for all card numbers in one query
+    const query = supabase
+      .from('automation_content')
+      .select('*')
+      .in('card_number', cardNumbers)
+      .gte('created_at', todayStart.toISOString())
+      .lt('created_at', todayEnd.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Filter by user_id (null for demo, specific user for authenticated)
+    if (userId) {
+      query.eq('user_id', userId);
+    } else {
+      query.is('user_id', null);
+    }
+
+    const { data: contentArray, error } = await query;
+
+    if (error) {
+      console.error('Error fetching automation content:', error);
+      // Return empty map on error - content will be null for all
+      cardNumbers.forEach(cardNumber => {
+        contentMap[cardNumber] = null;
+      });
+      return contentMap;
+    }
+
+    // Initialize all card numbers to null
+    cardNumbers.forEach(cardNumber => {
+      contentMap[cardNumber] = null;
+    });
+
+    // Populate with found content (convert id fields to strings)
+    if (contentArray) {
+      contentArray.forEach((content: any) => {
+        contentMap[content.card_number] = {
+          ...content,
+          id: content.id.toString(),
+          automation_id: content.automation_id.toString()
+        };
+      });
+    }
+
+    return contentMap;
+  } catch (error) {
+    console.error('Unexpected error fetching automation content:', error);
+    // Return null content for all on error
+    cardNumbers.forEach(cardNumber => {
+      contentMap[cardNumber] = null;
+    });
+    return contentMap;
+  }
+}
 
 export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
   try {
@@ -40,9 +109,19 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
         id: automation.id.toString()
       }));
 
+      // Fetch content for all demo automations
+      const cardNumbers = typedDemoAutomations.map(automation => automation.card_number);
+      const contentMap = await fetchAutomationContent(supabase, null, cardNumbers);
+
+      // Combine automations with their content
+      const automationsWithContent: AutomationWithContent[] = typedDemoAutomations.map(automation => ({
+        ...automation,
+        content: contentMap[automation.card_number] || null
+      }));
+
       return NextResponse.json({
         success: true,
-        automations: typedDemoAutomations
+        automations: automationsWithContent
       });
     }
 
@@ -68,9 +147,19 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
       id: automation.id.toString()
     }));
 
+    // Fetch content for all user automations
+    const cardNumbers = typedAutomations.map(automation => automation.card_number);
+    const contentMap = await fetchAutomationContent(supabase, user.id, cardNumbers);
+
+    // Combine automations with their content
+    const automationsWithContent: AutomationWithContent[] = typedAutomations.map(automation => ({
+      ...automation,
+      content: contentMap[automation.card_number] || null
+    }));
+
     return NextResponse.json({
       success: true,
-      automations: typedAutomations
+      automations: automationsWithContent
     });
 
   } catch (error) {
