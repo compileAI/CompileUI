@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { 
   Automation, 
+  AutomationWithContent,
   AutomationContent, 
   CreateAutomationRequest, 
   UpdateAutomationRequest,
@@ -10,7 +11,7 @@ import {
 import { User } from '@supabase/supabase-js';
 
 interface UseAutomationsReturn {
-  automations: (Automation | null)[];
+  automations: (AutomationWithContent | null)[];
   loading: boolean;
   error: string | null;
   user: User | null;
@@ -18,7 +19,7 @@ interface UseAutomationsReturn {
   updateAutomation: (cardNumber: number, params: UpdateAutomationRequest['params']) => Promise<void>;
   deleteAutomation: (cardNumber: number) => Promise<void>;
   refreshAutomations: () => Promise<void>;
-  getAutomationContent: (cardNumber: number) => Promise<AutomationContent | null>;
+  // getAutomationContent is no longer needed since content is embedded
 }
 
 // Default automation templates
@@ -85,85 +86,156 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   }
 ];
 
+// Global state to prevent multiple hook instances from making duplicate API calls
+let globalAutomationsState = {
+  automations: Array(6).fill(null) as (AutomationWithContent | null)[],
+  loading: true,
+  error: null as string | null,
+  user: null as User | null,
+  initializedUserId: null as string | null,
+  isDemo: false,
+  isInitializing: false, // Prevent concurrent initialization
+  subscribers: new Set<Function>()
+};
+
+function notifySubscribers() {
+  globalAutomationsState.subscribers.forEach(callback => callback());
+}
+
 export function useAutomations(): UseAutomationsReturn {
-  const [automations, setAutomations] = useState<(Automation | null)[]>(Array(6).fill(null));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  // Track which user we've initialized to prevent re-initialization
-  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
+  const [, forceUpdate] = useState({});
+  const forceRender = useCallback(() => forceUpdate({}), []);
+  
+  // Subscribe to global state changes
+  useEffect(() => {
+    globalAutomationsState.subscribers.add(forceRender);
+    return () => {
+      globalAutomationsState.subscribers.delete(forceRender);
+    };
+  }, [forceRender]);
+
   const supabase = createClient();
 
-  // Track user authentication state
+  // Track user authentication state - only initialize once globally
   useEffect(() => {
+    // If already initializing, don't start another initialization
+    if (globalAutomationsState.isInitializing) {
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const newUser = session?.user || null;
-      setUser(newUser);
+      globalAutomationsState.user = newUser;
       
       if (event === 'SIGNED_OUT') {
-        setAutomations(Array(6).fill(null));
-        setInitializedUserId(null);
-        setIsDemo(true);
+        globalAutomationsState.automations = Array(6).fill(null);
+        globalAutomationsState.initializedUserId = null;
+        globalAutomationsState.isDemo = true;
+        notifySubscribers();
         // Load demo automations after sign out
         loadDemoAutomations();
-      } else if (event === 'SIGNED_IN' && newUser && initializedUserId !== newUser.id) {
-        setIsDemo(false);
+      } else if (event === 'SIGNED_IN' && newUser && globalAutomationsState.initializedUserId !== newUser.id) {
+        globalAutomationsState.isDemo = false;
+        notifySubscribers();
         // Only initialize if this is a new user or first sign-in
         initializeUserAutomations(newUser);
-      } else if (newUser && !initializedUserId) {
-        setIsDemo(false);
+      } else if (newUser && !globalAutomationsState.initializedUserId) {
+        globalAutomationsState.isDemo = false;
+        notifySubscribers();
         // Handle initial load with existing session
         initializeUserAutomations(newUser);
-      } else if (!newUser && !isDemo) {
+      } else if (!newUser && !globalAutomationsState.isDemo) {
         // No user and not already in demo mode - load demo
-        setIsDemo(true);
+        globalAutomationsState.isDemo = true;
+        notifySubscribers();
         loadDemoAutomations();
       }
     });
 
-    // Get initial user only once on mount
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser);
-      if (currentUser && !initializedUserId) {
-        setIsDemo(false);
-        initializeUserAutomations(currentUser);
-      } else if (!currentUser) {
-        setIsDemo(true);
-        loadDemoAutomations();
-      }
-    });
+    // Get initial user only once on mount - but only if not already initialized
+    if (globalAutomationsState.initializedUserId === null && !globalAutomationsState.isInitializing) {
+      globalAutomationsState.isInitializing = true;
+      supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
+        globalAutomationsState.user = currentUser;
+        if (currentUser && !globalAutomationsState.initializedUserId) {
+          globalAutomationsState.isDemo = false;
+          notifySubscribers();
+          initializeUserAutomations(currentUser);
+        } else if (!currentUser) {
+          globalAutomationsState.isDemo = true;
+          notifySubscribers();
+          loadDemoAutomations();
+        }
+        globalAutomationsState.isInitializing = false;
+      });
+    }
 
     return () => subscription.unsubscribe();
-  }, [initializedUserId, isDemo]); // Only depend on initializedUserId and isDemo
+  }, []); // Remove dependencies to prevent re-initialization
+
+  // Populate automations array with correct positioning (now includes content)
+  const populateAutomationArray = useCallback((userAutomations: AutomationWithContent[]) => {
+    const newAutomations: (AutomationWithContent | null)[] = Array(6).fill(null);
+    
+    userAutomations.forEach(automation => {
+      if (automation.card_number >= 0 && automation.card_number < 6) {
+        newAutomations[automation.card_number] = automation;
+      }
+    });
+    
+    globalAutomationsState.automations = newAutomations;
+    notifySubscribers();
+  }, []);
+
+  // Fetch automations from API (now includes content for each automation)
+  const fetchAutomations = useCallback(async (): Promise<AutomationWithContent[]> => {
+    const response = await fetch('/api/automations', {
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch automations');
+    }
+    
+    return data.automations || [];
+  }, []);
 
   // Load demo automations for non-authenticated users
   const loadDemoAutomations = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      globalAutomationsState.loading = true;
+      globalAutomationsState.error = null;
+      notifySubscribers();
 
       // Fetch demo automations (API will handle demo mode automatically)
       const demoAutomations = await fetchAutomations();
       populateAutomationArray(demoAutomations);
     } catch (err) {
       console.error('Error loading demo automations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load demo automations');
+      globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to load demo automations';
+      notifySubscribers();
     } finally {
-      setLoading(false);
+      globalAutomationsState.loading = false;
+      notifySubscribers();
     }
-  }, []);
+  }, [fetchAutomations, populateAutomationArray]);
 
   // Initialize automations for authenticated user
   const initializeUserAutomations = useCallback(async (authenticatedUser: User) => {
     // Don't re-initialize for the same user
-    if (initializedUserId === authenticatedUser.id) {
+    if (globalAutomationsState.initializedUserId === authenticatedUser.id) {
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
+      globalAutomationsState.loading = true;
+      globalAutomationsState.error = null;
+      notifySubscribers();
 
       // Fetch existing automations
       const userAutomations = await fetchAutomations();
@@ -180,32 +252,19 @@ export function useAutomations(): UseAutomationsReturn {
       }
 
       // Mark this user as initialized
-      setInitializedUserId(authenticatedUser.id);
+      globalAutomationsState.initializedUserId = authenticatedUser.id;
+      notifySubscribers();
     } catch (err) {
       console.error('Error initializing user automations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load automations');
+      globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to load automations';
+      notifySubscribers();
     } finally {
-      setLoading(false);
+      globalAutomationsState.loading = false;
+      notifySubscribers();
     }
-  }, []);
+  }, [fetchAutomations, populateAutomationArray]);
 
-  // Fetch automations from API (works for both authenticated and demo users)
-  const fetchAutomations = async (): Promise<Automation[]> => {
-    const response = await fetch('/api/automations', {
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to fetch automations');
-    }
-    
-    return data.automations || [];
-  };
+
 
   // Fetch general/default automations for inheritance
   const fetchGeneralAutomations = async (): Promise<Automation[]> => {
@@ -268,39 +327,30 @@ export function useAutomations(): UseAutomationsReturn {
     }
   };
 
-  // Populate automations array with correct positioning
-  const populateAutomationArray = (userAutomations: Automation[]) => {
-    const newAutomations: (Automation | null)[] = Array(6).fill(null);
-    
-    userAutomations.forEach(automation => {
-      if (automation.card_number >= 0 && automation.card_number < 6) {
-        newAutomations[automation.card_number] = automation;
-      }
-    });
-    
-    setAutomations(newAutomations);
-  };
+
 
   // Refresh automations from database (only call this explicitly)
   const refreshAutomations = useCallback(async () => {
-    if (!user) return;
+    if (!globalAutomationsState.user) return;
     
     try {
-      setError(null);
+      globalAutomationsState.error = null;
+      notifySubscribers();
       const userAutomations = await fetchAutomations();
       populateAutomationArray(userAutomations);
     } catch (err) {
       console.error('Error refreshing automations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refresh automations');
+      globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to refresh automations';
+      notifySubscribers();
     }
-  }, [user]);
+  }, [fetchAutomations, populateAutomationArray]);
 
   // Create new automation (requires authentication)
   const createAutomation = useCallback(async (
     cardNumber: number, 
     params: CreateAutomationRequest['params']
   ) => {
-    if (!user) throw new Error('Please sign in to create automations');
+    if (!globalAutomationsState.user) throw new Error('Please sign in to create automations');
     
     try {
       const response = await fetch('/api/automations', {
@@ -326,25 +376,26 @@ export function useAutomations(): UseAutomationsReturn {
         throw new Error(data.error || 'Failed to create automation');
       }
       
-      // Update local state immediately with optimistic update
-      const updatedAutomations = [...automations];
+      // Update global state immediately with optimistic update
+      const updatedAutomations = [...globalAutomationsState.automations];
       updatedAutomations[cardNumber] = data.automation;
-      setAutomations(updatedAutomations);
+      globalAutomationsState.automations = updatedAutomations;
+      notifySubscribers();
       
     } catch (error) {
       console.error('Error creating automation:', error);
       throw error;
     }
-  }, [user, refreshAutomations]);
+  }, [refreshAutomations]);
 
   // Update existing automation (requires authentication)
   const updateAutomation = useCallback(async (
     cardNumber: number,
     params: UpdateAutomationRequest['params']
   ) => {
-    if (!user) throw new Error('Please sign in to edit automations');
+    if (!globalAutomationsState.user) throw new Error('Please sign in to edit automations');
     
-    const existingAutomation = automations[cardNumber];
+    const existingAutomation = globalAutomationsState.automations[cardNumber];
     if (!existingAutomation) {
       // If no automation exists, create one
       await createAutomation(cardNumber, params!);
@@ -375,22 +426,23 @@ export function useAutomations(): UseAutomationsReturn {
         throw new Error(data.error || 'Failed to update automation');
       }
       
-      // Update local state immediately with optimistic update
-      const updatedAutomations = [...automations];
+      // Update global state immediately with optimistic update
+      const updatedAutomations = [...globalAutomationsState.automations];
       updatedAutomations[cardNumber] = data.automation;
-      setAutomations(updatedAutomations);
+      globalAutomationsState.automations = updatedAutomations;
+      notifySubscribers();
       
     } catch (error) {
       console.error('Error updating automation:', error);
       throw error;
     }
-  }, [user, automations, createAutomation, refreshAutomations]);
+  }, [createAutomation, refreshAutomations]);
 
   // Delete automation (requires authentication)
   const deleteAutomation = useCallback(async (cardNumber: number) => {
-    if (!user) throw new Error('Please sign in to delete automations');
+    if (!globalAutomationsState.user) throw new Error('Please sign in to delete automations');
     
-    const automation = automations[cardNumber];
+    const automation = globalAutomationsState.automations[cardNumber];
     if (!automation) return;
     
     try {
@@ -408,50 +460,26 @@ export function useAutomations(): UseAutomationsReturn {
         throw new Error(data.error || 'Failed to delete automation');
       }
       
-      // Update local state immediately with optimistic update
-      const updatedAutomations = [...automations];
+      // Update global state immediately with optimistic update
+      const updatedAutomations = [...globalAutomationsState.automations];
       updatedAutomations[cardNumber] = null;
-      setAutomations(updatedAutomations);
+      globalAutomationsState.automations = updatedAutomations;
+      notifySubscribers();
       
     } catch (error) {
       console.error('Error deleting automation:', error);
       throw error;
     }
-  }, [user, automations, refreshAutomations]);
-
-  // Get automation content for a specific card (works for both authenticated and demo users)
-  const getAutomationContent = useCallback(async (cardNumber: number): Promise<AutomationContent | null> => {
-    try {
-      const response = await fetch(`/api/automation-content/${cardNumber}`, {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch automation content');
-      }
-      
-      return data.content;
-      
-    } catch (error) {
-      console.error('Error fetching automation content:', error);
-      return null;
-    }
-  }, []);
+  }, [refreshAutomations]);
 
   return {
-    automations,
-    loading,
-    error,
-    user,
+    automations: globalAutomationsState.automations,
+    loading: globalAutomationsState.loading,
+    error: globalAutomationsState.error,
+    user: globalAutomationsState.user,
     createAutomation,
     updateAutomation,
     deleteAutomation,
-    refreshAutomations,
-    getAutomationContent
+    refreshAutomations
   };
 } 

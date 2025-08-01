@@ -242,7 +242,7 @@ export default function SummarySection({ summary }: SummarySectionProps) {
             </div>
           </div>
 
-          {/* Featured Article */}
+          {/* Featured Article - Most recent article in the topic */}
           <div className="mb-4 sm:mb-8 lg:flex-1 pt-1 sm:pt-4">
             <FeaturedArticle article={articles[0]} />
           </div>

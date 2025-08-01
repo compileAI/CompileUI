@@ -10,8 +10,7 @@ export default function ArticleGrid() {
     automations, 
     loading, 
     error, 
-    user, 
-    getAutomationContent 
+    user
   } = useAutomations();
 
   // Check if mobile on mount and window resize
@@ -84,7 +83,6 @@ export default function ArticleGrid() {
                 automation={automations[index]}
                 cardNumber={index}
                 size={isMobile ? "hero" : getSizeForIndex(index)}
-                getAutomationContent={getAutomationContent}
                 isAuthenticated={!!user}
               />
             ))}

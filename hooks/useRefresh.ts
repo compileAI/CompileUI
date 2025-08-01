@@ -85,6 +85,14 @@ export function useRefresh() {
       if (response.ok && data.success) {
         // Clear the discover cache
         localStorage.removeItem("compile-discover-articles");
+        
+        // Clear high-level summaries cache on server-side
+        try {
+          await fetch('/api/cache/invalidate-summaries', { method: 'POST' });
+        } catch (e) {
+          console.warn('Failed to invalidate summaries cache:', e);
+        }
+        
         window.dispatchEvent(new CustomEvent('cacheUpdated', { detail: null }));
         
         // Update state

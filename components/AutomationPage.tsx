@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAutomations } from "@/hooks/useAutomations";
-import { AutomationContent } from "@/types";
 import AutomationForm from "./AutomationForm";
 import Header from "./Header";
 import toast from 'react-hot-toast';
@@ -19,8 +18,7 @@ interface AutomationPageProps {
 export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [content, setContent] = useState<AutomationContent | null>(null);
-  const [contentError, setContentError] = useState<string | null>(null);
+  // Content is now embedded in the automation object
   const [automationName, setAutomationName] = useState("");
   const [originalAutomationName, setOriginalAutomationName] = useState("");
   
@@ -30,11 +28,12 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     error, 
     user, 
     createAutomation, 
-    updateAutomation, 
-    getAutomationContent 
+    updateAutomation,
+    refreshAutomations
   } = useAutomations();
 
   const automation = automations[cardNumber];
+  const content = automation?.content || null;
 
   // Set placeholder name based on card number
   useEffect(() => {
@@ -51,12 +50,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     setOriginalAutomationName(name);
   }, [cardNumber]);
 
-  // Load content when automation is available (works for both demo and authenticated users)
-  useEffect(() => {
-    if (automation && !content) {
-      loadContent();
-    }
-  }, [automation]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Content is now embedded in automation, no separate loading needed
 
   // Set initial editing state based on whether automation exists and user is authenticated
   useEffect(() => {
@@ -83,19 +77,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     }
   }, []);
 
-  const loadContent = async () => {
-    if (!automation) return;
-    
-    setContentError(null);
-    
-    try {
-      const automationContent = await getAutomationContent(cardNumber);
-      setContent(automationContent);
-    } catch (error) {
-      console.error('Error loading automation content:', error);
-      setContentError('Failed to load content');
-    }
-  };
+  // Content loading is no longer needed since content is embedded
 
   const handleAutomationUpdate = async (
     _: number, 
@@ -124,10 +106,10 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
       
       toast.success('Automation saved successfully!', { id: `save-${cardNumber}` });
       
-      // Switch to view mode after saving and reload content
+      // Switch to view mode after saving and refresh automations (including content)
       setIsEditing(false);
       setTimeout(() => {
-        loadContent();
+        refreshAutomations();
       }, 1000);
     } catch (error) {
       console.error('Error updating automation:', error);
@@ -300,16 +282,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                   />
                 ) : (
                   <div>
-                    {contentError ? (
-                      <div className="text-center py-16">
-                        <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
-                        <h2 className="text-xl font-bold text-foreground mb-4">Failed to load content</h2>
-                        <p className="text-base text-muted-foreground mb-6 max-w-md mx-auto">{contentError}</p>
-                        <Button onClick={loadContent} size="lg">
-                          Try Again
-                        </Button>
-                      </div>
-                    ) : !content ? (
+                    {!content ? (
                       <div className="text-left pt-0 pl-0">
                         <h2 className="text-xl font-semibold text-foreground mb-2 mt-0">No content generated yet</h2>
                         <p className="text-base text-muted-foreground">
@@ -334,6 +307,20 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Back Button - Bottom left */}
+            <div className="mt-8 mb-8">
+              <Button
+                onClick={() => router.back()}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                title="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
             </div>
           </div>
         </div>
