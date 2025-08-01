@@ -95,12 +95,16 @@ export async function getHighLevelSummaries(): Promise<HlcArticle[]> {
     console.log(`[getHighLevelSummaries] Created article lookup map with ${articleMap.size} articles`);
 
     // Distribute articles back to their respective summaries
+    // Articles are ordered by date (most recent first) for better news relevance
     const summariesWithArticles = latestSummaries.map((summary) => {
       const summaryArticles = (summary.gen_article_ids || [])
         .map(id => articleMap.get(id))
         .filter(Boolean) as Article[];
+      
+      // Sort by date descending (most recent first)
+      summaryArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
-      console.log(`[getHighLevelSummaries] Summary "${summary.title}" matched ${summaryArticles.length}/${summary.gen_article_ids?.length || 0} articles`);
+      console.log(`[getHighLevelSummaries] Summary "${summary.title}" matched ${summaryArticles.length}/${summary.gen_article_ids?.length || 0} articles (ordered by date descending)`);
       
       return {
         id: summary.id,
@@ -144,26 +148,30 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
   try {
     console.log("[getGenArticlesByIds] Executing Supabase query for article IDs:", articleIds);
     
-    // Optimized query: Fetch only essential fields, no citations for better performance
-    // Citations can be loaded separately if needed
+    // Full query with citations - cached for performance
+    // Order by date descending (most recent first)
     const { data: articlesData, error: articlesError } = await supabase
       .from("gen_articles")
       .select(`
         article_id::text,
         date,
         title,
+        content,
         fingerprint,
-        tag
+        tag,
+        citations:citations_ref (
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
       `)
       .in("article_id", articleIds)
       .order("date", { ascending: false }) as { 
-        data: Array<{
-          article_id: string;
-          date: string;
-          title: string;
-          fingerprint: string;
-          tag: string;
-        }> | null;
+        data: ArticleWithCitations[] | null;
         error: PostgrestError | null;
       };
 
@@ -179,16 +187,41 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
       return [];
     }
 
-    // Optimized transformation: No citations processing, minimal data transfer
+    // Transform and rehydrate citations with full citation data
     const typedArticles: Article[] = articlesData.map((item) => {
+      // Extract and deduplicate citations from the nested data
+      const citationsMap = new Map<string, Citation>();
+      
+      (item.citations || []).forEach(citation => {
+        if (!citation?.source_articles?.master_sources?.name) return;
+        
+        // Create the citation object
+        const newCitation: Citation = {
+          sourceName: citation.source_articles.master_sources.name,
+          articleTitle: citation.source_articles.title || 'Untitled',
+          url: citation.source_articles.url
+        };
+        
+        // Create a unique key based on source name and article title
+        const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
+        
+        // Only add if we haven't seen this citation before
+        if (!citationsMap.has(citationKey)) {
+          citationsMap.set(citationKey, newCitation);
+        }
+      });
+
+      // Convert the Map back to an array
+      const citations = Array.from(citationsMap.values());
+
       return {
         article_id: item.article_id,
         date: new Date(item.date),
         title: String(item.title),
-        content: '', // Empty content for faster loading - load on demand
+        content: String(item.content),
         fingerprint: String(item.fingerprint),
         tag: String(item.tag),
-        citations: [] // Empty citations for faster loading - load on demand
+        citations
       };
     });
 
