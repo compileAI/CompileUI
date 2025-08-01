@@ -136,6 +136,10 @@ export interface Automation {
   updated_at: string;
 }
 
+export interface AutomationWithContent extends Automation {
+  content?: AutomationContent | null;
+}
+
 export interface AutomationContent {
   id: string; // int8 as string
   automation_id: string; // int8 as string
@@ -167,7 +171,7 @@ export interface AutomationApiResponse {
 
 export interface AutomationsApiResponse {
   success: boolean;
-  automations?: Automation[];
+  automations?: AutomationWithContent[];
   error?: string;
 }
 

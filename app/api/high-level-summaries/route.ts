@@ -10,10 +10,15 @@ export async function GET(): Promise<NextResponse<HlcArticlesResponse>> {
     
     console.log(`[API /api/high-level-summaries] Successfully fetched ${summaries.length} summaries`);
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       summaries
     });
+
+    // Add cache headers for better performance
+    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600'); // 5min cache, 10min stale
+    
+    return response;
 
   } catch (error) {
     console.error('[API /api/high-level-summaries] Unexpected error:', error);
