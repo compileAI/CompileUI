@@ -38,7 +38,7 @@ export default function DiscoverClient() {
     <>
       <Header />
       {/* Main content with sidebar spacing on desktop */}
-      <div className="md:ml-56 min-h-screen bg-background">
+      <div className="md:ml-56 h-[calc(100vh-var(--header-height))] md:h-screen bg-background overflow-y-auto">
         <div className="container mx-auto px-4 pt-6">
           {searchQuery && (
             <div className="mb-4">
