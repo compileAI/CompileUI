@@ -47,6 +47,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const articleContentRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
     year: "numeric",
@@ -394,6 +396,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     }
 
     setChatInput("");
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    if (mobileTextareaRef.current) {
+      mobileTextareaRef.current.style.height = 'auto';
+    }
     
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -523,12 +532,36 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     }
   }, [initialMessage, handleSendMessage]);
 
+  // Auto-resize textarea function
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto';
+    const maxHeight = 200; // Max height in pixels (about 8-10 lines)
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = newHeight + 'px';
+    textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setChatInput(e.target.value);
+    autoResizeTextarea(e.target);
+  };
+
+  // Auto-resize when chatInput changes programmatically (e.g., voice input)
+  useEffect(() => {
+    if (textareaRef.current) {
+      autoResizeTextarea(textareaRef.current);
+    }
+    if (mobileTextareaRef.current) {
+      autoResizeTextarea(mobileTextareaRef.current);
+    }
+  }, [chatInput]);
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -790,14 +823,15 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 />
                 
                 {/* Text Input */}
-                <input
-                  type="text"
+                <textarea
+                  ref={textareaRef}
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyPress}
                   placeholder="Ask something about this article..."
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
+                  rows={1}
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0 resize-none overflow-hidden"
                 />
                 
                 {/* Send Button */}
@@ -969,14 +1003,15 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 />
                 
                 {/* Text Input */}
-                <input
-                  type="text"
+                <textarea
+                  ref={mobileTextareaRef}
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   placeholder="Ask something about this article..."
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
+                  rows={1}
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0 resize-none overflow-hidden"
                 />
                 
                 {/* Send Button */}
