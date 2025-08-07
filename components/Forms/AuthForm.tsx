@@ -33,6 +33,11 @@ const AuthForm = () => {
                     </Alert>
                 </div>
             )}
+            <div className="bg-muted/50 border border-border rounded-lg p-3 mb-4">
+                <p className="text-xs text-muted-foreground text-center">
+                    During sign-in, you'll see a Supabase URL (xxhaqkipppncfdluhffa.supabase.co) — that's our secure authentication provider.
+                </p>
+            </div>
             <form className="flex flex-col gap-4 items-center">
                 <Button
                     className="w-full"
