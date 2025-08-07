@@ -99,8 +99,6 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 // WebSocket handler for streaming chat
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  
   // Check if this is a WebSocket upgrade request
   const upgrade = request.headers.get('upgrade');
   if (upgrade !== 'websocket') {
