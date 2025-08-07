@@ -91,7 +91,7 @@ export default function RecommendedArticles({ articles, loading, onArticleClick,
                 className="
                   w-full cursor-pointer transition-all duration-200 
                   hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg
-                  p-4 border bg-white dark:bg-zinc-900
+                  p-4 border bg-card
                   group
                 "
               >

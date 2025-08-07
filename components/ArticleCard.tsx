@@ -23,7 +23,7 @@ export default function ArticleCard({ article, formattedDate }: Props) {
         w-full cursor-pointer transition-all duration-200 
         hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-500 
         hover:shadow-md rounded-xl p-6 flex items-center justify-between
-        border bg-white dark:bg-zinc-900 group
+        border bg-card group
       "
     >
       <div className="flex-1 min-w-0">
@@ -42,7 +42,7 @@ export default function ArticleCard({ article, formattedDate }: Props) {
             {article.citations?.length || 0} {(article.citations?.length || 0) === 1 ? 'source' : 'sources'}
           </div>
           {/* Tooltip on hover - shows list of source titles */}
-          <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-black text-white text-xs rounded-md opacity-0 group-hover/sources:opacity-100 transition-opacity pointer-events-none z-50 max-w-xs shadow-lg">
+                          <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-md opacity-0 group-hover/sources:opacity-100 transition-opacity pointer-events-none z-50 max-w-xs shadow-lg border border-border">
             {article.citations && article.citations.length > 0 ? (
               <div className="space-y-1">
                 {article.citations.map((citation, index) => (
