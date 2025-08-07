@@ -8,6 +8,20 @@ body {
   @apply font-sans;
 }
 
+/* Custom slow pulse animation for voice recording */
+@keyframes slow-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-slow-pulse {
+  animation: slow-pulse 2s ease-in-out infinite;
+}
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));

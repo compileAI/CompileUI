@@ -30,7 +30,8 @@
     "types": [
       "next-auth",
       "jest",
-      "@testing-library/jest-dom"
+      "@testing-library/jest-dom",
+      "dom-speech-recognition"
     ]
   },
   "include": [

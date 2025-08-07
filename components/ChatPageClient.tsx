@@ -12,6 +12,7 @@ import Header from "./Header";
 import ArticleFAQs from "./ArticleFAQs";
 import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
 import { getRecentlyVisited, addRecentlyVisited } from '@/utils/recentlyVisited';
+import VoiceInput from "@/components/ui/voice-input";
 
 
 interface ChatPageClientProps {
@@ -773,25 +774,42 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   transition-all duration-200 ease-out delay-300
                   ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
                 `}>
-                  <div className="flex items-center gap-4 w-full min-w-0">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask something about this article..."
-                      disabled={isLoading}
-                      className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
-                    />
-                    <Button 
-                      onClick={() => handleSendMessage()}
-                      disabled={isLoading || !chatInput.trim()}
-                      variant="secondary"
-                      className="flex-shrink-0"
-                    >
-                      {isLoading ? 'Sending...' : 'Send'}
-                    </Button>
-                  </div>
+                                <div className="relative flex items-center gap-2 w-full min-w-0">
+                {/* Voice Input - inline with text input */}
+                <VoiceInput
+                              onTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+            onInterimTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+                  currentText={chatInput}
+                  onError={(error) => console.error('Voice input error:', error)}
+                  disabled={isLoading}
+                  className="flex-shrink-0"
+                />
+                
+                {/* Text Input */}
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask something about this article..."
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
+                />
+                
+                {/* Send Button */}
+                <Button 
+                  onClick={() => handleSendMessage()}
+                  disabled={isLoading || !chatInput.trim()}
+                  variant="secondary"
+                  className="flex-shrink-0"
+                >
+                  {isLoading ? 'Sending...' : 'Send'}
+                </Button>
+              </div>
                 </div>
               </div>
               </div>
@@ -935,7 +953,22 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               transition-all duration-200 ease-out delay-300
               ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
             `}>
-              <div className="flex items-center gap-4 w-full min-w-0">
+              <div className="relative flex items-center gap-2 w-full min-w-0">
+                {/* Voice Input - inline with text input */}
+                <VoiceInput
+                              onTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+            onInterimTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+                  currentText={chatInput}
+                  onError={(error) => console.error('Voice input error:', error)}
+                  disabled={isLoading}
+                  className="flex-shrink-0"
+                />
+                
+                {/* Text Input */}
                 <input
                   type="text"
                   value={chatInput}
@@ -945,6 +978,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   disabled={isLoading}
                   className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
                 />
+                
+                {/* Send Button */}
                 <Button 
                   onClick={() => handleSendMessage()}
                   disabled={isLoading || !chatInput.trim()}
