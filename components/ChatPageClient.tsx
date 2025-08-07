@@ -152,7 +152,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         const data = await response.json();
         setRecs(data.articles || []);
       } catch (error) {
-        console.error('Error fetching recommended articles:', error);
+        console.error('Error fetching related articles:', error);
         setRecsError(true);
       } finally {
         setRecsLoading(false);
@@ -243,7 +243,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     } else {
-      // Desktop toggle - chat slides over recommended articles
+              // Desktop toggle - chat slides over related articles
       if (chatVisible) {
         // Closing chat - hide content first, then slide out
         setChatMessagesVisible(false);
@@ -714,7 +714,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   />
                 </div>
 
-                {/* Mobile Recommended Articles - Only show on mobile */}
+                {/* Mobile Related Articles - Only show on mobile */}
                 {isMobile && !recsError && (
                   <div className="mt-8 max-w-none">
                     <RecommendedArticles 
