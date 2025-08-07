@@ -78,7 +78,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
             <Textarea
               id="retrieval_prompt"
               placeholder="What information should be searched for? e.g., 'Find the latest news about AI and technology'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
               {...register("retrieval_prompt", { 
                 required: "Retrieval prompt is required",
                 maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
@@ -103,7 +103,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
             <Textarea
               id="content_prompt"
               placeholder="How should the content be formatted and presented? e.g., 'Summarize the key insights with bullet points'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
               {...register("content_prompt", { 
                 required: "Content prompt is required",
                 maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
@@ -128,7 +128,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
             <Textarea
               id="style_prompt"
               placeholder="What tone and style should be used? e.g., 'Professional tone with bullet points'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
               {...register("style_prompt", { 
                 required: "Style prompt is required",
                 maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
@@ -148,9 +148,9 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
         <div className="pt-4">
           {isDemo ? (
             <div className="space-y-3">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <p className="text-blue-700 font-medium mb-2">Demo Mode</p>
-                <p className="text-blue-600 text-sm mb-3">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+                <p className="text-blue-700 dark:text-blue-300 font-medium mb-2">Demo Mode</p>
+                <p className="text-blue-600 dark:text-blue-400 text-sm mb-3">
                   You&apos;re viewing this automation&apos;s configuration. Sign in to create and customize your own automations.
                 </p>
                 <Button
