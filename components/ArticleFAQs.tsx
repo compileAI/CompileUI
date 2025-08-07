@@ -57,7 +57,7 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile, layout = 
           variant="outline"
           size="sm"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 w-full justify-between"
+                        className="flex items-center gap-2 bg-muted hover:bg-accent border-border w-full justify-between"
         >
           <div className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
@@ -72,7 +72,7 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile, layout = 
 
         {/* Mobile Dropdown Content */}
         {isDropdownOpen && (
-          <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 z-10">
+                      <div className="absolute top-full mt-2 left-0 right-0 bg-card border border-border rounded-lg shadow-lg p-2 z-10">
             <div className="space-y-1">
               {faqs.map((faq) => (
                 <button

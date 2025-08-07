@@ -30,6 +30,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [citationsLoading, setCitationsLoading] = useState(false);
   const [citationsError, setCitationsError] = useState<string | null>(null);
@@ -281,10 +282,20 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     };
     setMessages(prev => [...prev, userMessage]);
     
+    // Create a temporary assistant message that will be updated with streaming content
+    const assistantMessageId = (Date.now() + 1).toString();
+    const initialAssistantMessage: ChatMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, initialAssistantMessage]);
+    
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat/ws', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,27 +317,67 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('No response body for streaming');
+      }
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
 
-      setMessages(prev => [...prev, assistantMessage]);
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'start') {
+                // Stream has started
+
+              } else if (data.type === 'chunk' && data.content) {
+                // Update the assistant message with new content
+                assistantContent += data.content;
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: assistantContent }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'complete') {
+                // Streaming complete
+
+                setIsLoading(false);
+                setStreamingMessageId(null);
+              } else if (data.type === 'error') {
+                throw new Error(data.error || 'Streaming error');
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse FAQ streaming data:', parseError);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      // Update the assistant message with error content
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
+      setStreamingMessageId(null);
     }
   }, [isLoading, messages, article, chatVisible]);
 
@@ -351,10 +402,21 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     };
     setMessages(prev => [...prev, userMessage]);
     
+    // Create a temporary assistant message that will be updated with streaming content
+    const assistantMessageId = (Date.now() + 1).toString();
+    const initialAssistantMessage: ChatMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, initialAssistantMessage]);
+    
     setIsLoading(true);
+    setStreamingMessageId(assistantMessageId);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat/ws', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -375,27 +437,68 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('No response body for streaming');
+      }
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
 
-      setMessages(prev => [...prev, assistantMessage]);
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'start') {
+                // Stream has started
+
+              } else if (data.type === 'chunk' && data.content) {
+                // Update the assistant message with new content
+                assistantContent += data.content;
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: assistantContent }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'complete') {
+                // Streaming complete
+
+                setIsLoading(false);
+                setStreamingMessageId(null);
+              } else if (data.type === 'error') {
+                throw new Error(data.error || 'Streaming error');
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse streaming data:', parseError);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      // Update the assistant message with error content
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
+      setStreamingMessageId(null);
     }
   }, [chatInput, isLoading, messages, article, chatVisible]);
 
@@ -518,7 +621,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   <div className="relative">
                     {/* Citations Dropdown Content */}
                     {isCitationsOpen && (
-                      <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
+                      <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
                         {citationsLoading ? (
                           <p className="text-sm text-zinc-500">Loading citations...</p>
                         ) : citationsError ? (
@@ -556,7 +659,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                       variant="outline"
                       size="sm"
                       onClick={() => setIsCitationsOpen(!isCitationsOpen)}
-                      className="flex items-center gap-2 bg-white dark:bg-zinc-900 shadow-sm"
+                      className="flex items-center gap-2 bg-card shadow-sm"
                     >
                       Citations ({citations.length})
                       {isCitationsOpen ? (
@@ -647,7 +750,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                         ))}
                         {isLoading && (
                           <div className="flex justify-start w-full">
-                            <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
+                            <div className="bg-muted rounded-lg px-4 py-2">
                               <div className="flex items-center space-x-2">
                                 <div className="flex space-x-1">
                                   <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
@@ -695,7 +798,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             </div>
           ) : (
             !recsError && (
-              <div className="w-1/3 h-full overflow-y-auto dark:bg-zinc-900/50 transition-all duration-500 ease-in-out">
+              <div className="w-1/3 h-full overflow-y-auto bg-background/50 transition-all duration-500 ease-in-out">
               <div className="p-6">
                 <RecommendedArticles 
                   articles={recs}
@@ -762,8 +865,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                         <div
                           className={`max-w-[80%] rounded-lg px-4 py-2 break-words ${
                             message.role === 'user'
-                              ? 'bg-zinc-800 text-zinc-100'
-                              : 'bg-zinc-100 dark:bg-zinc-800'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
                           }`}
                         >
                           <div className="text-sm [&_p]:mb-4 break-words">
@@ -773,31 +876,52 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                               message.content
                             )}
                           </div>
-                          <div className={`text-xs mt-1 ${
+                          <div className={`text-xs mt-1 flex items-center justify-between ${
                             message.role === 'user' 
-                              ? 'text-zinc-400' 
+                              ? 'text-primary-foreground/70' 
                               : 'text-muted-foreground'
                           }`}>
-                            {message.timestamp instanceof Date 
-                              ? message.timestamp.toLocaleTimeString() 
-                              : new Date(message.timestamp).toLocaleTimeString()
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {isLoading && (
-                      <div className="flex justify-start w-full">
-                        <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex space-x-1">
-                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="flex items-center gap-2">
+                              <span>
+                                {message.timestamp instanceof Date 
+                                  ? message.timestamp.toLocaleTimeString() 
+                                  : new Date(message.timestamp).toLocaleTimeString()
+                                }
+                              </span>
+                              {/* Show typing indicator for streaming messages */}
+                              {message.role === 'assistant' && streamingMessageId === message.id && isLoading && (
+                                <span className="text-primary text-xs">
+                                  <span className="animate-pulse">●</span>
+                                  <span className="animate-pulse" style={{ animationDelay: '0.3s' }}>●</span>
+                                  <span className="animate-pulse" style={{ animationDelay: '0.6s' }}>●</span>
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
+                    ))}
+                    {isLoading && streamingMessageId && (
+                      // Only show loading animation if the streaming message is empty
+                      (() => {
+                        const streamingMessage = messages.find(msg => msg.id === streamingMessageId);
+                        const showLoading = !streamingMessage?.content.trim();
+                        
+                        return showLoading ? (
+                          <div className="flex justify-start w-full">
+                            <div className="bg-muted rounded-lg px-4 py-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="flex space-x-1">
+                                  <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"></div>
+                                  <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                  <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                                <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()
                     )}
                     <div ref={messagesEndRef} />
                   </div>

@@ -23,10 +23,11 @@ export async function GET(
       );
     }
 
-    // Get today's date in UTC for comparison
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    // Use a 24-hour rolling window instead of calendar day to avoid timezone issues
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const todayStart = twentyFourHoursAgo;
+    const todayEnd = now;
 
     // If no user is authenticated, return demo content
     if (userError || !user) {

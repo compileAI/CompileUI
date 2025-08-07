@@ -132,7 +132,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     return (
       <>
         <Header />
-        <div className="md:ml-56 min-h-screen bg-white dark:bg-black p-6">
+        <div className="md:ml-56 min-h-screen bg-background p-6">
           <div className="min-h-screen flex flex-col bg-background rounded-lg shadow-sm">
             <div className="max-w-6xl mx-auto px-6 pt-8 pb-8 w-full">
               <div className="pt-4 mb-6">
@@ -160,7 +160,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
     return (
       <>
         <Header />
-        <div className="md:ml-56 min-h-screen bg-white dark:bg-black p-6">
+        <div className="md:ml-56 min-h-screen bg-background p-6">
           <div className="min-h-screen flex items-center justify-center bg-background rounded-lg shadow-sm">
             <div className="text-center max-w-md mx-auto px-4">
               <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
@@ -182,7 +182,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   return (
     <>
       <Header />
-      <div className="md:ml-56 min-h-screen bg-white dark:bg-black p-6">
+      <div className="md:ml-56 min-h-screen bg-background p-6">
         <div className="min-h-screen" ref={pageRef}>
           {/* Demo Banner for non-authenticated users */}
           {!user && (
