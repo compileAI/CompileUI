@@ -579,7 +579,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             h-full overflow-y-auto transition-all duration-500 ease-in-out
             ${isMobile 
               ? (chatVisible ? 'hidden' : 'w-full') // always full width on mobile, hidden when chat is open
-              : (chatVisible ? 'w-1/2' : 'w-2/3') // 1/2 width on desktop when chat is open, 2/3 width (of max-w-[2000px]) when chat is closed
+              : 'w-2/3' // Always 2/3 width on desktop - no resize animation
             }
           `}
         >
@@ -589,26 +589,58 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               <div className="mb-8">
                 <div className={`${isMobile ? 'mb-4' : 'flex justify-between items-start mb-4'}`}>
                   <h1 className="text-2xl font-bold flex-1 mr-4">{article.title}</h1>
-                  {/* Desktop Chat Button */}
+                  {/* Desktop Citations Button */}
                   {!isMobile && (
-                    <Button
-                      onClick={toggleChat}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 shrink-0"
-                    >
-                      {chatVisible ? (
-                        <>
-                          <X className="h-4 w-4" />
-                          Close Chat
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="h-4 w-4" />
-                          Chat
-                        </>
+                    <div className="relative">
+                      {/* Citations Dropdown Content */}
+                      {isCitationsOpen && (
+                        <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto z-50">
+                          {citationsLoading ? (
+                            <p className="text-sm text-zinc-500">Loading citations...</p>
+                          ) : citationsError ? (
+                            <p className="text-sm text-red-500">{citationsError}</p>
+                          ) : citations.length > 0 ? (
+                            <ul className="space-y-2">
+                              {citations.map((citation, index) => (
+                                <li key={index} className="text-sm">
+                                  <span className="font-medium">{citation.sourceName}: </span>
+                                  {citation.url ? (
+                                    <a 
+                                      href={citation.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      {citation.articleTitle || 'Untitled'}
+                                    </a>
+                                  ) : (
+                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                      {citation.articleTitle || 'Untitled'}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-zinc-500">No citations available</p>
+                          )}
+                        </div>
                       )}
-                    </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                        className="flex items-center gap-2 bg-card shadow-sm shrink-0"
+                      >
+                        Citations ({citations.length})
+                        {isCitationsOpen ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
                 
@@ -651,55 +683,24 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                     </Button>
                   </div>
 
-                  {/* Citations - Bottom right */}
-                  <div className="relative">
-                    {/* Citations Dropdown Content */}
-                    {isCitationsOpen && (
-                      <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
-                        {citationsLoading ? (
-                          <p className="text-sm text-zinc-500">Loading citations...</p>
-                        ) : citationsError ? (
-                          <p className="text-sm text-red-500">{citationsError}</p>
-                        ) : citations.length > 0 ? (
-                          <ul className="space-y-2">
-                            {citations.map((citation, index) => (
-                              <li key={index} className="text-sm">
-                                <span className="font-medium">{citation.sourceName}: </span>
-                                {citation.url ? (
-                                  <a 
-                                    href={citation.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    {citation.articleTitle || 'Untitled'}
-                                  </a>
-                                ) : (
-                                  <span className="text-zinc-600 dark:text-zinc-400">
-                                    {citation.articleTitle || 'Untitled'}
-                                  </span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-zinc-500">No citations available</p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Citations Toggle Button */}
+                  {/* Chat - Bottom right */}
+                  <div>
                     <Button
+                      onClick={toggleChat}
                       variant="outline"
                       size="sm"
-                      onClick={() => setIsCitationsOpen(!isCitationsOpen)}
-                      className="flex items-center gap-2 bg-card shadow-sm"
+                      className="flex items-center gap-2"
                     >
-                      Citations ({citations.length})
-                      {isCitationsOpen ? (
-                        <ChevronDown className="h-4 w-4" />
+                      {chatVisible ? (
+                        <>
+                          <X className="h-4 w-4" />
+                          Close Chat
+                        </>
                       ) : (
-                        <ChevronUp className="h-4 w-4" />
+                        <>
+                          <MessageCircle className="h-4 w-4" />
+                          Chat
+                        </>
                       )}
                     </Button>
                   </div>
@@ -733,7 +734,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         {/* Sidebar area: Only one is rendered at a time on desktop */}
         {!isMobile && (
           chatVisible ? (
-            <div className="relative w-1/2 h-full z-20">
+            <div className="relative w-1/3 h-full z-20">
               {/* Border that appears immediately */}
               <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-200 dark:bg-zinc-800 z-10"></div>
               {/* Chat container with transition */}
