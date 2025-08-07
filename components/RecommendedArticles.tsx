@@ -49,10 +49,10 @@ export default function RecommendedArticles({ articles, loading, onArticleClick,
     return (
       <section 
         role="region" 
-        aria-label="Recommended Articles"
+        aria-label="Related Articles"
         className={layout === 'sidebar' ? "sticky top-4" : "mt-4 pt-4 border-t border-border"}
       >
-        <h2 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Recommended Articles</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Related Articles</h2>
         
         {loading ? (
           // Loading skeleton for sidebar

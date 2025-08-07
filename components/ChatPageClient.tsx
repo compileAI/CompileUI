@@ -12,6 +12,7 @@ import Header from "./Header";
 import ArticleFAQs from "./ArticleFAQs";
 import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
 import { getRecentlyVisited, addRecentlyVisited } from '@/utils/recentlyVisited';
+import VoiceInput from "@/components/ui/voice-input";
 
 
 interface ChatPageClientProps {
@@ -46,6 +47,8 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const articleContentRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const formattedDate = new Date(article.date).toLocaleDateString("en-US", {
     year: "numeric",
@@ -149,7 +152,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         const data = await response.json();
         setRecs(data.articles || []);
       } catch (error) {
-        console.error('Error fetching recommended articles:', error);
+        console.error('Error fetching related articles:', error);
         setRecsError(true);
       } finally {
         setRecsLoading(false);
@@ -240,7 +243,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     } else {
-      // Desktop toggle - chat slides over recommended articles
+              // Desktop toggle - chat slides over related articles
       if (chatVisible) {
         // Closing chat - hide content first, then slide out
         setChatMessagesVisible(false);
@@ -393,6 +396,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     }
 
     setChatInput("");
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    if (mobileTextareaRef.current) {
+      mobileTextareaRef.current.style.height = 'auto';
+    }
     
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -522,12 +532,36 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
     }
   }, [initialMessage, handleSendMessage]);
 
+  // Auto-resize textarea function
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto';
+    const maxHeight = 200; // Max height in pixels (about 8-10 lines)
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = newHeight + 'px';
+    textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setChatInput(e.target.value);
+    autoResizeTextarea(e.target);
+  };
+
+  // Auto-resize when chatInput changes programmatically (e.g., voice input)
+  useEffect(() => {
+    if (textareaRef.current) {
+      autoResizeTextarea(textareaRef.current);
+    }
+    if (mobileTextareaRef.current) {
+      autoResizeTextarea(mobileTextareaRef.current);
+    }
+  }, [chatInput]);
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -545,7 +579,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
             h-full overflow-y-auto transition-all duration-500 ease-in-out
             ${isMobile 
               ? (chatVisible ? 'hidden' : 'w-full') // always full width on mobile, hidden when chat is open
-              : (chatVisible ? 'w-1/2' : 'w-2/3') // 1/2 width on desktop when chat is open, 2/3 width (of max-w-[2000px]) when chat is closed
+              : 'w-2/3' // Always 2/3 width on desktop - no resize animation
             }
           `}
         >
@@ -555,26 +589,58 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               <div className="mb-8">
                 <div className={`${isMobile ? 'mb-4' : 'flex justify-between items-start mb-4'}`}>
                   <h1 className="text-2xl font-bold flex-1 mr-4">{article.title}</h1>
-                  {/* Desktop Chat Button */}
+                  {/* Desktop Citations Button */}
                   {!isMobile && (
-                    <Button
-                      onClick={toggleChat}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 shrink-0"
-                    >
-                      {chatVisible ? (
-                        <>
-                          <X className="h-4 w-4" />
-                          Close Chat
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="h-4 w-4" />
-                          Chat
-                        </>
+                    <div className="relative">
+                      {/* Citations Dropdown Content */}
+                      {isCitationsOpen && (
+                        <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto z-50">
+                          {citationsLoading ? (
+                            <p className="text-sm text-zinc-500">Loading citations...</p>
+                          ) : citationsError ? (
+                            <p className="text-sm text-red-500">{citationsError}</p>
+                          ) : citations.length > 0 ? (
+                            <ul className="space-y-2">
+                              {citations.map((citation, index) => (
+                                <li key={index} className="text-sm">
+                                  <span className="font-medium">{citation.sourceName}: </span>
+                                  {citation.url ? (
+                                    <a 
+                                      href={citation.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      {citation.articleTitle || 'Untitled'}
+                                    </a>
+                                  ) : (
+                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                      {citation.articleTitle || 'Untitled'}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-zinc-500">No citations available</p>
+                          )}
+                        </div>
                       )}
-                    </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                        className="flex items-center gap-2 bg-card shadow-sm shrink-0"
+                      >
+                        Citations ({citations.length})
+                        {isCitationsOpen ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
                 
@@ -617,55 +683,24 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                     </Button>
                   </div>
 
-                  {/* Citations - Bottom right */}
-                  <div className="relative">
-                    {/* Citations Dropdown Content */}
-                    {isCitationsOpen && (
-                      <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto">
-                        {citationsLoading ? (
-                          <p className="text-sm text-zinc-500">Loading citations...</p>
-                        ) : citationsError ? (
-                          <p className="text-sm text-red-500">{citationsError}</p>
-                        ) : citations.length > 0 ? (
-                          <ul className="space-y-2">
-                            {citations.map((citation, index) => (
-                              <li key={index} className="text-sm">
-                                <span className="font-medium">{citation.sourceName}: </span>
-                                {citation.url ? (
-                                  <a 
-                                    href={citation.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    {citation.articleTitle || 'Untitled'}
-                                  </a>
-                                ) : (
-                                  <span className="text-zinc-600 dark:text-zinc-400">
-                                    {citation.articleTitle || 'Untitled'}
-                                  </span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-zinc-500">No citations available</p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Citations Toggle Button */}
+                  {/* Chat - Bottom right */}
+                  <div>
                     <Button
+                      onClick={toggleChat}
                       variant="outline"
                       size="sm"
-                      onClick={() => setIsCitationsOpen(!isCitationsOpen)}
-                      className="flex items-center gap-2 bg-card shadow-sm"
+                      className="flex items-center gap-2"
                     >
-                      Citations ({citations.length})
-                      {isCitationsOpen ? (
-                        <ChevronDown className="h-4 w-4" />
+                      {chatVisible ? (
+                        <>
+                          <X className="h-4 w-4" />
+                          Close Chat
+                        </>
                       ) : (
-                        <ChevronUp className="h-4 w-4" />
+                        <>
+                          <MessageCircle className="h-4 w-4" />
+                          Chat
+                        </>
                       )}
                     </Button>
                   </div>
@@ -680,7 +715,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   />
                 </div>
 
-                {/* Mobile Recommended Articles - Only show on mobile */}
+                {/* Mobile Related Articles - Only show on mobile */}
                 {isMobile && !recsError && (
                   <div className="mt-8 max-w-none">
                     <RecommendedArticles 
@@ -699,7 +734,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         {/* Sidebar area: Only one is rendered at a time on desktop */}
         {!isMobile && (
           chatVisible ? (
-            <div className="relative w-1/2 h-full z-20">
+            <div className="relative w-1/3 h-full z-20">
               {/* Border that appears immediately */}
               <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-200 dark:bg-zinc-800 z-10"></div>
               {/* Chat container with transition */}
@@ -773,25 +808,43 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                   transition-all duration-200 ease-out delay-300
                   ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
                 `}>
-                  <div className="flex items-center gap-4 w-full min-w-0">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask something about this article..."
-                      disabled={isLoading}
-                      className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
-                    />
-                    <Button 
-                      onClick={() => handleSendMessage()}
-                      disabled={isLoading || !chatInput.trim()}
-                      variant="secondary"
-                      className="flex-shrink-0"
-                    >
-                      {isLoading ? 'Sending...' : 'Send'}
-                    </Button>
-                  </div>
+                                <div className="relative flex items-center gap-2 w-full min-w-0">
+                {/* Voice Input - inline with text input */}
+                <VoiceInput
+                              onTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+            onInterimTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+                  currentText={chatInput}
+                  onError={(error) => console.error('Voice input error:', error)}
+                  disabled={isLoading}
+                  className="flex-shrink-0"
+                />
+                
+                {/* Text Input */}
+                <textarea
+                  ref={textareaRef}
+                  value={chatInput}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask something about this article..."
+                  disabled={isLoading}
+                  rows={1}
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0 resize-none overflow-hidden"
+                />
+                
+                {/* Send Button */}
+                <Button 
+                  onClick={() => handleSendMessage()}
+                  disabled={isLoading || !chatInput.trim()}
+                  variant="secondary"
+                  className="flex-shrink-0"
+                >
+                  {isLoading ? 'Sending...' : 'Send'}
+                </Button>
+              </div>
                 </div>
               </div>
               </div>
@@ -935,16 +988,34 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               transition-all duration-200 ease-out delay-300
               ${chatMessagesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
             `}>
-              <div className="flex items-center gap-4 w-full min-w-0">
-                <input
-                  type="text"
+              <div className="relative flex items-center gap-2 w-full min-w-0">
+                {/* Voice Input - inline with text input */}
+                <VoiceInput
+                              onTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+            onInterimTranscript={(transcript) => {
+              setChatInput(transcript);
+            }}
+                  currentText={chatInput}
+                  onError={(error) => console.error('Voice input error:', error)}
+                  disabled={isLoading}
+                  className="flex-shrink-0"
+                />
+                
+                {/* Text Input */}
+                <textarea
+                  ref={mobileTextareaRef}
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   placeholder="Ask something about this article..."
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0"
+                  rows={1}
+                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 bg-background min-w-0 resize-none overflow-hidden"
                 />
+                
+                {/* Send Button */}
                 <Button 
                   onClick={() => handleSendMessage()}
                   disabled={isLoading || !chatInput.trim()}

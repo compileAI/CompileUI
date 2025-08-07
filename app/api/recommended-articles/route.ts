@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('[API /api/recommended-articles] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to get recommended articles' },
+              { error: 'Failed to get related articles' },
       { status: 500 }
     );
   }
