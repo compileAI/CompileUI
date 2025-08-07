@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Square } from 'lucide-react';
+import { Mic, Square } from 'lucide-react';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { isSpeechRecognitionSupported, getBrowserInfo } from '@/utils/speechSupport';
+import { getBrowserInfo } from '@/utils/speechSupport';
 
 interface VoiceInputProps {
   onTranscript: (transcript: string) => void;
@@ -34,8 +34,6 @@ export default function VoiceInput({
   const {
     isSupported,
     isListening,
-    transcript,
-    interimTranscript,
     error,
     startListening,
     stopListening,
