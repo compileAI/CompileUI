@@ -1,10 +1,16 @@
-import { createServerClient } from '@supabase/ssr'
+// middleware.ts (single file)
 import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { auth0 } from './lib/auth0' // <-- add this
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  // 1) Let Auth0 handle its built-in routes
+  if (request.nextUrl.pathname.startsWith('/auth')) {
+    return auth0.middleware(request) // returns redirects/responses for /auth/*
+  }
+
+  // 2) Your existing Supabase SSR middleware
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,9 +22,7 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -27,33 +31,16 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies from the supabase response:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-
+  // Note: With Auth0 integration, we don't need to check supabase.auth.getUser() here
+  // Auth0 handles authentication via JWT tokens passed to Supabase
+  // The supabase client is only used for cookie management in SSR context
+  
   return supabaseResponse
 }
 
+// Keep your matcher wide so both /auth/* and app paths go through middleware
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-} 
+}
