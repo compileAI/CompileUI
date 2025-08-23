@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { PreferencesApiResponse, PreferencesApiRequest, DatabasePreferences } from '@/types/preferences';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: NextRequest): Promise<NextResponse<PreferencesApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in GET /api/preferences:', userError);
@@ -18,11 +17,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<Preference
       );
     }
 
-    // Fetch user preferences
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
+
+    // Fetch user preferences - use Auth0 user.sub instead of user.id
     const { data: preferences, error: prefsError } = await supabase
       .from('user_preferences')
       .select('content_preferences, style_preferences')
-      .eq('user_id', user.id)
+      .eq('user_id', user.sub)
       .single();
 
     if (prefsError) {
@@ -57,10 +59,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<Preference
 
 export async function POST(request: NextRequest): Promise<NextResponse<PreferencesApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in POST /api/preferences:', userError);
@@ -69,6 +69,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
         { status: 401 }
       );
     }
+
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
 
     // Parse request body
     const body: PreferencesApiRequest = await request.json();
@@ -82,11 +85,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
       );
     }
 
-    // Upsert user preferences
+    // Upsert user preferences - use Auth0 user.sub instead of user.id
     const { data: preferences, error: upsertError } = await supabase
       .from('user_preferences')
       .upsert({
-        user_id: user.id,
+        user_id: user.sub,
         content_preferences: body.content_preferences,
         style_preferences: body.style_preferences
       })

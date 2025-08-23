@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { GoogleGenAI } from "@google/genai";
 import { ChatMessage, SourceArticleContext } from "@/types";
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { auth0 } from "@/lib/auth0";
 import { saveChatMessageAsync } from "@/utils/chatMessages";
 
 // Input sanitization utilities (reusing from the original route)
@@ -172,16 +173,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Supabase client
-    const supabase = await createClientForServer();
+            const supabase = await createSupabaseServerClient();
 
-    // Get current user for message persistence (don't block chat if no user)
-    let currentUser = null;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      currentUser = user;
-    } catch (authError) {
-      console.warn('[API /api/chat/ws] Failed to get user for message persistence:', authError);
-    }
+        // Get current Auth0 user for message persistence (don't block chat if no user)
+        let currentUser = null;
+        try {
+            const session = await auth0.getSession();
+            currentUser = session?.user || null;
+        } catch (authError) {
+            console.warn('[API /api/chat/ws] Failed to get user for message persistence:', authError);
+        }
 
     // Generate unique message ID for user message
     const userMessageId = `msg_${Date.now()}_user`;
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
     // Save user message asynchronously (if authenticated)
     if (currentUser) {
       saveChatMessageAsync({
-        user_id: currentUser.id,
+        user_id: currentUser.sub,
         article_id: validatedArticleContext.article_id,
         message_id: userMessageId,
         role: 'user',
@@ -411,7 +412,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
           if (currentUser && fullResponse) {
             const assistantMessageId = `msg_${Date.now()}_assistant`;
             saveChatMessageAsync({
-              user_id: currentUser.id,
+              user_id: currentUser.sub,
               article_id: validatedArticleContext.article_id,
               message_id: assistantMessageId,
               role: 'assistant',

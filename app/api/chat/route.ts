@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { ChatMessage, SourceArticleContext } from "@/types";
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { auth0 } from "@/lib/auth0";
 import { saveChatMessageAsync } from "@/utils/chatMessages";
 
 // Input sanitization utilities
@@ -224,14 +225,14 @@ export async function POST(req: Request) {
             );
         }
 
-        // Initialize Supabase client
-        const supabase = await createClientForServer();
+        // Initialize Supabase client with Auth0 token
+        const supabase = await createSupabaseServerClient();
 
-        // Get current user for message persistence (don't block chat if no user)
+        // Get current Auth0 user for message persistence (don't block chat if no user)
         let currentUser = null;
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            currentUser = user;
+            const session = await auth0.getSession();
+            currentUser = session?.user || null;
         } catch (authError) {
             console.warn('[API /api/chat] Failed to get user for message persistence:', authError);
         }
@@ -242,7 +243,7 @@ export async function POST(req: Request) {
         // Save user message asynchronously (if authenticated)
         if (currentUser) {
             saveChatMessageAsync({
-                user_id: currentUser.id,
+                user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,
                 message_id: userMessageId,
                 role: 'user',
@@ -447,7 +448,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
         // Save assistant response asynchronously (if authenticated)
         if (currentUser) {
             saveChatMessageAsync({
-                user_id: currentUser.id,
+                user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,
                 message_id: assistantMessageId,
                 role: 'assistant',

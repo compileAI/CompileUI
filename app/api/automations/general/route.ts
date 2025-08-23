@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { AutomationsApiResponse, Automation } from '@/types';
 
 export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
+    const supabase = await createSupabaseServerClient();
     
     // Fetch general automations (user_id is null for default/general automations)
     const { data: automations, error: automationsError } = await supabase
