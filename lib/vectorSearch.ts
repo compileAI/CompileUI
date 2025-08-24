@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Pinecone } from '@pinecone-database/pinecone';
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { Article, Citation, VectorSearchResponse } from "@/types";
 
 // Initialize Pinecone client
@@ -67,7 +67,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
   if (articleIds.length === 0) return [];
 
   try {
-    const supabase = await createClientForServer();
+    const supabase = await createSupabaseServerClient();
     
     // Try different date ranges until we get enough articles
     const dateRanges = [

@@ -1,10 +1,10 @@
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
 
 
 export async function getGeneratedArticles(): Promise<Article[]> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
 
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -91,7 +91,7 @@ export async function getGeneratedArticles(): Promise<Article[]> {
 }
 
 export async function getGeneratedArticle(articleId: string): Promise<Article | null> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
 
   // Ensure we're using the exact ID string from the URL
   const { data: articleData, error: articleError } = await supabase
@@ -169,7 +169,7 @@ export async function getGeneratedArticle(articleId: string): Promise<Article | 
 }
 
 export async function getArticleCitations(articleId: string): Promise<Array<{ title: string | null; url: string | null }>> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("citations_ref")

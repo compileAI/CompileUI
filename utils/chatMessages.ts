@@ -1,4 +1,4 @@
-import { createClientForServer } from '@/utils/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { DatabaseChatMessage, SaveChatMessageParams, ChatHistoryParams, ChatMessage } from '@/types';
 
 export interface ChatMessageResult {
@@ -54,7 +54,7 @@ export async function saveChatMessage(params: SaveChatMessageParams): Promise<Ch
       };
     }
 
-    const supabase = await createClientForServer();
+    const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from('user_chat_messages')
@@ -103,7 +103,7 @@ export async function getChatHistory(params: ChatHistoryParams): Promise<ChatHis
       };
     }
 
-    const supabase = await createClientForServer();
+    const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from('user_chat_messages')
