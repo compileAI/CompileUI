@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiUser } from '@/lib/auth0User';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+
 import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   AutomationsApiResponse, 

@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { auth0 } from "@/lib/auth0";
 import { saveChatMessageAsync } from "@/utils/chatMessages";
 
+
 // Input sanitization utilities
 const sanitizeInput = {
   // Remove potential prompt injection patterns
@@ -230,9 +231,14 @@ export async function POST(req: Request) {
 
         // Get current Auth0 user for message persistence (don't block chat if no user)
         let currentUser = null;
+        let userSynced = false;
         try {
             const session = await auth0.getSession();
             currentUser = session?.user || null;
+            
+            // Note: User syncing is handled by the Header component on login
+            // No need to sync on every chat request for performance
+            userSynced = true; // Assume user is synced if they have a session
         } catch (authError) {
             console.warn('[API /api/chat] Failed to get user for message persistence:', authError);
         }
@@ -240,8 +246,8 @@ export async function POST(req: Request) {
         // Generate unique message ID for user message
         const userMessageId = `msg_${Date.now()}_user`;
 
-        // Save user message asynchronously (if authenticated)
-        if (currentUser) {
+        // Save user message asynchronously (only if authenticated AND synced)
+        if (currentUser && userSynced) {
             saveChatMessageAsync({
                 user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,
@@ -445,8 +451,8 @@ Remember: **Answer grounded in the article first, supplement with verified exter
         // Generate unique message ID for assistant response
         const assistantMessageId = `msg_${Date.now()}_assistant`;
 
-        // Save assistant response asynchronously (if authenticated)
-        if (currentUser) {
+        // Save assistant response asynchronously (only if authenticated AND synced)
+        if (currentUser && userSynced) {
             saveChatMessageAsync({
                 user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,

@@ -3,6 +3,7 @@ import { getApiUser } from '@/lib/auth0User';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { PreferencesApiResponse, PreferencesApiRequest, DatabasePreferences } from '@/types/preferences';
 
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: NextRequest): Promise<NextResponse<PreferencesApiResponse>> {
   try {

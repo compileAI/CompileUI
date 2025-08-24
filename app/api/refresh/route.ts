@@ -83,9 +83,6 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
       );
     }
 
-    // Get Supabase client with Auth0 token
-    const supabase = await createSupabaseServerClient();
-
     // Check refresh limit - use Auth0 user.sub instead of user.id
     const { canRefresh, refreshesRemaining } = await checkUserRefreshLimit(user.sub);
     
