@@ -9,6 +9,17 @@ import { auth0 } from './auth0'
  */
 export async function createSupabaseServerClient() {
   try {
+    // Check if user has an active session first
+    const session = await auth0.getSession()
+    
+    if (!session || !session.user) {
+      // No active session - return unauthenticated client for public data
+      return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+    }
+
     // Get Auth0 access token for the current session
     const tokenResult = await auth0.getAccessToken({
       // Uncomment the next line if you didn't set a Default Audience in Auth0:
@@ -18,8 +29,8 @@ export async function createSupabaseServerClient() {
     const accessToken = tokenResult?.token
 
     if (!accessToken) {
-      // User not logged in - return client without auth headers
-      // This will still work for public data but RLS will block user-specific data
+      // User logged in but no access token - return client without auth headers
+      console.warn('User session exists but no access token available')
       return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -42,8 +53,17 @@ export async function createSupabaseServerClient() {
 
     return supabase
   } catch (error) {
+    // Check if it's a "no session" error which is expected for unauthenticated users
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'missing_session') {
+      // This is expected for unauthenticated users - return public client
+      return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+    }
+    
     console.error('Error creating Supabase server client:', error)
-    // Fallback to unauthenticated client
+    // Fallback to unauthenticated client for any other error
     return createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
