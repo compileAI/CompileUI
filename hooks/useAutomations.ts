@@ -8,13 +8,13 @@ import {
   UpdateAutomationRequest,
   AutomationType
 } from '@/types';
-import { User } from '@supabase/supabase-js';
+import { useUser } from '@auth0/nextjs-auth0';
 
 interface UseAutomationsReturn {
   automations: (AutomationWithContent | null)[];
   loading: boolean;
   error: string | null;
-  user: User | null;
+  user: any; // Auth0 user object
   createAutomation: (cardNumber: number, params: CreateAutomationRequest['params']) => Promise<void>;
   updateAutomation: (cardNumber: number, params: UpdateAutomationRequest['params']) => Promise<void>;
   deleteAutomation: (cardNumber: number) => Promise<void>;
@@ -91,7 +91,7 @@ let globalAutomationsState = {
   automations: Array(6).fill(null) as (AutomationWithContent | null)[],
   loading: true,
   error: null as string | null,
-  user: null as User | null,
+  user: null as any, // Auth0 user object
   initializedUserId: null as string | null,
   isDemo: false,
   isInitializing: false, // Prevent concurrent initialization
@@ -106,6 +106,9 @@ export function useAutomations(): UseAutomationsReturn {
   const [, forceUpdate] = useState({});
   const forceRender = useCallback(() => forceUpdate({}), []);
   
+  // Use Auth0 authentication
+  const { user: auth0User, isLoading } = useUser();
+  
   // Subscribe to global state changes
   useEffect(() => {
     globalAutomationsState.subscribers.add(forceRender);
@@ -114,64 +117,46 @@ export function useAutomations(): UseAutomationsReturn {
     };
   }, [forceRender]);
 
-  const supabase = createClient();
-
-  // Track user authentication state - only initialize once globally
+  // Track Auth0 authentication state changes
   useEffect(() => {
+    // Don't do anything while Auth0 is still loading
+    if (isLoading) return;
+
     // If already initializing, don't start another initialization
     if (globalAutomationsState.isInitializing) {
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const newUser = session?.user || null;
-      globalAutomationsState.user = newUser;
-      
-      if (event === 'SIGNED_OUT') {
-        globalAutomationsState.automations = Array(6).fill(null);
-        globalAutomationsState.initializedUserId = null;
-        globalAutomationsState.isDemo = true;
-        notifySubscribers();
-        // Load demo automations after sign out
-        loadDemoAutomations();
-      } else if (event === 'SIGNED_IN' && newUser && globalAutomationsState.initializedUserId !== newUser.id) {
-        globalAutomationsState.isDemo = false;
-        notifySubscribers();
-        // Only initialize if this is a new user or first sign-in
-        initializeUserAutomations(newUser);
-      } else if (newUser && !globalAutomationsState.initializedUserId) {
-        globalAutomationsState.isDemo = false;
-        notifySubscribers();
-        // Handle initial load with existing session
-        initializeUserAutomations(newUser);
-      } else if (!newUser && !globalAutomationsState.isDemo) {
-        // No user and not already in demo mode - load demo
-        globalAutomationsState.isDemo = true;
-        notifySubscribers();
-        loadDemoAutomations();
-      }
-    });
+    const currentUserId = auth0User?.sub;
+    globalAutomationsState.user = auth0User;
 
-    // Get initial user only once on mount - but only if not already initialized
-    if (globalAutomationsState.initializedUserId === null && !globalAutomationsState.isInitializing) {
-      globalAutomationsState.isInitializing = true;
-      supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-        globalAutomationsState.user = currentUser;
-        if (currentUser && !globalAutomationsState.initializedUserId) {
-          globalAutomationsState.isDemo = false;
-          notifySubscribers();
-          initializeUserAutomations(currentUser);
-        } else if (!currentUser) {
-          globalAutomationsState.isDemo = true;
-          notifySubscribers();
-          loadDemoAutomations();
-        }
-        globalAutomationsState.isInitializing = false;
-      });
+    // Handle sign out (user was authenticated, now not)
+    if (!auth0User && globalAutomationsState.initializedUserId) {
+      globalAutomationsState.automations = Array(6).fill(null);
+      globalAutomationsState.initializedUserId = null;
+      globalAutomationsState.isDemo = true;
+      notifySubscribers();
+      loadDemoAutomations();
+      return;
     }
 
-    return () => subscription.unsubscribe();
-  }, []); // Remove dependencies to prevent re-initialization
+    // Handle sign in (user is authenticated and we haven't initialized for this user)
+    if (auth0User && globalAutomationsState.initializedUserId !== currentUserId) {
+      globalAutomationsState.isDemo = false;
+      notifySubscribers();
+      initializeUserAutomations(auth0User);
+      return;
+    }
+
+    // Handle initial load for unauthenticated users
+    if (!auth0User && !globalAutomationsState.isDemo && !globalAutomationsState.initializedUserId) {
+      globalAutomationsState.isDemo = true;
+      notifySubscribers();
+      loadDemoAutomations();
+      return;
+    }
+
+  }, [auth0User, isLoading]); // React to Auth0 user changes
 
   // Populate automations array with correct positioning (now includes content)
   const populateAutomationArray = useCallback((userAutomations: AutomationWithContent[]) => {
@@ -226,9 +211,9 @@ export function useAutomations(): UseAutomationsReturn {
   }, [fetchAutomations, populateAutomationArray]);
 
   // Initialize automations for authenticated user
-  const initializeUserAutomations = useCallback(async (authenticatedUser: User) => {
-    // Don't re-initialize for the same user
-    if (globalAutomationsState.initializedUserId === authenticatedUser.id) {
+  const initializeUserAutomations = useCallback(async (authenticatedUser: any) => {
+    // Don't re-initialize for the same user (Auth0 uses 'sub' as user ID)
+    if (globalAutomationsState.initializedUserId === authenticatedUser.sub) {
       return;
     }
 
@@ -251,8 +236,8 @@ export function useAutomations(): UseAutomationsReturn {
         populateAutomationArray(userAutomations);
       }
 
-      // Mark this user as initialized
-      globalAutomationsState.initializedUserId = authenticatedUser.id;
+      // Mark this user as initialized (Auth0 uses 'sub' as user ID)
+      globalAutomationsState.initializedUserId = authenticatedUser.sub;
       notifySubscribers();
     } catch (err) {
       console.error('Error initializing user automations:', err);

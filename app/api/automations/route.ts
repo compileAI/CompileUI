@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
+
 import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   AutomationsApiResponse, 
@@ -96,10 +98,11 @@ async function fetchAutomationContent(
 
 export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
     
     // If no user is authenticated, return demo automations
     if (userError || !user) {
@@ -147,7 +150,7 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
     const { data: automations, error: automationsError } = await supabase
       .from('automations')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.sub)
       .eq('active', true)
       .order('card_number', { ascending: true });
 
@@ -167,7 +170,7 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
 
     // Fetch content for all user automations
     const cardNumbers = typedAutomations.map(automation => automation.card_number);
-    const contentMap = await fetchAutomationContent(supabase, user.id, cardNumbers);
+    const contentMap = await fetchAutomationContent(supabase, user.sub, cardNumbers);
 
     // Combine automations with their content
     const automationsWithContent: AutomationWithContent[] = typedAutomations.map(automation => ({
@@ -191,10 +194,8 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
 
 export async function POST(request: NextRequest): Promise<NextResponse<AutomationApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in POST /api/automations:', userError);
@@ -203,6 +204,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
         { status: 401 }
       );
     }
+
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
 
     // Parse request body
     const body: CreateAutomationRequest = await request.json();
@@ -235,7 +239,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
     const { data: existingAutomation, error: fetchError } = await supabase
       .from('automations')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', user.sub)
       .eq('card_number', body.card_number)
       .maybeSingle();
 
@@ -260,7 +264,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
           active: body.active ?? true,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', user.id)
+        .eq('user_id', user.sub)
         .eq('card_number', body.card_number)
         .select()
         .single();
@@ -272,7 +276,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
       const { data, error } = await supabase
         .from('automations')
         .insert({
-          user_id: user.id,
+          user_id: user.sub,
           type: body.type,
           params: body.params,
           card_number: body.card_number,

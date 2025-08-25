@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClientForServer } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 interface RefreshApiResponse {
   success?: boolean;
@@ -20,7 +21,7 @@ function getCurrentESTDate(): string {
 
 // Helper function to check user refresh limit
 async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: boolean; refreshesRemaining: number; refreshCount: number }> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
   console.log(`[DEBUG] Checking refresh limit for user ${userId} on date: ${today}`);
@@ -48,7 +49,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
 
 // Helper function to record a refresh
 async function recordUserRefresh(userId: string) {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
   console.log(`[DEBUG] Recording refresh for user ${userId} on date: ${today}`);
@@ -71,10 +72,8 @@ async function recordUserRefresh(userId: string) {
 
 export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
   try {
-    const supabase = await createClientForServer();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user instead of Supabase user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in POST /api/refresh:', userError);
@@ -84,8 +83,8 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
       );
     }
 
-    // Check refresh limit
-    const { canRefresh, refreshesRemaining } = await checkUserRefreshLimit(user.id);
+    // Check refresh limit - use Auth0 user.sub instead of user.id
+    const { canRefresh, refreshesRemaining } = await checkUserRefreshLimit(user.sub);
     
     if (!canRefresh) {
       return NextResponse.json(
@@ -100,7 +99,7 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
     }
 
     // Record the refresh
-    await recordUserRefresh(user.id);
+    await recordUserRefresh(user.sub);
 
     return NextResponse.json({
       success: true,
@@ -119,10 +118,8 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
 
 export async function GET(): Promise<NextResponse<RefreshApiResponse>> {
   try {
-    const supabase = await createClientForServer();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in GET /api/refresh:', userError);
@@ -132,19 +129,22 @@ export async function GET(): Promise<NextResponse<RefreshApiResponse>> {
       );
     }
 
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
+
     // Debug: Get all refresh records for this user
     const { data: allRefreshes, error: debugError } = await supabase
       .from('user_refreshes')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.sub)
       .order('refresh_date', { ascending: false });
 
     if (!debugError) {
-      console.log(`[DEBUG] All refresh records for user ${user.id}:`, allRefreshes);
+      console.log(`[DEBUG] All refresh records for user ${user.sub}:`, allRefreshes);
     }
 
     // Check refresh limit
-    const { canRefresh, refreshesRemaining } = await checkUserRefreshLimit(user.id);
+    const { canRefresh, refreshesRemaining } = await checkUserRefreshLimit(user.sub);
 
     return NextResponse.json({
       success: true,

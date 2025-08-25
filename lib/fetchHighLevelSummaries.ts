@@ -1,4 +1,4 @@
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { HlcArticle, Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
 
@@ -20,7 +20,7 @@ export async function getHighLevelSummaries(): Promise<HlcArticle[]> {
   }
 
   console.log('[getHighLevelSummaries] Cache miss or expired, fetching from database');
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
 
   try {
     // Get the most recent entry for each topic using a window function approach
@@ -143,7 +143,7 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
     return [];
   }
 
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
 
   try {
     console.log("[getGenArticlesByIds] Executing Supabase query for article IDs:", articleIds);
@@ -236,7 +236,7 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
 
 // Lazy loading function for full article content with citations
 export async function getFullArticleById(articleId: string): Promise<Article | null> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
   
   try {
     console.log(`[getFullArticleById] Loading full content for article ${articleId}`);

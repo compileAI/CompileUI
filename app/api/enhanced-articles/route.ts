@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClientForServer } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { performVectorSearch } from "@/lib/vectorSearch";
 import { GoogleGenAI } from "@google/genai";
 import { Article } from "@/types";
@@ -75,7 +75,7 @@ async function saveEnhancedArticle(data: {
   enhancement_metadata: unknown;
 }) {
   try {
-    const supabase = await createClientForServer();
+    const supabase = await createSupabaseServerClient();
     
     const { error } = await supabase
       .from('enhanced_articles')
@@ -97,7 +97,7 @@ async function saveEnhancedArticle(data: {
 
 // Helper function to check user refresh limit
 async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: boolean; refreshesRemaining: number }> {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
   console.log(`[DEBUG] Checking refresh limit for user ${userId} on date: ${today}`);
@@ -125,7 +125,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
 
 // Helper function to record a refresh
 async function recordUserRefresh(userId: string) {
-  const supabase = await createClientForServer();
+  const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
   // Insert new refresh record
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
     console.log(`  - forceRefresh: ${forceRefresh}`);
 
     // Create a single Supabase client for the entire function
-    const supabase = await createClientForServer();
+    const supabase = await createSupabaseServerClient();
 
     // For unauthenticated users, just return general articles from today
     if (!userId) {

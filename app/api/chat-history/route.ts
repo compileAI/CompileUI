@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChatHistory } from '@/utils/chatMessages';
-import { createClientForServer } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get current user
-    const supabase = await createClientForServer();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
 
     if (userError || !user) {
       return NextResponse.json(
@@ -26,9 +25,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get chat history
+    // Get chat history - use Auth0 user.sub instead of user.id
     const result = await getChatHistory({
-      user_id: user.id,
+      user_id: user.sub,
       article_id: article_id
     });
 

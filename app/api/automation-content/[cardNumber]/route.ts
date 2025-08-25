@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { AutomationContentApiResponse } from '@/types';
 
 export async function GET(
@@ -7,10 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ cardNumber: string }> }
 ): Promise<NextResponse<AutomationContentApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
+
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
     
     const { cardNumber: cardNumberStr } = await params;
     const cardNumber = parseInt(cardNumberStr);

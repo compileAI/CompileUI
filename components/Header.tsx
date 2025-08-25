@@ -18,20 +18,20 @@ import { Input } from "./ui/input";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { usePathname } from "next/navigation";
-import { usePreferences } from "@/hooks/usePreferences";
 import { useNavigation } from "@/hooks/useNavigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
-import { createClient } from "@/utils/supabase/client";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { User } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useUser } from '@auth0/nextjs-auth0';
+import { useAutoUserSync } from '@/hooks/useAutoUserSync';
 
 export default function Header() {
   const pathname = usePathname();
-  const supabase = createClient();
   const { isNavigating, navigateTo, clearNavigation } = useNavigation();
-  const { user } = usePreferences();
+  const { user } = useUser(); // Auth0 user
+  useAutoUserSync(); // Auto-sync user when they log in
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -191,8 +191,8 @@ export default function Header() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 p-2 rounded-md bg-background hover:bg-muted/50 transition-colors">
                 <Avatar className="h-6 w-6 flex-shrink-0">
-                  {user.user_metadata?.avatar_url ? (
-                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
+                  {user.picture ? (
+                    <AvatarImage src={user.picture} alt={user.email} />
                   ) : (
                     <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
                   )}
@@ -205,9 +205,8 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 className="w-full text-xs"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  window.location.reload();
+                onClick={() => {
+                  window.location.href = '/auth/logout';
                 }}
               >
                 Sign Out
@@ -218,7 +217,9 @@ export default function Header() {
               variant="default"
               size="sm"
               className="w-full gap-2"
-              onClick={() => setAuthModalOpen(true)}
+              onClick={() => {
+                window.location.href = '/auth/login';
+              }}
             >
               <User className="h-4 w-4" />
               Sign In
@@ -277,8 +278,8 @@ export default function Header() {
                     <>
                       <div className="px-2 py-1.5 flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          {user.user_metadata?.avatar_url ? (
-                            <AvatarImage src={user.user_metadata.avatar_url} alt={user.email} />
+                          {user.picture ? (
+                            <AvatarImage src={user.picture} alt={user.email} />
                           ) : (
                             <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
                           )}
@@ -286,9 +287,8 @@ export default function Header() {
                         <span className="text-sm truncate">{user.email}</span>
                       </div>
                       <DropdownMenuItem
-                        onClick={async () => {
-                          await supabase.auth.signOut();
-                          window.location.reload();
+                        onClick={() => {
+                          window.location.href = '/auth/logout';
                         }}
                       >
                         Sign Out
@@ -296,7 +296,9 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      <DropdownMenuItem onClick={() => setAuthModalOpen(true)}>
+                      <DropdownMenuItem onClick={() => {
+                        window.location.href = '/auth/login';
+                      }}>
                         <User className="h-4 w-4 mr-2" />
                         Sign In
                       </DropdownMenuItem>

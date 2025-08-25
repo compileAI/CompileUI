@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClientForRoutes } from '@/utils/supabase/server';
+import { getApiUser } from '@/lib/auth0User';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { AutomationApiResponse } from '@/types';
 
 export async function DELETE(
@@ -7,10 +8,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<AutomationApiResponse>> {
   try {
-    const supabase = await createServerClientForRoutes();
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get Auth0 user
+    const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
       console.error('Auth error in DELETE /api/automations/[id]:', userError);
@@ -19,6 +18,9 @@ export async function DELETE(
         { status: 401 }
       );
     }
+
+    // Get Supabase client with Auth0 token
+    const supabase = await createSupabaseServerClient();
 
     const { id: automationId } = await params;
 
