@@ -75,7 +75,7 @@ export default function AutomationCard({
   const handleCardClick = () => {
     if (!isAuthenticated && !automation) {
       // Only redirect to auth if no automation exists (no demo content)
-      router.push('/auth');
+      router.push('/auth/login');
       return;
     }
     router.push(`/automation/${cardNumber}`);
@@ -107,7 +107,10 @@ export default function AutomationCard({
         <p className="text-sm text-muted-foreground mb-4">
           Personalize your content with custom AI automations
         </p>
-        <Button size="sm">
+        <Button 
+          size="sm"
+          onClick={() => window.location.href = '/auth/login'}
+        >
           Sign In
         </Button>
       </article>
