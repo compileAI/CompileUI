@@ -85,7 +85,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   ) => {
     // Redirect to auth if user is not authenticated
     if (!user) {
-      router.push('/auth');
+              router.push('/auth/login');
       return;
     }
 
@@ -199,7 +199,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                     </span>
                   </div>
                   <Button 
-                    onClick={() => router.push('/auth')} 
+                    onClick={() => router.push('/auth/login')} 
                     size="sm"
                     variant="outline"
                     className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"

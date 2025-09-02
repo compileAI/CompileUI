@@ -155,7 +155,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
                 </p>
                 <Button
                   type="button"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={() => window.location.href = '/auth/login'}
                   className="w-full text-base font-semibold py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md"
                   size="default"
                 >
