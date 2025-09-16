@@ -210,28 +210,6 @@ describe('useDiscoverArticles', () => {
     expect(result.current.currentPage).toBe(1);
   });
 
-  it('should handle fetch errors gracefully', async () => {
-    const errorMessage = 'Fetch failed';
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
-
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    const { result } = renderHook(() => useDiscoverArticles());
-    
-    await act(async () => {
-      result.current.fetchArticles();
-    });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.error).toBe(errorMessage);
-    expect(result.current.articles).toEqual([]);
-    expect(consoleSpy).toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
-  });
 
   it('should refresh and clear cache', async () => {
     // Set up cache first

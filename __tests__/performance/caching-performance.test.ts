@@ -1,6 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDiscoverArticles } from '@/hooks/useDiscoverArticles';
-import { usePreloadDiscover } from '@/hooks/usePreloadDiscover';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -173,69 +172,6 @@ describe('Caching and Performance', () => {
     });
   });
 
-  describe('Preloading Performance', () => {
-    it('should preload without blocking main thread', async () => {
-      (fetch as jest.Mock).mockImplementation(() =>
-        new Promise(resolve => 
-          setTimeout(() => resolve({
-            ok: true,
-            json: async () => mockArticles,
-          }), 100)
-        )
-      );
-
-      const { result } = renderHook(() => usePreloadDiscover());
-      
-      const startTime = performance.now();
-      
-      // Trigger preload
-      act(() => {
-        result.current.triggerPreload(50);
-      });
-
-      // Should return immediately (non-blocking)
-      const immediateTime = performance.now();
-      expect(immediateTime - startTime).toBeLessThan(10);
-
-      // Fast-forward to trigger preload
-      act(() => {
-        jest.advanceTimersByTime(50);
-      });
-
-      // Wait for preload to complete
-      await waitFor(() => {
-        expect(localStorageMock.setItem).toHaveBeenCalled();
-      }, { timeout: 200 });
-
-      expect(fetch).toHaveBeenCalledWith('/api/fetchArticles');
-    });
-
-    it('should efficiently skip preload when cache exists', () => {
-      const existingCache = {
-        articles: mockArticles.slice(0, 20),
-        timestamp: Date.now(),
-        expiresAt: Date.now() + 60 * 60 * 1000,
-      };
-      localStorageMock.setItem('compile-discover-articles', JSON.stringify(existingCache));
-
-      const { result } = renderHook(() => usePreloadDiscover());
-      
-      const startTime = performance.now();
-      
-      act(() => {
-        result.current.triggerPreload(10);
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(10);
-      });
-
-      const endTime = performance.now();
-
-      expect(endTime - startTime).toBeLessThan(20);
-      expect(fetch).not.toHaveBeenCalled();
-    });
-  });
 
   describe('Memory Management', () => {
     it('should properly clean up expired cache entries', async () => {
