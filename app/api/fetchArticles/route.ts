@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get('articleId');
+    const page = parseInt(searchParams.get('page') || '0', 10);
 
     if (articleId) {
       // Fetch specific article
@@ -19,8 +20,8 @@ export async function GET(request: Request) {
       
       return NextResponse.json(article);
     } else {
-      // Fetch all articles (existing behavior)
-      const articles = await getGeneratedArticles();
+      // Fetch articles with pagination
+      const articles = await getGeneratedArticles(page);
       return NextResponse.json(articles);
     }
   } catch (error) {

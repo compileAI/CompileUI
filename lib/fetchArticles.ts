@@ -3,12 +3,15 @@ import { Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
 
 
-export async function getGeneratedArticles(): Promise<Article[]> {
+export async function getGeneratedArticles(page: number = 0): Promise<Article[]> {
   const supabase = await createSupabaseServerClient();
 
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   const oneWeekAgoISO = oneWeekAgo.toISOString();
+
+  const ARTICLES_PER_PAGE = 20;
+  const offset = page * ARTICLES_PER_PAGE;
 
   // Fetch articles and their citations in a single query
   const { data: articlesData, error: articlesError } = await supabase
@@ -32,7 +35,8 @@ export async function getGeneratedArticles(): Promise<Article[]> {
     `)
     .in("tag", ["CLUSTER"])
     .gte("date", oneWeekAgoISO)
-    .order("date", { ascending: false }) as { 
+    .order("date", { ascending: false })
+    .range(offset, offset + ARTICLES_PER_PAGE - 1) as { 
       data: ArticleWithCitations[] | null;
       error: PostgrestError | null;
     };

@@ -47,6 +47,13 @@ export function useDiscoverArticles() {
 
       // Check if search query matches (both undefined or both same)
       if (cachedData.searchQuery === searchQuery) {
+        // Ignore empty cache results
+        if (!cachedData.articles || cachedData.articles.length === 0) {
+          console.log('[useDiscoverArticles] Ignoring empty cached results');
+          localStorage.removeItem(CACHE_KEY);
+          return null;
+        }
+        
         console.log('[useDiscoverArticles] Using cached results for search:', searchQuery || 'all articles');
         const articles = cachedData.articles.map(article => ({
           ...article,
@@ -65,6 +72,12 @@ export function useDiscoverArticles() {
 
   // Helper function to cache results
   const cacheResults = (articles: Article[], searchQuery?: string) => {
+    // Don't cache empty results
+    if (!articles || articles.length === 0) {
+      console.log('[useDiscoverArticles] Skipping cache for empty results');
+      return;
+    }
+    
     try {
       const cacheData: CachedDiscoverResult = {
         articles,
@@ -79,10 +92,10 @@ export function useDiscoverArticles() {
     }
   };
 
-  const fetchArticles = useCallback(async (searchQuery?: string, page = 0, append = false) => {
+  const fetchArticles = useCallback(async (searchQuery?: string, page = 0, append = false, isRetry = false) => {
     // Only check cache for general article fetching (no search query)
     // Don't cache search results to ensure fresh results
-    if (!append && !searchQuery?.trim()) {
+    if (!append && !searchQuery?.trim() && !isRetry) {
       const cachedArticles = getCachedResults(searchQuery);
       if (cachedArticles) {
         // Calculate pagination for cached results
@@ -134,9 +147,9 @@ export function useDiscoverArticles() {
         articles = data.articles || [];
       } else {
         // Fetch all generated articles
-        console.log('[useDiscoverArticles] Fetching all generated articles');
+        console.log(`[useDiscoverArticles] Fetching generated articles for page ${page}`);
         
-        const response = await fetch('/api/fetchArticles');
+        const response = await fetch(`/api/fetchArticles?page=${page}`);
         if (!response.ok) {
           throw new Error(`Fetch failed: ${response.statusText}`);
         }
@@ -147,24 +160,47 @@ export function useDiscoverArticles() {
 
       console.log(`[useDiscoverArticles] Fetched ${articles.length} articles`);
 
-      // For pagination, slice the results
-      const startIndex = page * ARTICLES_PER_PAGE;
-      const endIndex = startIndex + ARTICLES_PER_PAGE;
-      const pageArticles = articles.slice(startIndex, endIndex);
-      const hasMore = endIndex < articles.length;
+      // Smart retry logic: if DB returns empty results and this is not a retry, wait 1 second and try again
+      if (articles.length === 0 && !isRetry && !searchQuery?.trim()) {
+        console.log('[useDiscoverArticles] Empty results received, retrying in 1 second...');
+        setTimeout(() => {
+          fetchArticles(searchQuery, page, append, true);
+        }, 1000);
+        return;
+      }
+
+      // If still empty after retry, show "no articles available" message
+      if (articles.length === 0) {
+        console.log('[useDiscoverArticles] No articles available after retry');
+        setState(prev => ({
+          ...prev,
+          articles: [],
+          loading: false,
+          hasMore: false,
+          currentPage: page,
+          error: undefined,
+          fullDataset: [],
+        }));
+        return;
+      }
+
+      // For pagination, if we're appending (load more), add to existing articles
+      // If we got exactly the limit (20), there might be more articles available
+      // If we got less than the limit, we've reached the end
+      const hasMore = articles.length === ARTICLES_PER_PAGE;
 
       setState(prev => ({
         ...prev,
-        articles: append ? [...prev.articles, ...pageArticles] : pageArticles,
+        articles: append ? [...prev.articles, ...articles] : articles,
         loading: false,
         hasMore,
         currentPage: page,
         error: undefined,
-        fullDataset: append ? prev.fullDataset : articles, // Store full dataset
+        fullDataset: append ? [...prev.fullDataset, ...articles] : articles, // Store full dataset
       }));
 
-      // Only cache general article fetching (not search results)
-      if (!append && !searchQuery?.trim()) {
+      // Only cache general article fetching (not search results) and only if we have articles
+      if (!append && !searchQuery?.trim() && articles.length > 0) {
         cacheResults(articles, searchQuery);
       }
 
@@ -185,24 +221,9 @@ export function useDiscoverArticles() {
 
     const nextPage = state.currentPage + 1;
     
-    // If we have full dataset cached, use it for pagination without fetching
-    if (state.fullDataset.length > 0) {
-      const startIndex = nextPage * ARTICLES_PER_PAGE;
-      const endIndex = Math.min(startIndex + ARTICLES_PER_PAGE, state.fullDataset.length);
-      const pageArticles = state.fullDataset.slice(startIndex, endIndex);
-      const hasMore = endIndex < state.fullDataset.length;
-
-      setState(prev => ({
-        ...prev,
-        articles: [...prev.articles, ...pageArticles],
-        hasMore,
-        currentPage: nextPage,
-      }));
-    } else {
-      // Fallback: fetch more data (should rarely happen with proper caching)
-      fetchArticles(state.searchQuery, nextPage, true);
-    }
-  }, [state.hasMore, state.loading, state.searchQuery, state.currentPage, state.fullDataset, fetchArticles]);
+    // Always fetch the next page from the database since we're using limits
+    fetchArticles(state.searchQuery, nextPage, true);
+  }, [state.hasMore, state.loading, state.searchQuery, state.currentPage, fetchArticles]);
 
   const search = useCallback((query: string) => {
     fetchArticles(query.trim() || undefined, 0, false);
