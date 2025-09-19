@@ -12,13 +12,17 @@ const pinecone = new Pinecone({
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 /**
- * Generate embedding for a given text using text-embedding-004
+ * Generate embedding for a given text using gemini-embedding-001
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const response = await genAI.models.embedContent({
-      model: "text-embedding-004",
-      contents: text
+      model: "gemini-embedding-001",
+      contents: text,
+      config: {
+        outputDimensionality: 768,
+        taskType: 'RETRIEVAL_QUERY',
+      } 
     });
     
     if (!response.embeddings || !response.embeddings[0] || !response.embeddings[0].values) {
