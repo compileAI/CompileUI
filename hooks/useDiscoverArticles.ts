@@ -79,7 +79,7 @@ export function useDiscoverArticles() {
     }
   };
 
-  const fetchArticles = useCallback(async (searchQuery?: string, page = 0, append = false) => {
+  const fetchArticles = useCallback(async (searchQuery?: string, page = 0, append = false, use_hybrid_search = false) => {
     // Only check cache for general article fetching (no search query)
     // Don't cache search results to ensure fresh results
     if (!append && !searchQuery?.trim()) {
@@ -122,7 +122,8 @@ export function useDiscoverArticles() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: searchQuery,
-            limit: ARTICLES_PER_PAGE * (page + 1) // Get all pages up to current
+            limit: ARTICLES_PER_PAGE * (page + 1), // Get all pages up to current
+            use_hybrid_search: use_hybrid_search
           }),
         });
 
@@ -205,7 +206,13 @@ export function useDiscoverArticles() {
   }, [state.hasMore, state.loading, state.searchQuery, state.currentPage, state.fullDataset, fetchArticles]);
 
   const search = useCallback((query: string) => {
-    fetchArticles(query.trim() || undefined, 0, false);
+    // If query is provided, use hybrid search
+    // If query is not provided, use dense search
+    if (query.trim()) {
+      fetchArticles(query.trim(), 0, false, true);
+    } else {
+      fetchArticles(undefined, 0, false, false);
+    }
   }, [fetchArticles]);
 
   const refresh = useCallback(() => {

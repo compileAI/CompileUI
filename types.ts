@@ -51,7 +51,7 @@ export interface DatabaseEnhancedArticle {
   similarity_score: number | null;
   generated_at: string;
   expires_at: string | null;
-  enhancement_metadata: any;
+  enhancement_metadata: Record<string, unknown> | null;
 }
 
 export interface ChatMessage {
@@ -200,4 +200,28 @@ export interface HlcArticlesResponse {
   success: boolean;
   summaries?: HlcArticle[];
   error?: string;
+}
+
+// BM25 and Hybrid Search types
+export interface SparseVector {
+  indices: number[];
+  values: number[];
+}
+
+export interface Bm25Params {
+  termIdByTerm: Map<string, number>;
+  dfByTerm: Map<string, number>;
+  N: number;
+  k1: number;
+  b: number;
+}
+
+export interface HybridSearchConfig {
+  use_hybrid_search: boolean;
+  limit?: number;
+}
+
+export interface SparseSearchResponse {
+  articleIds: string[];
+  scores: (number | undefined)[];
 }
