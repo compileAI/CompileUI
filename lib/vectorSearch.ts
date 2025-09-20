@@ -1,7 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { Article, Citation, VectorSearchResponse } from "@/types";
+import { Article, Citation, VectorSearchResponse, SparseSearchResponse } from "@/types";
+import { tokenize } from "@/lib/tokenize";
+import { buildBm25QueryVector, fetchBm25Params } from "@/lib/bm25";
+import { reciprocalRankFusionWithFallback } from "@/lib/rrf";
 
 // Initialize Pinecone client
 const pinecone = new Pinecone({
@@ -44,7 +47,7 @@ export async function searchSimilarVectors(
   topK: number = 10
 ): Promise<VectorSearchResponse> {
   try {
-    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!).namespace("cluster_generated");
+    const index = pinecone.index(process.env.PINECONE_DENSE_INDEX_NAME!).namespace("genarticles");
     
     const queryResponse = await index.query({
       vector: queryEmbedding,
@@ -258,7 +261,7 @@ export async function performVectorSearch(
     // Fetch 5x the limit to ensure we have enough after date filtering
     const searchLimit = Math.max(limit * 5, 50);
     const { articleIds, scores } = await searchSimilarVectors(queryEmbedding, searchLimit);
-    console.log(`[Vector Search] Found ${articleIds.length} similar articles from cluster_generated namespace (limit: ${searchLimit})`);
+    console.log(`[Vector Search] Found ${articleIds.length} similar articles from genarticles namespace (limit: ${searchLimit})`);
     
     // Step 3: Fetch full article data from Supabase with date filtering
     const articles = await fetchArticlesByIds(articleIds, limit);
@@ -279,14 +282,179 @@ export async function performVectorSearch(
     const finalArticles = articles.slice(0, limit);
     console.log(`[Vector Search] Returning ${finalArticles.length} articles (requested: ${limit})`);
     
-    if (finalArticles.length > 0) {
-      console.log(`[Vector Search] Sample article: "${finalArticles[0].title.substring(0, 80)}${finalArticles[0].title.length > 80 ? '...' : ''}"`);
-    }
-    
     return finalArticles;
     
   } catch (error) {
     console.error('Error in vector search pipeline:', error);
+    return [];
+  }
+}
+
+/**
+ * Search Pinecone sparse index using BM25 encoding
+ */
+export async function searchSparseVectors(
+  queryEmbedding: { indices: number[]; values: number[] }, 
+  topK: number = 50
+): Promise<SparseSearchResponse> {
+  try {
+    const index = pinecone.index(process.env.PINECONE_SPARSE_INDEX_NAME!).namespace("genarticles");
+    
+    console.log(`[Sparse Search] Querying Pinecone with ${queryEmbedding.indices.length} sparse terms`);
+        
+    // @ts-expect-error Pinecone SDK 6.1.x types require `vector`, but sparse-only is valid on sparse indexes
+    const queryResponse = await index.query({
+      topK: topK,
+      includeMetadata: true,
+      sparseVector: queryEmbedding
+    }); 
+      
+    // Extract article IDs and scores from the matches
+    const articleIds: string[] = queryResponse.matches?.map(match => match.id) || [];
+    const scores: (number | undefined)[] = queryResponse.matches?.map(match => match.score) || [];
+
+    console.log(`[Sparse Search] Found ${articleIds.length} matches from Pinecone`);
+    
+    return { articleIds, scores };
+  } catch (error) {
+    console.error('Error searching Pinecone sparse index:', error);
+    console.error('Query embedding indices:', queryEmbedding.indices);
+    console.error('Query embedding values:', queryEmbedding.values);
+    throw new Error('Failed to search sparse vector database');
+  }
+}
+
+/**
+ * Complete sparse search pipeline: tokenize query -> build BM25 vector -> search Pinecone -> fetch from Supabase
+ */
+export async function performSparseSearch(
+  userQuery: string, 
+  limit: number = 50
+): Promise<Article[]> {
+  try {    
+    // Step 1: Tokenize the user query
+    const tokens = tokenize(userQuery);
+    
+    if (tokens.length === 0) {
+      console.log('[Sparse Search] No valid tokens found in query');
+      return [];
+    }
+    
+    // Step 2: Fetch BM25 parameters from Supabase
+    const bm25Params = await fetchBm25Params(tokens);
+    
+    // Step 3: Build BM25 sparse query vector
+    const sparseQueryVector = buildBm25QueryVector(
+      tokens,
+      bm25Params.termIdByTerm,
+      bm25Params.dfByTerm,
+      bm25Params.N
+    );
+    
+    if (sparseQueryVector.indices.length === 0) {
+      console.log('[Sparse Search] No valid terms found for BM25 query vector');
+      return [];
+    }
+    
+    // Step 4: Search Pinecone sparse index
+    const { articleIds, scores } = await searchSparseVectors(sparseQueryVector, limit);
+    console.log(`[Sparse Search] Found ${articleIds.length} similar articles from sparse index`);
+    
+    // Step 5: Fetch full article data from Supabase with date filtering
+    const articles = await fetchArticlesByIds(articleIds, limit);
+    console.log(`[Sparse Search] Successfully fetched ${articles.length} articles from Supabase after date filtering`);
+
+    // Step 6: Sort by the display score for each article
+    articles.sort((a, b) => {
+      const indexA = articleIds.indexOf(a.article_id);
+      const indexB = articleIds.indexOf(b.article_id);
+      const scoreA = scores[indexA] ?? 0;
+      const scoreB = scores[indexB] ?? 0;
+      const displayScoreA = calculateDisplayScore(a, scoreA);
+      const displayScoreB = calculateDisplayScore(b, scoreB);
+      return displayScoreB - displayScoreA;
+    });
+
+    // Step 7: Return the requested number of articles (or all if fewer available)
+    const finalArticles = articles.slice(0, limit);
+    console.log(`[Sparse Search] Returning ${finalArticles.length} articles (requested: ${limit})`);
+    
+    return finalArticles;
+    
+  } catch (error) {
+    console.error('Error in sparse search pipeline:', error);
+    return [];
+  }
+}
+
+/**
+ * Hybrid search combining dense vector search and sparse BM25 search using RRF
+ * 
+ * @param userQuery The search query
+ * @param limit Final number of articles to return
+ * @returns Combined and ranked results
+ */
+export async function performHybridSearch(
+  userQuery: string, 
+  limit: number = 10
+): Promise<Article[]> {
+  try {
+    console.log(`[Hybrid Search] Starting hybrid search for query: "${userQuery.substring(0, 100)}${userQuery.length > 100 ? '...' : ''}" with target limit: ${limit}`);
+    
+    const searchLimit = 50; // Get top 50 from each search method
+    
+    // Run both searches in parallel
+    const [denseResults, sparseResults] = await Promise.allSettled([
+      performVectorSearch(userQuery, searchLimit),
+      performSparseSearch(userQuery, searchLimit)
+    ]);
+    
+    // Handle results and errors
+    let denseArticles: Article[] = [];
+    let sparseArticles: Article[] = [];
+    
+    if (denseResults.status === 'fulfilled') {
+      denseArticles = denseResults.value;
+      console.log(`[Hybrid Search] Dense search returned ${denseArticles.length} articles`);
+    } else {
+      console.error('[Hybrid Search] Dense search failed:', denseResults.reason);
+    }
+    
+    if (sparseResults.status === 'fulfilled') {
+      sparseArticles = sparseResults.value;
+      console.log(`[Hybrid Search] Sparse search returned ${sparseArticles.length} articles`);
+    } else {
+      console.error('[Hybrid Search] Sparse search failed:', sparseResults.reason);
+    }
+    
+    // Handle fallback scenarios
+    if (denseResults.status === 'rejected' && sparseResults.status === 'rejected') {
+      console.error('[Hybrid Search] Both dense and sparse searches failed');
+      return [];
+    }
+    
+    if (denseResults.status === 'rejected') {
+      console.log('[Hybrid Search] Falling back to sparse search only');
+      return sparseArticles.slice(0, limit);
+    }
+    
+    if (sparseResults.status === 'rejected') {
+      console.log('[Hybrid Search] Falling back to dense search only');
+      return denseArticles.slice(0, limit);
+    }
+    
+    // Apply RRF fusion
+    const fusedResults = reciprocalRankFusionWithFallback(denseArticles, sparseArticles, 60);
+    console.log(`[Hybrid Search] RRF fusion returned ${fusedResults.length} articles`);
+    
+    // Return the requested number of articles
+    const finalResults = fusedResults.slice(0, limit);
+    console.log(`[Hybrid Search] Returning ${finalResults.length} articles (requested: ${limit})`);
+    
+    return finalResults;
+    
+  } catch (error) {
+    console.error('Error in hybrid search pipeline:', error);
     return [];
   }
 }
