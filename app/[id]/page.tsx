@@ -86,8 +86,8 @@ export default function ArticlePage({ params, searchParams }: PageProps) {
         
         {/* Main Content Skeleton */}
         <div className="md:ml-56 flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 flex overflow-hidden max-w-[2000px] mx-auto">
-            <div className="w-2/3 h-full overflow-y-auto">
+          <div className="flex-1 flex overflow-hidden max-w-[2000px]">
+            <div className="w-full h-full overflow-y-auto">
               <div className="p-8 animate-pulse">
                 <div className="max-w-4xl">
                   {/* Article Header Skeleton */}
