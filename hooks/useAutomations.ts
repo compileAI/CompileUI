@@ -8,7 +8,7 @@ import {
   UpdateAutomationRequest,
   AutomationType
 } from '@/types';
-import { useUser } from '@auth0/nextjs-auth0';
+import { useAuth } from '@/context/AuthContext';
 
 interface UseAutomationsReturn {
   automations: (AutomationWithContent | null)[];
@@ -106,8 +106,8 @@ export function useAutomations(): UseAutomationsReturn {
   const [, forceUpdate] = useState({});
   const forceRender = useCallback(() => forceUpdate({}), []);
   
-  // Use Auth0 authentication
-  const { user: auth0User, isLoading } = useUser();
+  // Use Auth0 authentication from context
+  const { user: auth0User, isLoading } = useAuth();
   
   // Subscribe to global state changes
   useEffect(() => {
