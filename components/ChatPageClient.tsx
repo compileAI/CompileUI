@@ -36,7 +36,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
   const [citationsLoading, setCitationsLoading] = useState(false);
   const [citationsError, setCitationsError] = useState<string | null>(null);
   const [recsLoading, setRecsLoading] = useState(false);
-  const [recsError, setRecsError] = useState<boolean>(true);
+  const [recsError, setRecsError] = useState<boolean>(false);
   const [recs, setRecs] = useState<Article[]>([]);
   const [isCitationsOpen, setIsCitationsOpen] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
@@ -570,7 +570,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       
       {/* Main content with sidebar spacing on desktop */}
       <div className="md:ml-56 flex-1 flex flex-col overflow-hidden">
-        <div className={`flex-1 flex overflow-hidden ${chatVisible ? '' : 'max-w-[2000px] mx-auto'}`}>
+        <div className="flex-1 flex overflow-hidden">
         {/* Article Section - Takes 2/3 width on desktop, full width on mobile */}
         <div 
           ref={articleContentRef}
