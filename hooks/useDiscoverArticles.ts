@@ -45,15 +45,19 @@ export function useDiscoverArticles() {
         return null;
       }
 
-      // Check if search query matches (both undefined or both same)
+      // Check if search query matches. (both undefined or both same)
       if (cachedData.searchQuery === searchQuery) {
         console.log('[useDiscoverArticles] Using cached results for search:', searchQuery || 'all articles');
         const articles = cachedData.articles.map(article => ({
           ...article,
           date: new Date(article.date) // Convert date string back to Date object
         }));
-        return articles;
+        if (articles.length > 0) {
+          return articles;
+        } // Otherwise, continue to return null, triggering another fetch.
       }
+
+      console.log("[useDiscoverArticles] No cached results found for search:", searchQuery || 'all articles');
 
       return null;
     } catch (error) {
@@ -65,6 +69,10 @@ export function useDiscoverArticles() {
 
   // Helper function to cache results
   const cacheResults = (articles: Article[], searchQuery?: string) => {
+    if (articles.length === 0) {
+      console.log("[useDiscoverArticles] No articles to cache");
+      return;
+    }
     try {
       const cacheData: CachedDiscoverResult = {
         articles,

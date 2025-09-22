@@ -41,8 +41,9 @@ export async function getGeneratedArticles(): Promise<Article[]> {
     console.error("[Supabase ERROR in getGeneratedArticles]", articlesError);
     return [];
   }
-
+  console.log("[Supabase getGeneratedArticles] Articles data:", articlesData);
   if (!articlesData) {
+    console.log("[Supabase getGeneratedArticles] No articles found in supabase query");
     return [];
   }
 

@@ -1,14 +1,28 @@
-// hooks/useAutoUserSync.ts
-// Custom hook to automatically sync Auth0 users with Supabase
+"use client";
 
-import { useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef, ReactNode } from 'react';
 import { useUser } from '@auth0/nextjs-auth0';
 
-export function useAutoUserSync() {
-  const { user, isLoading } = useUser();
+interface AuthContextType {
+  user: any;
+  isLoading: boolean;
+  error: any;
+  isAuthenticated: boolean;
+  hasSynced: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const { user, isLoading, error } = useUser();
   const hasSynced = useRef(false);
   const sessionId = useRef<string | null>(null);
 
+  // Auto-sync user when they log in (moved from useAutoUserSync)
   useEffect(() => {
     // Only sync once per user session and only when user is authenticated
     if (user && !isLoading && !hasSynced.current && sessionId.current !== user.sub) {
@@ -47,9 +61,25 @@ export function useAutoUserSync() {
     }
   }, [user, isLoading]);
 
-  return {
+  const value: AuthContextType = {
     user,
     isLoading,
+    error,
+    isAuthenticated: !!user,
     hasSynced: hasSynced.current
   };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

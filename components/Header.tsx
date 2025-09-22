@@ -24,14 +24,12 @@ import AuthForm from "@/components/Forms/AuthForm";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { User } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useUser } from '@auth0/nextjs-auth0';
-import { useAutoUserSync } from '@/hooks/useAutoUserSync';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
   const pathname = usePathname();
   const { isNavigating, navigateTo, clearNavigation } = useNavigation();
-  const { user } = useUser(); // Auth0 user
-  useAutoUserSync(); // Auto-sync user when they log in
+  const { user } = useAuth(); // Auth0 user from context
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
