@@ -1,0 +1,6 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+DO NOT LOG with console.log/warn/error at ANY time. You must import our logger class with `import { logger } from '@/lib/logger'` and use as `logger.loglevel('name of component', 'message to log');`, where `loglevel` is one of {`debug`, `info`, `warn`, `error`}.
