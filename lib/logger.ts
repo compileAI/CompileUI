@@ -10,7 +10,7 @@ interface LogData {
 }
 
 class Logger {
-  private formatMessage(level: string, component: string, message: string, data?: LogData): string {
+  private formatMessage(level: string, component: string, message: string): string {
     const timestamp = new Date().toISOString();
     return `[${timestamp}] [${level.toUpperCase()}] [${component}] ${message}`;
   }
