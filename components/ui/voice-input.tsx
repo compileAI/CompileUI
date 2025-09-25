@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Square } from 'lucide-react';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { getBrowserInfo } from '@/utils/speechSupport';
+import { logger } from '@/lib/logger';
 
 interface VoiceInputProps {
   onTranscript: (transcript: string) => void;
@@ -55,7 +56,7 @@ export default function VoiceInput({
       }
     },
     onError: (errorMsg) => {
-      console.error('Voice input error:', errorMsg);
+      logger.error('VoiceInput', 'Voice input error', { error: errorMsg });
       if (onError) {
         onError(errorMsg);
       }

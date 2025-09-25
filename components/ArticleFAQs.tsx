@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { FAQ } from "@/types";
 import { fetchFAQsForArticle } from "@/lib/fetchFAQs";
 import MarkdownWithLatex from "@/components/ui/markdown-with-latex";
+import { logger } from "@/lib/logger";
 
 interface ArticleFAQsProps {
   articleId: string;
@@ -26,7 +27,7 @@ export default function ArticleFAQs({ articleId, onFAQClick, isMobile, layout = 
         const fetchedFAQs = await fetchFAQsForArticle(articleId);
         setFaqs(fetchedFAQs);
       } catch (error) {
-        console.error('Error loading FAQs:', error);
+        logger.error('ArticleFAQs', 'Error loading FAQs', { error: String(error) });
         setFaqs([]);
       } finally {
         setLoading(false);

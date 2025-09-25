@@ -6,6 +6,7 @@ import SummarySection from "./SummarySection";
 import Header from "./Header";
 import { Button } from "./ui/button";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 export default function SummariesClient() {
   const [summaries, setSummaries] = useState<HlcArticle[]>([]);
@@ -29,11 +30,11 @@ export default function SummariesClient() {
         }
         
         if (data.success && data.summaries) {
-          console.log(`[SummariesClient] Loaded ${data.summaries.length} summaries:`, data.summaries);
+          logger.info('SummariesClient', `Loaded ${data.summaries.length} summaries`, { summaries: data.summaries });
           
           // Log article counts for each summary
           data.summaries.forEach((summary: HlcArticle, index: number) => {
-            console.log(`[SummariesClient] Summary ${index + 1} "${summary.title}": ${summary.articles?.length || 0} articles`, summary.articles);
+            logger.debug('SummariesClient', `Summary ${index + 1} "${summary.title}": ${summary.articles?.length || 0} articles`, { articles: summary.articles });
           });
           
           setSummaries(data.summaries);
@@ -41,7 +42,7 @@ export default function SummariesClient() {
           throw new Error('No summaries data received');
         }
       } catch (err) {
-        console.error('[SummariesClient] Error fetching summaries:', err);
+        logger.error('SummariesClient', 'Error fetching summaries', { error: err instanceof Error ? err.message : String(err) });
         setError(err instanceof Error ? err.message : 'Failed to load summaries');
       } finally {
         setLoading(false);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiUser } from '@/lib/auth0User';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { PreferencesApiResponse, PreferencesApiRequest, DatabasePreferences } from '@/types/preferences';
+import { logger } from '@/lib/logger';
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<Preference
     const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
-      console.error('Auth error in GET /api/preferences:', userError);
+      logger.error('API /api/preferences', 'Auth error in GET', { error: userError });
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<Preference
         });
       }
       
-      console.error('Error fetching preferences:', prefsError);
+      logger.error('API /api/preferences', 'Error fetching preferences', { error: prefsError });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch preferences' },
         { status: 500 }
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<Preference
     });
 
   } catch (error) {
-    console.error('Unexpected error in GET /api/preferences:', error);
+    logger.error('API /api/preferences', 'Unexpected error in GET', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
     const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
-      console.error('Auth error in POST /api/preferences:', userError);
+      logger.error('API /api/preferences', 'Auth error in POST', { error: userError });
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
       .single();
 
     if (upsertError) {
-      console.error('Error upserting preferences:', upsertError);
+      logger.error('API /api/preferences', 'Error upserting preferences', { error: upsertError });
       return NextResponse.json(
         { success: false, error: 'Failed to save preferences' },
         { status: 500 }
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
     });
 
   } catch (error) {
-    console.error('Unexpected error in POST /api/preferences:', error);
+    logger.error('API /api/preferences', 'Unexpected error in POST', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

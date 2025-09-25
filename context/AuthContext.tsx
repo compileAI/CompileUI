@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, ReactNode } from 'react';
 import { useUser } from '@auth0/nextjs-auth0';
+import { logger } from '@/lib/logger';
 
 interface AuthContextType {
   user: any;
@@ -29,23 +30,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       hasSynced.current = true;
       sessionId.current = user.sub;
       
-      console.log('Auto-syncing user (once per session):', user.email);
+      logger.info('AuthContext', `Auto-syncing user (once per session): ${user.email}`);
       
       // Call sync-user endpoint to ensure user exists in Supabase
       fetch('/api/sync-user', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            console.log('✅ User auto-synced successfully:', data.user?.email);
+            logger.info('AuthContext', `✅ User auto-synced successfully: ${data.user?.email}`);
           } else {
-            console.warn('⚠️ User auto-sync failed:', data.error);
+            logger.warn('AuthContext', '⚠️ User auto-sync failed', { error: data.error });
             // Reset flag so it can retry on next component mount
             hasSynced.current = false;
             sessionId.current = null;
           }
         })
         .catch(error => {
-          console.error('❌ User auto-sync error:', error);
+          logger.error('AuthContext', '❌ User auto-sync error', { error: String(error) });
           // Reset flag so it can retry on next component mount
           hasSynced.current = false;
           sessionId.current = null;

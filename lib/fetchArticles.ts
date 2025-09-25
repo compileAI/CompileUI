@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 
 export async function getGeneratedArticles(): Promise<Article[]> {
@@ -38,12 +39,12 @@ export async function getGeneratedArticles(): Promise<Article[]> {
     };
 
   if (articlesError) {
-    console.error("[Supabase ERROR in getGeneratedArticles]", articlesError);
+    logger.error('fetchArticles', 'Supabase ERROR in getGeneratedArticles', { error: articlesError });
     return [];
   }
-  console.log("[Supabase getGeneratedArticles] Articles data:", articlesData);
+  logger.debug('fetchArticles', 'Supabase getGeneratedArticles Articles data', { articlesData });
   if (!articlesData) {
-    console.log("[Supabase getGeneratedArticles] No articles found in supabase query");
+    logger.warn('fetchArticles', 'No articles found in supabase query');
     return [];
   }
 
@@ -121,12 +122,12 @@ export async function getGeneratedArticle(articleId: string): Promise<Article | 
     };
 
   if (articleError) {
-    console.error(`[Supabase ERROR in getGeneratedArticle] Failed to fetch article ${articleId}:`, articleError);
+    logger.error('fetchArticles', `Failed to fetch article ${articleId}`, { error: articleError });
     return null;
   }
 
   if (!articleData) {
-    console.log(`[Supabase getGeneratedArticle] No article found with ID ${articleId}`);
+    logger.warn('fetchArticles', `No article found with ID ${articleId}`);
     return null;
   }
 
@@ -186,7 +187,7 @@ export async function getArticleCitations(articleId: string): Promise<Array<{ ti
     };
 
   if (error) {
-    console.error(`[Supabase ERROR in getArticleCitations] Failed to fetch citations for article ${articleId}:`, error);
+    logger.error('fetchArticles', `Failed to fetch citations for article ${articleId}`, { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 

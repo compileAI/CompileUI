@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { FAQ } from '@/types';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       .eq('gen_article_id', articleId);
 
     if (error) {
-      console.error(`[API /api/faqs] Error fetching FAQs for article ${articleId}:`, error);
+      logger.error('API /api/faqs', `Error fetching FAQs for article ${articleId}`, { error });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch FAQs' },
         { status: 500 }
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[API /api/faqs] Unexpected error:', error);
+    logger.error('API /api/faqs', 'Unexpected error', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

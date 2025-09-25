@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { ensureUserExists } from '@/lib/userSync'
 import { auth0 } from '@/lib/auth0'
+import { logger } from '@/lib/logger'
 
 export async function POST() {
   try {
@@ -36,7 +37,7 @@ export async function POST() {
       )
     }
   } catch (error) {
-    console.error('Error in sync-user:', error)
+    logger.error('API /api/sync-user', 'Error syncing user', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

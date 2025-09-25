@@ -4,6 +4,7 @@ import { ChatMessage, SourceArticleContext } from "@/types";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { auth0 } from "@/lib/auth0";
 import { saveChatMessageAsync } from "@/utils/chatMessages";
+import { logger } from "@/lib/logger";
 
 
 // Input sanitization utilities
@@ -240,7 +241,7 @@ export async function POST(req: Request) {
             // No need to sync on every chat request for performance
             userSynced = true; // Assume user is synced if they have a session
         } catch (authError) {
-            console.warn('[API /api/chat] Failed to get user for message persistence:', authError);
+            logger.warn('API /api/chat', 'Failed to get user for message persistence', { error: authError instanceof Error ? authError.message : String(authError) });
         }
 
         // Generate unique message ID for user message
@@ -255,12 +256,12 @@ export async function POST(req: Request) {
                 role: 'user',
                 content: sanitizedMessage // Use sanitized message
             }).catch(error => {
-                console.error('[API /api/chat] Failed to save user message:', error);
+                logger.error('API /api/chat', 'Failed to save user message', { error: error instanceof Error ? error.message : String(error) });
             });
         }
 
         let sourceArticlesContextString = "";
-        console.log(`[API /api/chat] Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
+        logger.info('API /api/chat', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
         try {
             // This implicitly joins the citations_ref and source_articles tables since Supabase knows the foreign key relationship.
             // We can then filter this to be only articles corresponding to the gen_article_id.
@@ -278,7 +279,7 @@ export async function POST(req: Request) {
                 .eq('gen_article_id', validatedArticleContext.article_id);
 
             if (sourceArticlesError) {
-                console.error('[API /api/chat] Supabase error fetching source articles:', sourceArticlesError);
+                logger.error('API /api/chat', 'Supabase error fetching source articles', { error: sourceArticlesError });
             } else {
                 // Log raw data if needed for debugging, but can be verbose
                 // console.log('[API /api/chat] Supabase response for source articles raw data:', JSON.stringify(sourceArticlesData, null, 2));
@@ -292,7 +293,7 @@ export async function POST(req: Request) {
                     .filter((sa): sa is SourceArticleContext => sa !== null && sa !== undefined);
 
                 // DEBUG
-                console.log(`[API /api/chat] Initially fetched ${allFetchedSourceArticles.length} source article references (could be duplicates).`);
+                logger.debug('API /api/chat', `Initially fetched ${allFetchedSourceArticles.length} source article references (could be duplicates)`);
 
                 // Now we deduplicate the source articles to avoid passing a bunch of times.
                 const uniqueSourceArticlesMap = new Map<string, SourceArticleContext>();
@@ -304,11 +305,11 @@ export async function POST(req: Request) {
                 const fetchedSourceArticles: SourceArticleContext[] = Array.from(uniqueSourceArticlesMap.values());
 
                 // DEBUG
-                console.log(`[API /api/chat] Found ${fetchedSourceArticles.length} unique valid source articles after mapping and deduplication.`);
+                logger.debug('API /api/chat', `Found ${fetchedSourceArticles.length} unique valid source articles after mapping and deduplication`);
 
                 if (fetchedSourceArticles.length > 0) {
                     fetchedSourceArticles.forEach((sa, index) => {
-                        console.log(`[API /api/chat] Unique Source Article ${index + 1} Details: ID: ${sa.id}, Title: ${sa.title ? sa.title.substring(0,50)+'...' : 'N/A'}`);
+                        logger.debug('API /api/chat', `Unique Source Article ${index + 1} Details: ID: ${sa.id}, Title: ${sa.title ? sa.title.substring(0,50)+'...' : 'N/A'}`);
                     });
 
                     sourceArticlesContextString = "\n\nAdditionally, here are some excerpts from source articles that were used to generate the main article. You can refer to these for more specific details or direct quotes:\n\n";
@@ -327,14 +328,14 @@ export async function POST(req: Request) {
                     // console.log("[API /api/chat] Constructed sourceArticlesContextString (first 300 chars):", sourceArticlesContextString.substring(0,300) + "...");
                 } else {
                     sourceArticlesContextString = "\n\nNo specific source articles were found or linked for additional context after processing.\n";
-                    console.log("[API /api/chat] No valid source articles after processing the data and deduplication.");
+                    logger.warn("API /api/chat", "No valid source articles after processing the data and deduplication");
                 }
             } else {
                 sourceArticlesContextString = "\n\nNo citation references found for this generated article (query returned no data or empty array).\n";
-                console.log("[API /api/chat] No citation_ref entries found or source_articles were null for gen_article_id:", validatedArticleContext.article_id);
+                logger.warn("API /api/chat", `No citation_ref entries found or source_articles were null for gen_article_id: ${validatedArticleContext.article_id}`);
             }
         } catch (dbError) {
-            console.error('[API /api/chat] Database operation error for source articles:', dbError);
+            logger.error('API /api/chat', 'Database operation error for source articles', { error: dbError instanceof Error ? dbError.message : String(dbError) });
             sourceArticlesContextString = "\n\nThere was an issue retrieving source article information.\n";
         }
 
@@ -446,7 +447,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
 
         const text = response.text || 'No response generated';
 
-        console.log(`[API /api/chat] Generated response with Google Search grounding enabled`);
+        logger.info('API /api/chat', 'Generated response with Google Search grounding enabled');
 
         // Generate unique message ID for assistant response
         const assistantMessageId = `msg_${Date.now()}_assistant`;
@@ -460,7 +461,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
                 role: 'assistant',
                 content: text
             }).catch(error => {
-                console.error('[API /api/chat] Failed to save assistant message:', error);
+                logger.error('API /api/chat', 'Failed to save assistant message', { error: error instanceof Error ? error.message : String(error) });
             });
         }
 
@@ -469,10 +470,10 @@ Remember: **Answer grounded in the article first, supplement with verified exter
         }, { status: 200 });
 
     } catch (error) {
-        console.error('Gemini API error or other internal error:', error);
+        logger.error('API /api/chat', 'Gemini API error or other internal error', { error: error instanceof Error ? error.message : String(error) });
         // Check if it's a GoogleGenerativeAIError for more specific details
         if (error instanceof Error && 'message' in error) {
-             console.error("Error message:", error.message);
+             logger.error("API /api/chat", "Gemini API error details", { message: error.message });
         }
         return NextResponse.json(
             { error: 'Failed to get response from API' },

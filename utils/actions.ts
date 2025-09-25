@@ -3,6 +3,7 @@
 import { createServerClientForRoutes } from "@/utils/supabase/server";
 import { Provider } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { logger } from "@/lib/logger";
 
 interface AuthResponse {
     status: string;
@@ -23,16 +24,16 @@ const signInWithProvider = (provider: Provider) => async() => {
     })
 
     if (error) {
-        console.error("Sign-in error:", error.message);
+        logger.error("actions", "Sign-in error", { error: error.message });
     }
     else {
-        console.log("Sign-in success");
+        logger.info("actions", "Sign-in success");
     }
 
     if (data.url) {
         redirect(data.url);
     } else {
-        console.error("Sign-in error: No URL returned");
+        logger.error("actions", "Sign-in error: No URL returned");
     }
 }
 

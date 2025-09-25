@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { DatabaseChatMessage, SaveChatMessageParams, ChatHistoryParams, ChatMessage } from '@/types';
+import { logger } from '@/lib/logger';
 
 export interface ChatMessageResult {
   success: boolean;
@@ -63,7 +64,7 @@ export async function saveChatMessage(params: SaveChatMessageParams): Promise<Ch
       .single();
 
     if (error) {
-      console.error('Error saving chat message:', error);
+      logger.error('chatMessages', 'Error saving chat message', { error: String(error) });
       return {
         success: false,
         error: `Failed to save message: ${error.message}`
@@ -75,7 +76,7 @@ export async function saveChatMessage(params: SaveChatMessageParams): Promise<Ch
       data: data as DatabaseChatMessage
     };
   } catch (error) {
-    console.error('Unexpected error saving chat message:', error);
+    logger.error('chatMessages', 'Unexpected error saving chat message', { error: String(error) });
     return {
       success: false,
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -113,7 +114,7 @@ export async function getChatHistory(params: ChatHistoryParams): Promise<ChatHis
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error retrieving chat history:', error);
+      logger.error('chatMessages', 'Error retrieving chat history', { error: String(error) });
       return {
         success: false,
         error: `Failed to retrieve chat history: ${error.message}`
@@ -128,7 +129,7 @@ export async function getChatHistory(params: ChatHistoryParams): Promise<ChatHis
       data: uiMessages
     };
   } catch (error) {
-    console.error('Unexpected error retrieving chat history:', error);
+    logger.error('chatMessages', 'Unexpected error retrieving chat history', { error: String(error) });
     return {
       success: false,
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -156,9 +157,9 @@ export async function saveChatMessageAsync(params: SaveChatMessageParams): Promi
   try {
     const result = await saveChatMessage(params);
     if (!result.success) {
-      console.error('Async chat message save failed:', result.error);
+      logger.error('chatMessages', 'Async chat message save failed', { error: result.error });
     }
   } catch (error) {
-    console.error('Async chat message save error:', error);
+    logger.error('chatMessages', 'Async chat message save error', { error: String(error) });
   }
 } 
