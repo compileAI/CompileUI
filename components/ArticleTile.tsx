@@ -4,6 +4,7 @@ import { EnhancedArticle } from "@/types";
 import { Calendar, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEnhancedArticle } from "@/context/EnhancedArticleContext";
+import { logger } from "@/lib/logger";
 
 interface ArticleTileProps {
   article: EnhancedArticle;
@@ -60,7 +61,7 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
         year: 'numeric'
       }).format(dateObj);
     } catch (error) {
-      console.warn('Error formatting date:', error, 'Date value:', date);
+      logger.warn('ArticleTile', 'Error formatting date', { error: String(error), date });
       return "Invalid date";
     }
   };

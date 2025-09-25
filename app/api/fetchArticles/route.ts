@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGeneratedArticles, getGeneratedArticle } from "@/lib/fetchArticles";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       return NextResponse.json(articles);
     }
   } catch (error) {
-    console.error('Error fetching articles:', error);
+    logger.error('API /api/fetchArticles', 'Error fetching articles', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch articles' },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Article } from "@/types";
+import { logger } from "@/lib/logger";
 
 interface DiscoverState {
   articles: Article[];
@@ -47,7 +48,7 @@ export function useDiscoverArticles() {
 
       // Check if search query matches. (both undefined or both same)
       if (cachedData.searchQuery === searchQuery) {
-        console.log('[useDiscoverArticles] Using cached results for search:', searchQuery || 'all articles');
+        logger.info('useDiscoverArticles', `Using cached results for search: ${searchQuery || 'all articles'}`);
         const articles = cachedData.articles.map(article => ({
           ...article,
           date: new Date(article.date) // Convert date string back to Date object
@@ -57,11 +58,11 @@ export function useDiscoverArticles() {
         } // Otherwise, continue to return null, triggering another fetch.
       }
 
-      console.log("[useDiscoverArticles] No cached results found for search:", searchQuery || 'all articles');
+      logger.info('useDiscoverArticles', `No cached results found for search: ${searchQuery || 'all articles'}`);
 
       return null;
     } catch (error) {
-      console.warn('[useDiscoverArticles] Error reading cache:', error);
+      logger.warn('useDiscoverArticles', 'Error reading cache', { error: error instanceof Error ? error.message : String(error) });
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
@@ -70,7 +71,7 @@ export function useDiscoverArticles() {
   // Helper function to cache results
   const cacheResults = (articles: Article[], searchQuery?: string) => {
     if (articles.length === 0) {
-      console.log("[useDiscoverArticles] No articles to cache");
+      logger.warn('useDiscoverArticles', 'No articles to cache');
       return;
     }
     try {
@@ -81,9 +82,9 @@ export function useDiscoverArticles() {
         expiresAt: Date.now() + CACHE_DURATION
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-      console.log(`[useDiscoverArticles] Cached ${articles.length} articles for search:`, searchQuery || 'all articles');
+      logger.info('useDiscoverArticles', `Cached ${articles.length} articles for search: ${searchQuery || 'all articles'}`);
     } catch (error) {
-      console.warn('[useDiscoverArticles] Error caching results:', error);
+      logger.warn('useDiscoverArticles', 'Error caching results', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -123,7 +124,7 @@ export function useDiscoverArticles() {
 
       if (searchQuery?.trim()) {
         // Vector search for specific query
-        console.log(`[useDiscoverArticles] Performing vector search for: "${searchQuery}"`);
+        logger.info('useDiscoverArticles', `Performing vector search for: "${searchQuery}"`);
         
         const response = await fetch('/api/vector-search', {
           method: 'POST',
@@ -143,7 +144,7 @@ export function useDiscoverArticles() {
         articles = data.articles || [];
       } else {
         // Fetch all generated articles
-        console.log('[useDiscoverArticles] Fetching all generated articles');
+        logger.info('useDiscoverArticles', 'Fetching all generated articles');
         
         const response = await fetch('/api/fetchArticles');
         if (!response.ok) {
@@ -154,7 +155,7 @@ export function useDiscoverArticles() {
         articles = data || [];
       }
 
-      console.log(`[useDiscoverArticles] Fetched ${articles.length} articles`);
+      logger.info('useDiscoverArticles', `Fetched ${articles.length} articles`);
 
       // For pagination, slice the results
       const startIndex = page * ARTICLES_PER_PAGE;
@@ -178,7 +179,7 @@ export function useDiscoverArticles() {
       }
 
     } catch (error) {
-      console.error('[useDiscoverArticles] Fetch error:', error);
+      logger.error('useDiscoverArticles', 'Fetch error', { error: error instanceof Error ? error.message : String(error) });
       setState(prev => ({
         ...prev,
         loading: false,

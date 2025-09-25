@@ -5,6 +5,7 @@ import { Article, Citation, VectorSearchResponse, SparseSearchResponse } from "@
 import { tokenize } from "@/lib/tokenize";
 import { buildBm25QueryVector, fetchBm25Params } from "@/lib/bm25";
 import { reciprocalRankFusionWithFallback } from "@/lib/rrf";
+import { logger } from "@/lib/logger";
 
 // Initialize Pinecone client
 const pinecone = new Pinecone({
@@ -34,7 +35,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     
     return response.embeddings[0].values;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    logger.error('vectorSearch', 'Error generating embedding', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to generate embedding');
   }
 }
@@ -61,7 +62,7 @@ export async function searchSimilarVectors(
 
     return { articleIds, scores };
   } catch (error) {
-    console.error('Error searching Pinecone:', error);
+    logger.error('vectorSearch', 'Error searching Pinecone', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to search vector database');
   }
 }
@@ -94,7 +95,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
       const endDate = new Date(today);
       endDate.setHours(23, 59, 59, 999);
       
-      console.log(`[Vector Search] Trying date range: ${range.label} (${startDate.toISOString()} to ${endDate.toISOString()})`);
+      logger.debug('vectorSearch', `Trying date range: ${range.label} (${startDate.toISOString()} to ${endDate.toISOString()})`);
       
       // Updated query to include citations data
       const { data, error } = await supabase
@@ -123,7 +124,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
         .order("date", { ascending: false });
 
       if (error) {
-        console.error("[Supabase ERROR in fetchArticlesByIds]", error);
+        logger.error('vectorSearch', 'Supabase ERROR in fetchArticlesByIds', { error });
         continue;
       }
 

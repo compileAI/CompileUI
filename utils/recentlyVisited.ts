@@ -1,4 +1,5 @@
 import { RECENTLY_VISITED_KEY, MAX_RECENT_ARTICLES } from '@/config/recommendations';
+import { logger } from '@/lib/logger';
 
 export { RECENTLY_VISITED_KEY, MAX_RECENT_ARTICLES };
 
@@ -20,7 +21,7 @@ export function getRecentlyVisited(): string[] {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.warn('Error reading recently visited articles:', error);
+    logger.warn('recentlyVisited', 'Error reading recently visited articles', { error: String(error) });
     return [];
   }
 }
@@ -49,7 +50,7 @@ export function addRecentlyVisited(articleId: string): void {
     
     sessionStorage.setItem(RECENTLY_VISITED_KEY, JSON.stringify(trimmed));
   } catch (error) {
-    console.warn('Error storing recently visited article:', error);
+    logger.warn('recentlyVisited', 'Error storing recently visited article', { error: String(error) });
     // Fail silently to not break the app
   }
 }
@@ -65,6 +66,6 @@ export function clearRecentlyVisited(): void {
     
     sessionStorage.removeItem(RECENTLY_VISITED_KEY);
   } catch (error) {
-    console.warn('Error clearing recently visited articles:', error);
+    logger.warn('recentlyVisited', 'Error clearing recently visited articles', { error: String(error) });
   }
 } 

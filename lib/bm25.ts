@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { logger } from "@/lib/logger";
 
 export type SparseVector = { indices: number[]; values: number[] };
 
@@ -79,7 +80,7 @@ export async function fetchBm25Params(tokens: string[]): Promise<Bm25Params> {
     .in('term', tokens);
 
   if (termError) {
-    console.error('[BM25] Error fetching term data:', termError);
+    logger.error('BM25', 'Error fetching term data', { error: termError });
     throw new Error('Failed to fetch BM25 term data from database');
   }
 
@@ -91,7 +92,7 @@ export async function fetchBm25Params(tokens: string[]): Promise<Bm25Params> {
     .single();
 
   if (statsError) {
-    console.error('[BM25] Error fetching stats data:', statsError);
+    logger.error('BM25', 'Error fetching stats data', { error: statsError });
     throw new Error('Failed to fetch BM25 stats from database');
   }
 

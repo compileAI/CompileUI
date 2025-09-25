@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { getSpeechRecognition, isSpeechRecognitionSupported } from '@/utils/speechSupport';
+import { logger } from '@/lib/logger';
 
 interface SpeechRecognitionResult {
   transcript: string;
@@ -136,7 +137,7 @@ export const useSpeechRecognition = ({
           errorMessage = `Speech recognition error: ${event.error}`;
       }
       
-      console.error('Speech recognition error:', errorMessage);
+      logger.error('useSpeechRecognition', 'Speech recognition error', { error: errorMessage });
       setError(errorMessage);
       setIsListening(false);
       
@@ -244,7 +245,7 @@ export const useSpeechRecognition = ({
 
       
     } catch (err) {
-      console.error('Error starting speech recognition:', err);
+      logger.error('useSpeechRecognition', 'Error starting speech recognition', { error: String(err) });
       setError('Failed to start speech recognition');
       setIsListening(false);
       
@@ -268,7 +269,7 @@ export const useSpeechRecognition = ({
         timeoutRef.current = null;
       }
     } catch (err) {
-      console.error('Error stopping speech recognition:', err);
+      logger.error('useSpeechRecognition', 'Error stopping speech recognition', { error: String(err) });
     }
   }, []);
 

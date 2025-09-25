@@ -8,6 +8,7 @@ import {
   UpdateAutomationRequest,
   AutomationType
 } from '@/types';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/context/AuthContext';
 
 interface UseAutomationsReturn {
@@ -201,7 +202,7 @@ export function useAutomations(): UseAutomationsReturn {
       const demoAutomations = await fetchAutomations();
       populateAutomationArray(demoAutomations);
     } catch (err) {
-      console.error('Error loading demo automations:', err);
+      logger.error('useAutomations', 'Error loading demo automations', { error: String(err) });
       globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to load demo automations';
       notifySubscribers();
     } finally {
@@ -227,7 +228,7 @@ export function useAutomations(): UseAutomationsReturn {
       
       // If user has no automations, create defaults
       if (userAutomations.length === 0) {
-        console.log('[useAutomations] New user, creating default automations');
+        logger.info('useAutomations', 'New user, creating default automations');
         await createDefaultAutomations();
         // Fetch again after creating defaults
         const newAutomations = await fetchAutomations();
@@ -240,7 +241,7 @@ export function useAutomations(): UseAutomationsReturn {
       globalAutomationsState.initializedUserId = authenticatedUser.sub;
       notifySubscribers();
     } catch (err) {
-      console.error('Error initializing user automations:', err);
+      logger.error('useAutomations', 'Error initializing user automations', { error: String(err) });
       globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to load automations';
       notifySubscribers();
     } finally {
@@ -282,10 +283,10 @@ export function useAutomations(): UseAutomationsReturn {
           params: automation.params,
           active: true
         }));
-        console.log('[useAutomations] Inheriting from general automations');
+        logger.info('useAutomations', 'Inheriting from general automations');
       }
     } catch (error) {
-      console.log('[useAutomations] No general automations found, using hardcoded defaults');
+      logger.info('useAutomations', 'No general automations found, using hardcoded defaults');
     }
 
     const promises = automationsToCreate.map((automation, index) => 
@@ -324,7 +325,7 @@ export function useAutomations(): UseAutomationsReturn {
       const userAutomations = await fetchAutomations();
       populateAutomationArray(userAutomations);
     } catch (err) {
-      console.error('Error refreshing automations:', err);
+      logger.error('useAutomations', 'Error refreshing automations', { error: String(err) });
       globalAutomationsState.error = err instanceof Error ? err.message : 'Failed to refresh automations';
       notifySubscribers();
     }
@@ -368,7 +369,7 @@ export function useAutomations(): UseAutomationsReturn {
       notifySubscribers();
       
     } catch (error) {
-      console.error('Error creating automation:', error);
+      logger.error('useAutomations', 'Error creating automation', { error: String(error) });
       throw error;
     }
   }, [refreshAutomations]);
@@ -418,7 +419,7 @@ export function useAutomations(): UseAutomationsReturn {
       notifySubscribers();
       
     } catch (error) {
-      console.error('Error updating automation:', error);
+      logger.error('useAutomations', 'Error updating automation', { error: String(error) });
       throw error;
     }
   }, [createAutomation, refreshAutomations]);
@@ -452,7 +453,7 @@ export function useAutomations(): UseAutomationsReturn {
       notifySubscribers();
       
     } catch (error) {
-      console.error('Error deleting automation:', error);
+      logger.error('useAutomations', 'Error deleting automation', { error: String(error) });
       throw error;
     }
   }, [refreshAutomations]);

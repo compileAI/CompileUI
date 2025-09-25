@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { performVectorSearch, performHybridSearch } from "@/lib/vectorSearch";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log(`[API /api/vector-search] Received query: "${query}" with limit: ${limit}, hybrid: ${use_hybrid_search}, sparse-only: ${use_sparse_only}`);
+    logger.info('API /api/vector-search', `Received query: "${query}" with limit: ${limit}, hybrid: ${use_hybrid_search}, sparse-only: ${use_sparse_only}`);
 
     let articles;
     let searchMethod;
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[API /api/vector-search] Error:', error);
+    logger.error('API /api/vector-search', 'Error performing vector search', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to perform vector search' },
       { status: 500 }

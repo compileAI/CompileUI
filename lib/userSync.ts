@@ -3,6 +3,7 @@
 
 import { createSupabaseServerClient } from './supabaseServer'
 import { auth0 } from './auth0'
+import { logger } from './logger'
 
 
 
@@ -15,7 +16,7 @@ export async function ensureUserExists(): Promise<boolean> {
     // Get Auth0 user
     const session = await auth0.getSession()
     if (!session?.user) {
-      console.log('No Auth0 session found')
+      logger.info('userSync', 'No Auth0 session found');
       return false
     }
 
@@ -23,7 +24,7 @@ export async function ensureUserExists(): Promise<boolean> {
     
     // Handle missing email (common with GitHub when email is private)
     const userEmail = email || `${sub}@auth0.local`
-    console.log(`Syncing user: ${userEmail} (${sub}) [email was ${email ? 'provided' : 'missing'}]`)
+    logger.info('userSync', `Syncing user: ${userEmail} (${sub}) [email was ${email ? 'provided' : 'missing'}]`);
 
     // Get Supabase client
     const supabase = await createSupabaseServerClient()
@@ -37,10 +38,10 @@ export async function ensureUserExists(): Promise<boolean> {
     })
 
     if (error) {
-      console.error('Error syncing user:', error)
+      logger.error('userSync', 'Error syncing user', { error: String(error) });
       
       // Try a direct insert as a fallback
-      console.log('Attempting direct user insert as fallback...')
+      logger.info('userSync', 'Attempting direct user insert as fallback');
       const { error: insertError } = await supabase
         .from('users')
         .upsert({
@@ -53,19 +54,19 @@ export async function ensureUserExists(): Promise<boolean> {
         })
       
       if (insertError) {
-        console.error('Direct insert also failed:', insertError)
+        logger.error('userSync', 'Direct insert also failed', { error: insertError });
         return false
       }
       
-      console.log('Direct user insert succeeded')
+      logger.info('userSync', 'Direct user insert succeeded');
       return true
     }
 
-    console.log('User synced successfully via function:', data?.email)
+    logger.info('userSync', `User synced successfully via function: ${data?.email}`);
     return true
 
   } catch (error) {
-    console.error('Error in ensureUserExists:', error)
+    logger.error('userSync', 'Error in ensureUserExists', { error: String(error) });
     return false
   }
 }
@@ -89,14 +90,14 @@ export async function getCurrentUser() {
       .single()
 
     if (error) {
-      console.error('Error fetching user:', error)
+      logger.error('userSync', 'Error fetching user', { error: String(error) });
       return null
     }
 
     return user
 
   } catch (error) {
-    console.error('Error in getCurrentUser:', error)
+    logger.error('userSync', 'Error in getCurrentUser', { error: String(error) });
     return null
   }
 }
@@ -136,7 +137,7 @@ export async function updateUserProfile(updates: {
     return data
 
   } catch (error) {
-    console.error('Error updating user profile:', error)
+    logger.error('userSync', 'Error updating user profile', { error: String(error) });
     throw error
   }
 }

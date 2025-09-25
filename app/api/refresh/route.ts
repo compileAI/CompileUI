@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getApiUser } from '@/lib/auth0User';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import { logger } from '@/lib/logger';
 
 interface RefreshApiResponse {
   success?: boolean;
@@ -24,7 +25,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
   const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
-  console.log(`[DEBUG] Checking refresh limit for user ${userId} on date: ${today}`);
+  logger.debug('API /api/refresh', `Checking refresh limit for user ${userId} on date: ${today}`);
   
   // Count today's refresh records for this user
   const { count: refreshCount, error: countError } = await supabase
@@ -34,7 +35,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
     .eq('refresh_date', today);
 
   if (countError) {
-    console.error('Error checking refresh limit:', countError);
+    logger.error('API /api/refresh', 'Error checking refresh limit', { error: countError });
     return { canRefresh: false, refreshesRemaining: 0, refreshCount: 0 };
   }
 
@@ -42,7 +43,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
   const canRefresh = actualRefreshCount < 3;
   const refreshesRemaining = Math.max(0, 3 - actualRefreshCount);
 
-  console.log(`[DEBUG] Found ${actualRefreshCount} refreshes, canRefresh: ${canRefresh}, remaining: ${refreshesRemaining}`);
+  logger.debug('API /api/refresh', `Found ${actualRefreshCount} refreshes, canRefresh: ${canRefresh}, remaining: ${refreshesRemaining}`);
 
   return { canRefresh, refreshesRemaining, refreshCount: actualRefreshCount };
 }
@@ -52,7 +53,7 @@ async function recordUserRefresh(userId: string) {
   const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
-  console.log(`[DEBUG] Recording refresh for user ${userId} on date: ${today}`);
+  logger.debug('API /api/refresh', `Recording refresh for user ${userId} on date: ${today}`);
   
   // Insert new refresh record
   const { error: insertError } = await supabase
@@ -63,11 +64,11 @@ async function recordUserRefresh(userId: string) {
     });
 
   if (insertError) {
-    console.error('Error recording user refresh:', insertError);
+    logger.error('API /api/refresh', 'Error recording user refresh', { error: insertError });
     throw insertError;
   }
   
-  console.log(`[DEBUG] Successfully recorded refresh for user ${userId}`);
+  logger.debug('API /api/refresh', `Successfully recorded refresh for user ${userId}`);
 }
 
 export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
@@ -76,7 +77,7 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
     const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
-      console.error('Auth error in POST /api/refresh:', userError);
+      logger.error('API /api/refresh', 'Auth error in POST', { error: userError });
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -108,7 +109,7 @@ export async function POST(): Promise<NextResponse<RefreshApiResponse>> {
     });
 
   } catch (error) {
-    console.error('[Refresh API] Error:', error);
+    logger.error('API /api/refresh', 'Error in POST', { error: String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to process refresh request' },
       { status: 500 }
@@ -122,7 +123,7 @@ export async function GET(): Promise<NextResponse<RefreshApiResponse>> {
     const { data: { user }, error: userError } = await getApiUser();
     
     if (userError || !user) {
-      console.error('Auth error in GET /api/refresh:', userError);
+      logger.error('API /api/refresh', 'Auth error in GET', { error: userError });
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -140,7 +141,7 @@ export async function GET(): Promise<NextResponse<RefreshApiResponse>> {
       .order('refresh_date', { ascending: false });
 
     if (!debugError) {
-      console.log(`[DEBUG] All refresh records for user ${user.sub}:`, allRefreshes);
+      logger.debug('API /api/refresh', `All refresh records for user ${user.sub}`, { allRefreshes });
     }
 
     // Check refresh limit
@@ -155,7 +156,7 @@ export async function GET(): Promise<NextResponse<RefreshApiResponse>> {
     });
 
   } catch (error) {
-    console.error('[Refresh API] Error:', error);
+    logger.error('API /api/refresh', 'Error in POST', { error: String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to get refresh status' },
       { status: 500 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Article } from '@/types';
 import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
+import { logger } from '@/lib/logger';
 
 interface RecommendedArticlesProps {
   articles: Article[];
@@ -35,7 +36,7 @@ export default function RecommendedArticles({ articles, loading, onArticleClick,
       }).format(dateObj);
     } catch (error) {
       setError(true);
-      console.warn('Error formatting date:', error, 'Date value:', date);
+      logger.warn('RecommendedArticles', 'Error formatting date', { error: error instanceof Error ? error.message : String(error), date });
       return "Invalid date";
     }
   };

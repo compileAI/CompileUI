@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGeneratedArticle } from "@/lib/fetchArticles";
 import { performVectorSearch } from "@/lib/vectorSearch";
 import { RECOMMENDATIONS_CONFIG } from "@/config/recommendations";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[API /api/recommended-articles] Getting recommendations for article: ${articleId}, limit: ${limit}, excludeIds: ${excludeIds}`);
+    logger.info('API /api/recommended-articles', `Getting recommendations for article: ${articleId}, limit: ${limit}, excludeIds: ${excludeIds}`);
 
     // Get the source article for content-based similarity search
     const sourceArticle = await getGeneratedArticle(articleId);
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const searchLimit = Math.max(limit * 5, 15);
     const similarArticles = await performVectorSearch(sourceArticle.content, searchLimit);
 
-    console.log(`[API /api/recommended-articles] Vector search returned ${similarArticles.length} articles`);
+    logger.info('API /api/recommended-articles', `Vector search returned ${similarArticles.length} articles`);
 
     // Filter out the current article and recently visited articles
     const allExcludeIds = [articleId, ...excludeIds];
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
       .filter(article => !allExcludeIds.includes(article.article_id))
       .slice(0, limit);
 
-    console.log(`[API /api/recommended-articles] Returning ${filteredArticles.length} recommendations after filtering`);
+    logger.info('API /api/recommended-articles', `Returning ${filteredArticles.length} recommendations after filtering`);
 
     return NextResponse.json({
       articles: filteredArticles,
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[API /api/recommended-articles] Error:', error);
+    logger.error('API /api/recommended-articles', 'Error getting recommendations', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
               { error: 'Failed to get related articles' },
       { status: 500 }

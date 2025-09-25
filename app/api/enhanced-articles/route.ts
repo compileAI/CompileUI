@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { Article } from "@/types";
 import { DEFAULT_CONTENT_INTERESTS, DEFAULT_PRESENTATION_STYLE } from "@/utils/preferences";
 import { createHash } from 'crypto';
+import { logger } from "@/lib/logger";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
@@ -56,7 +57,7 @@ Return only the enhanced article content, no additional formatting or explanatio
     
     return response.text;
   } catch (error) {
-    console.error('[Enhanced Articles API] Gemini API error:', error);
+    logger.error('API /api/enhanced-articles', 'Gemini API error', { error: error instanceof Error ? error.message : String(error) });
     throw new Error(`Failed to enhance article: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -86,11 +87,11 @@ async function saveEnhancedArticle(data: {
       });
 
     if (error) {
-      console.error('[Enhanced Articles API] Error saving enhanced article:', error);
+      logger.error('API /api/enhanced-articles', 'Error saving enhanced article', { error: error instanceof Error ? error.message : String(error) });
       throw new Error(`Database error: ${error.message}`);
     }
   } catch (error) {
-    console.error('[Enhanced Articles API] Error in saveEnhancedArticle:', error);
+    logger.error('API /api/enhanced-articles', 'Error in saveEnhancedArticle', { error: error instanceof Error ? error.message : String(error) });
     throw new Error(`Failed to save enhanced article: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -100,7 +101,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
   const supabase = await createSupabaseServerClient();
   const today = getCurrentESTDate();
   
-  console.log(`[DEBUG] Checking refresh limit for user ${userId} on date: ${today}`);
+  logger.debug('API /api/enhanced-articles', `Checking refresh limit for user ${userId} on date: ${today}`);
   
   // Count today's refresh records for this user
   const { count: refreshCount, error: countError } = await supabase
@@ -110,7 +111,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
     .eq('refresh_date', today);
 
   if (countError) {
-    console.error('Error checking refresh limit:', countError);
+    logger.error('API /api/enhanced-articles', 'Error checking refresh limit', { error: countError });
     return { canRefresh: false, refreshesRemaining: 0 };
   }
 
@@ -118,7 +119,7 @@ async function checkUserRefreshLimit(userId: string): Promise<{ canRefresh: bool
   const canRefresh = actualRefreshCount < 3;
   const refreshesRemaining = Math.max(0, 3 - actualRefreshCount);
 
-  console.log(`[DEBUG] Found ${actualRefreshCount} refreshes, canRefresh: ${canRefresh}, remaining: ${refreshesRemaining}`);
+  logger.debug('API /api/enhanced-articles', `Found ${actualRefreshCount} refreshes, canRefresh: ${canRefresh}, remaining: ${refreshesRemaining}`);
 
   return { canRefresh, refreshesRemaining };
 }
@@ -137,7 +138,7 @@ async function recordUserRefresh(userId: string) {
     });
 
   if (insertError) {
-    console.error('Error recording user refresh:', insertError);
+    logger.error('API /api/enhanced-articles', 'Error recording user refresh', { error: insertError });
     throw insertError;
   }
 }
@@ -170,18 +171,19 @@ export async function GET(request: NextRequest) {
     const userId: string | null = searchParams.get('userId') || null;
     const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
-    console.log(`[Enhanced Articles API] Request received:`);
-    console.log(`  - contentInterests: "${contentInterests}"`);
-    console.log(`  - presentationStyle: "${presentationStyle}"`);
-    console.log(`  - userId: "${userId}"`);
-    console.log(`  - forceRefresh: ${forceRefresh}`);
+    logger.info('API /api/enhanced-articles', 'Request received', {
+      contentInterests,
+      presentationStyle,
+      userId,
+      forceRefresh
+    });
 
     // Create a single Supabase client for the entire function
     const supabase = await createSupabaseServerClient();
 
     // For unauthenticated users, just return general articles from today
     if (!userId) {
-      console.log('[Enhanced Articles API] Unauthenticated user - fetching general articles from today');
+      logger.info('API /api/enhanced-articles', 'Unauthenticated user - fetching general articles from today');
       
       const today = getCurrentESTDate();
       

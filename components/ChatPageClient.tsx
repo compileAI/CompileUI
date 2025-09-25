@@ -13,6 +13,7 @@ import ArticleFAQs from "./ArticleFAQs";
 import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
 import { getRecentlyVisited, addRecentlyVisited } from '@/utils/recentlyVisited';
 import VoiceInput from "@/components/ui/voice-input";
+import { logger } from "@/lib/logger";
 
 
 interface ChatPageClientProps {
@@ -100,14 +101,14 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         
         // If the article already has citations, use them
         if (article.citations && article.citations.length > 0) {
-          console.log(`[ChatPageClient] Using existing citations from article: ${article.citations.length} citations`);
+          logger.info('ChatPageClient', `Using existing citations from article: ${article.citations.length} citations`);
           setCitations(article.citations);
           setCitationsLoading(false);
           return;
         }
         
         // Otherwise, fetch citations from the API as fallback
-        console.log(`[ChatPageClient] No existing citations, fetching from API for article: ${article.article_id}`);
+        logger.info('ChatPageClient', `No existing citations, fetching from API for article: ${article.article_id}`);
         const response = await fetch(`/api/fetchArticles?articleId=${article.article_id}`);
         const data = await response.json();
         
@@ -117,7 +118,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
 
         setCitations(data.citations || []);
       } catch (error) {
-        console.error('Error fetching citations:', error);
+        logger.error('ChatPageClient', 'Error fetching citations', { error: error instanceof Error ? error.message : String(error) });
         setCitationsError('Failed to load citations');
       } finally {
         setCitationsLoading(false);
@@ -152,7 +153,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         const data = await response.json();
         setRecs(data.articles || []);
       } catch (error) {
-        console.error('Error fetching related articles:', error);
+        logger.error('ChatPageClient', 'Error fetching related articles', { error: error instanceof Error ? error.message : String(error) });
         setRecsError(true);
       } finally {
         setRecsLoading(false);
@@ -173,25 +174,25 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
         
         if (!user) {
           // No authenticated user, don't load history
-          console.log('[ChatPageClient] No authenticated user, skipping chat history load');
+          logger.info('ChatPageClient', 'No authenticated user, skipping chat history load');
           return;
         }
 
-        console.log(`[ChatPageClient] Loading chat history for user ${user.id} and article ${article.article_id}`);
+        logger.info('ChatPageClient', `Loading chat history for user ${user.id} and article ${article.article_id}`);
         
         const response = await fetch(`/api/chat-history?article_id=${article.article_id}`, {
           credentials: 'include'
         });
 
         if (!response.ok) {
-          console.warn(`[ChatPageClient] Failed to fetch chat history: ${response.status}`);
+          logger.warn('ChatPageClient', `Failed to fetch chat history: ${response.status}`);
           return;
         }
 
         const data = await response.json();
         
         if (data.success && data.messages) {
-          console.log(`[ChatPageClient] Loaded ${data.messages.length} chat messages`);
+          logger.info('ChatPageClient', `Loaded ${data.messages.length} chat messages`);
           // Ensure timestamps are Date objects
           const messagesWithDateTimestamps = data.messages.map((msg: { timestamp: Date | string; [key: string]: unknown }) => ({
             ...msg,
@@ -200,7 +201,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
           setMessages(messagesWithDateTimestamps);
         }
       } catch (error) {
-        console.error('[ChatPageClient] Error loading chat history:', error);
+        logger.error('ChatPageClient', 'Error loading chat history', { error: error instanceof Error ? error.message : String(error) });
       }
     };
 
@@ -316,7 +317,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       });
 
       if (!response.ok) {
-        console.error(`Error Response: ${response.status} ${response.statusText} - ${response.url}`);
+        logger.error('ChatPageClient', `Error Response: ${response.status} ${response.statusText} - ${response.url}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -363,13 +364,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 throw new Error(data.error || 'Streaming error');
               }
             } catch (parseError) {
-              console.warn('Failed to parse FAQ streaming data:', parseError);
+              logger.warn('ChatPageClient', 'Failed to parse FAQ streaming data', { error: parseError instanceof Error ? parseError.message : String(parseError) });
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('ChatPageClient', 'Error sending message', { error: error instanceof Error ? error.message : String(error) });
       // Update the assistant message with error content
       setMessages(prev => 
         prev.map(msg => 
@@ -443,7 +444,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
       });
 
       if (!response.ok) {
-        console.error(`Error Response: ${response.status} ${response.statusText} - ${response.url}`);
+        logger.error('ChatPageClient', `Error Response: ${response.status} ${response.statusText} - ${response.url}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -490,13 +491,13 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
                 throw new Error(data.error || 'Streaming error');
               }
             } catch (parseError) {
-              console.warn('Failed to parse streaming data:', parseError);
+              logger.warn('ChatPageClient', 'Failed to parse streaming data', { error: parseError instanceof Error ? parseError.message : String(parseError) });
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('ChatPageClient', 'Error sending message', { error: error instanceof Error ? error.message : String(error) });
       
       // Update the assistant message with error content
       setMessages(prev => 
@@ -857,7 +858,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               setChatInput(transcript);
             }}
                   currentText={chatInput}
-                  onError={(error) => console.error('Voice input error:', error)}
+                  onError={(error) => logger.error('ChatPageClient', 'Voice input error', { error: String(error) })}
                   disabled={isLoading}
                   className="flex-shrink-0"
                 />
@@ -1037,7 +1038,7 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
               setChatInput(transcript);
             }}
                   currentText={chatInput}
-                  onError={(error) => console.error('Voice input error:', error)}
+                  onError={(error) => logger.error('ChatPageClient', 'Voice input error', { error: String(error) })}
                   disabled={isLoading}
                   className="flex-shrink-0"
                 />

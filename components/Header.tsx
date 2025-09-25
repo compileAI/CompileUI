@@ -25,6 +25,7 @@ import { ThemeToggle } from "./ui/theme-toggle";
 import { User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from '@/context/AuthContext';
+import { logger } from '@/lib/logger';
 
 export default function Header() {
   const pathname = usePathname();
@@ -70,7 +71,7 @@ export default function Header() {
       const timestamp = Date.now();
       await navigateTo(`/discover?search=${encodeURIComponent(searchTerm)}&t=${timestamp}`, 'Searching...');
     } catch (error) {
-      console.error('Error navigating to discover page:', error);
+      logger.error('Header', 'Error navigating to discover page', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
     }

@@ -4,6 +4,7 @@ import { ChatMessage, SourceArticleContext } from "@/types";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { auth0 } from "@/lib/auth0";
 import { saveChatMessageAsync } from "@/utils/chatMessages";
+import { logger } from "@/lib/logger";
 
 // Input sanitization utilities (reusing from the original route)
 const sanitizeInput = {
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
             const session = await auth0.getSession();
             currentUser = session?.user || null;
         } catch (authError) {
-            console.warn('[API /api/chat/ws] Failed to get user for message persistence:', authError);
+            logger.warn('API /api/chat/ws', 'Failed to get user for message persistence', { error: String(authError) });
         }
 
     // Generate unique message ID for user message
@@ -196,13 +197,13 @@ export async function POST(request: NextRequest) {
         role: 'user',
         content: sanitizedMessage // Use sanitized message
       }).catch(error => {
-        console.error('[API /api/chat/ws] Failed to save user message:', error);
+        logger.error('API /api/chat/ws', 'Failed to save user message', { error: String(error) });
       });
     }
 
     // Fetch source articles (same logic as original)
     let sourceArticlesContextString = "";
-    console.log(`[API /api/chat/ws] Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
+    logger.info('API /api/chat/ws', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
     try {
       const { data: sourceArticlesData, error: sourceArticlesError } = await supabase
         .from('citations_ref')
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
         .eq('gen_article_id', validatedArticleContext.article_id);
 
       if (sourceArticlesError) {
-        console.error('[API /api/chat/ws] Supabase error fetching source articles:', sourceArticlesError);
+        logger.error('API /api/chat/ws', 'Supabase error fetching source articles', { error: sourceArticlesError });
       }
 
       if (sourceArticlesData && sourceArticlesData.length > 0) {
