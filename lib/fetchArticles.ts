@@ -33,7 +33,8 @@ export async function getGeneratedArticles(): Promise<Article[]> {
     `)
     .in("tag", ["CLUSTER"])
     .gte("date", oneWeekAgoISO)
-    .order("date", { ascending: false }) as { 
+    .order("date", { ascending: false })
+    .limit(20) as { 
       data: ArticleWithCitations[] | null;
       error: PostgrestError | null;
     };
