@@ -36,25 +36,9 @@ export default function ArticleCard({ article, formattedDate }: Props) {
       </div>
       
       <div className="flex items-center gap-3 ml-4">
-        {/* Source count with hover tooltip */}
-        <div className="group/sources relative">
-          <div className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-help">
-            {article.citationCount || 0} {(article.citationCount || 0) === 1 ? 'source' : 'sources'}
-          </div>
-          {/* Tooltip on hover - shows list of source titles */}
-                          <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-md opacity-0 group-hover/sources:opacity-100 transition-opacity pointer-events-none z-50 max-w-xs shadow-lg border border-border">
-            {article.citations && article.citations.length > 0 ? (
-              <div className="space-y-1">
-                {article.citations.map((citation, index) => (
-                  <div key={index} className="text-left">
-                    {citation.sourceName}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div>No sources available</div>
-            )}
-          </div>
+        {/* Source count */}
+        <div className="text-sm text-muted-foreground">
+          {article.citationCount || 0} {(article.citationCount || 0) === 1 ? 'source' : 'sources'}
         </div>
       </div>
     </article>
