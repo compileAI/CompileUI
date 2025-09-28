@@ -50,17 +50,16 @@ export async function getHighLevelSummaries(): Promise<HlcArticle[]> {
     // Get the most recent entry for each topic using a window function approach
     // Since Supabase doesn't support DISTINCT ON directly, we'll use this approach
     const { data: summariesData, error: summariesError } = await supabase
-    .from("high_level_cluster_articles")
+    .from("latest_high_level_cluster_articles")
     .select(`
-        id::text,
-        created_at,
-        topic,
-        title,
-        content,
-        gen_article_ids::_text 
-        `) // NOTE: gen_article_ids is an array of int8 in supabase, so we cast to string on read. _text is the way to do that for arrays.
-    .order("topic")
-    .order("created_at", { ascending: false }) as { 
+      id::text,
+      created_at,
+      topic,
+      title,
+      content,
+      gen_article_ids::_text
+    `)
+    .order("topic", { ascending: true }) as { 
         data: HlcArticle[] | null;
         error: PostgrestError | null;
     };
