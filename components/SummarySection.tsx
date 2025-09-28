@@ -195,7 +195,7 @@ function ArticleCarousel({ articles }: { articles: Article[] }) {
                 <span className="text-xs">{formatDate(article.date)}</span>
               </div>
               <span className="font-medium text-xs">
-                {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''}
+                {article.citationCount || 0} source{(article.citationCount || 0) !== 1 ? 's' : ''}
               </span>
             </div>
           </article>

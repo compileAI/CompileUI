@@ -14,6 +14,7 @@ import { RECOMMENDATIONS_CONFIG } from '@/config/recommendations';
 import { getRecentlyVisited, addRecentlyVisited } from '@/utils/recentlyVisited';
 import VoiceInput from "@/components/ui/voice-input";
 import { logger } from "@/lib/logger";
+import { getArticleCitationsLazy } from "@/lib/fetchArticles";
 
 
 interface ChatPageClientProps {
@@ -106,17 +107,11 @@ export default function ChatPageClient({ article, initialMessage }: ChatPageClie
           setCitationsLoading(false);
           return;
         }
-        
-        // Otherwise, fetch citations from the API as fallback
-        logger.info('ChatPageClient', `No existing citations, fetching from API for article: ${article.article_id}`);
-        const response = await fetch(`/api/fetchArticles?articleId=${article.article_id}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch citations');
-        }
 
-        setCitations(data.citations || []);
+        // Otherwise, fetch citations using lazy loading
+        logger.info('ChatPageClient', `No existing citations, lazy loading citations for article: ${article.article_id}`);
+        const citations = await getArticleCitationsLazy(article.article_id);
+        setCitations(citations);
       } catch (error) {
         logger.error('ChatPageClient', 'Error fetching citations', { error: error instanceof Error ? error.message : String(error) });
         setCitationsError('Failed to load citations');

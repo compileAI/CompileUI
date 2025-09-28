@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 interface NavigationState {
   isNavigating: boolean;
@@ -9,6 +10,7 @@ interface NavigationState {
 export function useNavigation() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [state, setState] = useState<NavigationState>({
     isNavigating: false,
     destination: null,
@@ -19,9 +21,13 @@ export function useNavigation() {
     const currentBasePath = pathname.split('?')[0];
     const targetBasePath = path.split('?')[0];
 
-    // Check if we're already on the target path
-    if (pathname === path) {
-      return; // Do nothing if already on the exact same path
+    // Build current full path including query string for exact comparison
+    const currentQueryString = searchParams?.toString();
+    const currentFullPath = currentQueryString ? `${currentBasePath}?${currentQueryString}` : currentBasePath;
+
+    // Check if we're already on the exact same full path (including query)
+    if (currentFullPath === path) {
+      return; // Do nothing if already on the exact same full path
     }
 
     // Only show mounting loading animation if base path is changing
@@ -37,10 +43,11 @@ export function useNavigation() {
     }
     
     try {
+      logger.info('useNavigation', 'Navigating to path', { path, message });
       router.push(path);
       // Note: router.push doesn't throw errors, but we keep this for future-proofing
     } catch (error) {
-      console.error('Navigation error:', error);
+      logger.error('useNavigation', 'Navigation error', { error: error instanceof Error ? error.message : String(error) });
       if (isChangingBasePath) {
         setState({
           isNavigating: false,
@@ -48,7 +55,7 @@ export function useNavigation() {
         });
       }
     }
-  }, [router, pathname]);
+  }, [router, pathname, searchParams]);
 
   const clearNavigation = useCallback(() => {
     setState({

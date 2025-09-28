@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { FAQ } from '@/types';
 import { logger } from '@/lib/logger';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +20,18 @@ export async function GET(request: NextRequest) {
 
     const { data: faqsData, error } = await supabase
       .from('faqs')
-      .select('*')
-      .eq('gen_article_id', articleId);
+      .select(`
+        id,
+        gen_article_id::text,
+        question,
+        answer,
+        created_at,
+        question_short
+      `)
+      .eq('gen_article_id', articleId) as {
+        data: FAQ[] | null;
+        error: PostgrestError | null;
+      };
 
     if (error) {
       logger.error('API /api/faqs', `Error fetching FAQs for article ${articleId}`, { error });

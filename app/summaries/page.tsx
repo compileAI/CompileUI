@@ -1,7 +1,12 @@
 "use client";
 
 import SummariesClient from "@/components/SummariesClient";
+import { Suspense } from "react";
 
 export default function SummariesPage() {
-  return <SummariesClient />;
+  return (
+    <Suspense fallback={null}>
+      <SummariesClient />
+    </Suspense>
+  );
 } 

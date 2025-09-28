@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Loader2, ChevronDown, Menu, Home, Compass, FileText, Moon, Sun } from "lucide-react";
+import { Search, Loader2, ChevronDown, Menu, Home, Compass, FileText, Moon, Sun, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { Input } from "./ui/input";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useNavigation } from "@/hooks/useNavigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import AuthForm from "@/components/Forms/AuthForm";
@@ -29,6 +30,7 @@ import { logger } from '@/lib/logger';
 
 export default function Header() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isNavigating, navigateTo, clearNavigation } = useNavigation();
   const { user } = useAuth(); // Auth0 user from context
   const { theme, setTheme } = useTheme();
@@ -80,6 +82,20 @@ export default function Header() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  const isDiscover = pathname === "/discover";
+  const isSearchActive = isDiscover && Boolean(searchParams.get('search'));
+
+  const handleClearSearch = async () => {
+    logger.debug('Header', 'handleClearSearch');
+    setSearchQuery("");
+    try {
+      logger.info('Header', 'Navigating to discover');
+      await navigateTo("/discover", "Loading articles...");
+    } catch (error) {
+      logger.error('Header', 'Error clearing search and navigating to discover', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -139,13 +155,15 @@ export default function Header() {
               disabled={isLoading}
             />
             <Button 
-              onClick={() => handleSearch()} 
-              disabled={isLoading || !searchQuery.trim()}
+              onClick={isSearchActive ? handleClearSearch : () => handleSearch()} 
+              disabled={isLoading || (!isSearchActive && !searchQuery.trim())}
               className="absolute right-0 top-0 h-10 w-10 p-0 rounded-xl"
               variant="ghost"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isSearchActive ? (
+                <X className="h-4 w-4" />
               ) : (
                 <Search className="h-4 w-4" />
               )}
@@ -319,13 +337,15 @@ export default function Header() {
               disabled={isLoading}
             />
             <Button 
-              onClick={() => handleSearch()} 
-              disabled={isLoading || !searchQuery.trim()}
+              onClick={isSearchActive ? handleClearSearch : () => handleSearch()} 
+              disabled={isLoading || (!isSearchActive && !searchQuery.trim())}
               className="absolute right-0 top-0 h-10 w-10 p-0"
               variant="ghost"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isSearchActive ? (
+                <X className="h-4 w-4" />
               ) : (
                 <Search className="h-4 w-4" />
               )}

@@ -2,6 +2,30 @@ import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { HlcArticle, Article, Citation, ArticleWithCitations } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
 
+// Helper function to fetch citation counts for article IDs
+async function getCitationCounts(articleIds: string[]): Promise<Record<string, number>> {
+  if (articleIds.length === 0) return {};
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from('article_citation_counts')
+    .select('article_id, citation_count')
+    .in('article_id', articleIds);
+
+  if (error) {
+    console.error("[getCitationCounts] Error fetching citation counts:", error);
+    return {};
+  }
+
+  const citationCounts: Record<string, number> = {};
+  (data || []).forEach(item => {
+    citationCounts[item.article_id] = item.citation_count;
+  });
+
+  return citationCounts;
+}
+
 // In-memory cache for high-level summaries
 interface SummariesCache {
   data: HlcArticle[];
@@ -148,7 +172,7 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
   try {
     console.log("[getGenArticlesByIds] Executing Supabase query for article IDs:", articleIds);
     
-    // Full query with citations - cached for performance
+    // Query without citations for faster loading - citations loaded lazily when needed
     // Order by date descending (most recent first)
     const { data: articlesData, error: articlesError } = await supabase
       .from("gen_articles")
@@ -158,20 +182,11 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
         title,
         content,
         fingerprint,
-        tag,
-        citations:citations_ref (
-          source_articles (
-            title,
-            url,
-            master_sources (
-              name
-            )
-          )
-        )
+        tag
       `)
       .in("article_id", articleIds)
-      .order("date", { ascending: false }) as { 
-        data: ArticleWithCitations[] | null;
+      .order("date", { ascending: false }) as {
+        data: Article[] | null;
         error: PostgrestError | null;
       };
 
@@ -187,33 +202,14 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
       return [];
     }
 
-    // Transform and rehydrate citations with full citation data
+    // Get article IDs for citation count lookup
+    const extractedArticleIds = articlesData.map(item => item.article_id);
+
+    // Fetch citation counts in parallel
+    const citationCountsPromise = getCitationCounts(extractedArticleIds);
+
+    // Transform articles without citations for faster loading
     const typedArticles: Article[] = articlesData.map((item) => {
-      // Extract and deduplicate citations from the nested data
-      const citationsMap = new Map<string, Citation>();
-      
-      (item.citations || []).forEach(citation => {
-        if (!citation?.source_articles?.master_sources?.name) return;
-        
-        // Create the citation object
-        const newCitation: Citation = {
-          sourceName: citation.source_articles.master_sources.name,
-          articleTitle: citation.source_articles.title || 'Untitled',
-          url: citation.source_articles.url
-        };
-        
-        // Create a unique key based on source name and article title
-        const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
-        
-        // Only add if we haven't seen this citation before
-        if (!citationsMap.has(citationKey)) {
-          citationsMap.set(citationKey, newCitation);
-        }
-      });
-
-      // Convert the Map back to an array
-      const citations = Array.from(citationsMap.values());
-
       return {
         article_id: item.article_id,
         date: new Date(item.date),
@@ -221,11 +217,17 @@ async function getGenArticlesByIds(articleIds: string[]): Promise<Article[]> {
         content: String(item.content),
         fingerprint: String(item.fingerprint),
         tag: String(item.tag),
-        citations
+        citations: [] // Citations will be loaded lazily when needed
       };
     });
 
-    console.log(`[getGenArticlesByIds] Successfully rehydrated ${typedArticles.length} articles`);
+    // Add citation counts to articles
+    const citationCounts = await citationCountsPromise;
+    typedArticles.forEach(article => {
+      article.citationCount = citationCounts[article.article_id] || 0;
+    });
+
+    console.log(`[getGenArticlesByIds] Successfully rehydrated ${typedArticles.length} articles with citation counts`);
     return typedArticles;
 
   } catch (error) {

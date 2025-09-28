@@ -41,12 +41,13 @@ export function usePreloadDiscover() {
     try {
       console.log('[usePreloadDiscover] Starting background preload of discover articles');
       
-      const response = await fetch('/api/fetchArticles');
+      const response = await fetch('/api/fetchArticles?limit=20&offset=0&weeksBack=1');
       if (!response.ok) {
         throw new Error(`Preload failed: ${response.statusText}`);
       }
 
-      const articles = await response.json();
+      const data = await response.json();
+      const articles = Array.isArray(data) ? data : (data?.items ?? []);
       
       // Cache the preloaded articles
       const cacheData: CachedDiscoverResult = {

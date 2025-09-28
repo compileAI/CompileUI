@@ -182,7 +182,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   return (
     <>
       <Header />
-      <div className="md:ml-56 min-h-screen bg-background p-6">
+      <div className="md:ml-56 min-h-screen bg-background">
         <div className="min-h-screen" ref={pageRef}>
           {/* Demo Banner for non-authenticated users */}
           {!user && (

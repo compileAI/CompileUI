@@ -12,6 +12,7 @@ export interface Article { // This is GenArticle
   fingerprint: string;
   tag: string;
   citations: Citation[];
+  citationCount?: number; // Optional citation count for display
 }
 
 // Raw database response structure for articles with nested citations from Supabase joins
@@ -200,6 +201,15 @@ export interface HlcArticlesResponse {
   success: boolean;
   summaries?: HlcArticle[];
   error?: string;
+}
+
+// Paginated response for Discover/basic API
+export interface PaginatedArticlesResponse {
+  items: Article[];
+  totalEligibleApprox: number;
+  limit: number;
+  offset: number;
+  weeksBackUsed: number;
 }
 
 // BM25 and Hybrid Search types
