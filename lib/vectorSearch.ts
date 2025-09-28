@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { Article, Citation, VectorSearchResponse, SparseSearchResponse } from "@/types";
+import { Article, VectorSearchResponse, SparseSearchResponse } from "@/types";
 import { tokenize } from "@/lib/tokenize";
 import { buildBm25QueryVector, fetchBm25Params } from "@/lib/bm25";
 import { reciprocalRankFusionWithFallback } from "@/lib/rrf";
@@ -130,10 +130,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
       // If we have enough articles, use this range
       if (data.length >= targetLimit || range === dateRanges[dateRanges.length - 1]) {
         console.log(`[Vector Search] Using ${range.label} - found ${data.length} articles`);
-        
-        // Convert to Article type and maintain the order from Pinecone
-        const articlesMap = new Map<string, Article>();
-        
+                
         // Get article IDs for citation count lookup
         const articleIds = data.map(item => item.article_id);
 

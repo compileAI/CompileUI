@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { FAQ } from '@/types';
 import { logger } from '@/lib/logger';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       `)
       .eq('gen_article_id', articleId) as {
         data: FAQ[] | null;
-        error: any;
+        error: PostgrestError | null;
       };
 
     if (error) {

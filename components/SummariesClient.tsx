@@ -18,6 +18,7 @@ export default function SummariesClient() {
   // Fetch summaries on component mount
   useEffect(() => {
     const fetchSummaries = async () => {
+      logger.info('SummariesClient', 'Fetching summaries');
       try {
         setLoading(true);
         setError(null);

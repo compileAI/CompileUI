@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGeneratedArticles, getGeneratedArticle, getGeneratedArticlesPaginated } from "@/lib/fetchArticles";
+import { getGeneratedArticle, getGeneratedArticlesPaginated } from "@/lib/fetchArticles";
 import { logger } from "@/lib/logger";
 
 export async function GET(request: Request) {

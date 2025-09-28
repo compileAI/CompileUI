@@ -1,5 +1,10 @@
 import HomeClient from "@/components/HomeClient";
+import { Suspense } from "react";
 
-export default async function Home() {
-    return <HomeClient/>
-} 
+export default function Home() {
+    return (
+        <Suspense fallback={null}>
+            <HomeClient />
+        </Suspense>
+    );
+}
