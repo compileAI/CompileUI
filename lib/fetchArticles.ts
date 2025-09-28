@@ -4,7 +4,7 @@ import { PostgrestError } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
 // Helper function to fetch citation counts for article IDs
-async function getCitationCounts(articleIds: string[]): Promise<Record<string, number>> {
+export async function getCitationCounts(articleIds: string[]): Promise<Record<string, number>> {
   if (articleIds.length === 0) return {};
 
   const supabase = await createSupabaseServerClient();
@@ -97,7 +97,7 @@ export async function getGeneratedArticles(): Promise<Article[]> {
       fingerprint,
       tag
     `)
-    .in("tag", ["CLUSTER"])
+    .eq("tag", "CLUSTER")
     .gte("date", oneWeekAgoISO)
     .order("date", { ascending: false })
     .limit(20) as {

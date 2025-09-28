@@ -6,6 +6,7 @@ import { tokenize } from "@/lib/tokenize";
 import { buildBm25QueryVector, fetchBm25Params } from "@/lib/bm25";
 import { reciprocalRankFusionWithFallback } from "@/lib/rrf";
 import { logger } from "@/lib/logger";
+import { getCitationCounts } from "@/lib/fetchArticles";
 
 // Initialize Pinecone client
 const pinecone = new Pinecone({
@@ -106,16 +107,7 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
           title,
           content,
           fingerprint,
-          tag,
-          citations:citations_ref (
-            source_articles (
-              title,
-              url,
-              master_sources (
-                name
-              )
-            )
-          )
+          tag
         `)
         .in("article_id", articleIds)
         .eq("tag", "CLUSTER")
@@ -142,85 +134,33 @@ export async function fetchArticlesByIds(articleIds: string[], targetLimit: numb
         // Convert to Article type and maintain the order from Pinecone
         const articlesMap = new Map<string, Article>();
         
-        data.forEach(item => {
-          // Handle date conversion safely
-          let articleDate: Date;
-          try {
-            if (item.date) {
-              articleDate = new Date(item.date);
-              // Check if the date is valid
-              if (isNaN(articleDate.getTime())) {
-                articleDate = new Date(); // Fallback to current date
-              }
-            } else {
-              articleDate = new Date(); // Fallback to current date
-            }
-          } catch {
-            console.warn('Error parsing date for article:', item.article_id, 'Date value:', item.date);
-            articleDate = new Date(); // Fallback to current date
-          }
+        // Get article IDs for citation count lookup
+        const articleIds = data.map(item => item.article_id);
 
-          // Process citations data
-          const citationsMap = new Map<string, Citation>();
-          
-          if (item.citations && Array.isArray(item.citations)) {
-            item.citations.forEach((citationItem: unknown) => {
-              // Type guard to ensure we have the expected structure
-              if (
-                citationItem && 
-                typeof citationItem === 'object' &&
-                'source_articles' in citationItem &&
-                citationItem.source_articles &&
-                typeof citationItem.source_articles === 'object' &&
-                'master_sources' in citationItem.source_articles &&
-                citationItem.source_articles.master_sources &&
-                typeof citationItem.source_articles.master_sources === 'object' &&
-                'name' in citationItem.source_articles.master_sources
-              ) {
-                const sourceArticle = citationItem.source_articles as {
-                  title: string | null;
-                  url: string | null;
-                  master_sources: {
-                    name: string;
-                  };
-                };
-                
-                // Create the citation object
-                const newCitation: Citation = {
-                  sourceName: sourceArticle.master_sources.name,
-                  articleTitle: sourceArticle.title || 'Untitled',
-                  url: sourceArticle.url
-                };
-                
-                // Create a unique key based on source name and article title
-                const citationKey = `${newCitation.sourceName}:${newCitation.articleTitle}`;
-                
-                // Only add if we haven't seen this citation before
-                if (!citationsMap.has(citationKey)) {
-                  citationsMap.set(citationKey, newCitation);
-                }
-              }
-            });
-          }
+        // Fetch citation counts in parallel
+        const citationCountsPromise = getCitationCounts(articleIds);
 
-          // Convert the Map back to an array
-          const citations = Array.from(citationsMap.values());
-
-          articlesMap.set(String(item.article_id), {
-            article_id: String(item.article_id),
-            date: articleDate,
+        // Transform the data into our Article type (no citations for faster loading)
+        const typedArticles: Article[] = data.map((item) => {
+          return {
+            article_id: item.article_id, // Already a string from article_id::text
+            date: new Date(item.date),
             title: String(item.title),
             content: String(item.content),
             fingerprint: String(item.fingerprint),
             tag: String(item.tag),
-            citations: citations,
-          });
+            citations: [] // Citations will be loaded lazily when needed
+          };
         });
 
-        // Return articles in the same order as the Pinecone results
-        return articleIds
-          .map(id => articlesMap.get(id))
-          .filter((article): article is Article => article !== undefined);
+        // Add citation counts to articles
+        const citationCounts = await citationCountsPromise;
+        typedArticles.forEach(article => {
+          article.citationCount = citationCounts[article.article_id] || 0;
+        });
+
+        console.log(`[Vector Search] Successfully fetched ${typedArticles.length} articles from Supabase after date filtering`);
+        return typedArticles;
       }
     }
     
@@ -451,7 +391,7 @@ export async function performHybridSearch(
     // Return the requested number of articles
     const finalResults = fusedResults.slice(0, limit);
     console.log(`[Hybrid Search] Returning ${finalResults.length} articles (requested: ${limit})`);
-    
+
     return finalResults;
     
   } catch (error) {
