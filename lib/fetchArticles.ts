@@ -201,18 +201,33 @@ export async function getGeneratedArticlesPaginated(
     return { items: [], totalEligibleApprox: totalEligibleApprox || 0, limit, offset, weeksBackUsed: weeksBack };
   }
 
-  // Transform the data into our Article type and add citation counts lazily (count only here)
+
+
+  // Get article IDs for citation count lookup
+  const articleIds = pageData.map(item => item.article_id);
+
+  // Fetch citation counts in parallel
+  const citationCountsPromise = getCitationCounts(articleIds);
+
+  // Transform the data into our Article type (no citations for faster loading)
   const typedArticles: Article[] = pageData.map((item) => {
     return {
-      article_id: item.article_id,
+      article_id: item.article_id, // Already a string from article_id::text
       date: new Date(item.date),
       title: String(item.title),
       content: String(item.content),
       fingerprint: String(item.fingerprint),
       tag: String(item.tag),
-      citations: []
+      citations: [] // Citations will be loaded lazily when needed
     };
   });
+
+  // Add citation counts to articles
+  const citationCounts = await citationCountsPromise;
+  typedArticles.forEach(article => {
+    article.citationCount = citationCounts[article.article_id] || 0;
+  });
+  logger.info('fetchArticles', 'Supabase getGeneratedArticlesPaginated Articles data', { articlesData: typedArticles });
 
   return {
     items: typedArticles,
