@@ -203,6 +203,15 @@ export interface HlcArticlesResponse {
   error?: string;
 }
 
+// Paginated response for Discover/basic API
+export interface PaginatedArticlesResponse {
+  items: Article[];
+  totalEligibleApprox: number;
+  limit: number;
+  offset: number;
+  weeksBackUsed: number;
+}
+
 // BM25 and Hybrid Search types
 export interface SparseVector {
   indices: number[];

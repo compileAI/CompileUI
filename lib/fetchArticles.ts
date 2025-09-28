@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { Article, Citation, ArticleWithCitations } from "@/types";
+import { Article, Citation, ArticleWithCitations, PaginatedArticlesResponse } from "@/types";
 import { PostgrestError } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
@@ -141,6 +141,86 @@ export async function getGeneratedArticles(): Promise<Article[]> {
   });
 
   return typedArticles;
+}
+
+/**
+ * Paginated fetch for discover (basic) with approximate total count.
+ * Uses a weeksBack window and stable ordering to support offset pagination.
+ */
+export async function getGeneratedArticlesPaginated(
+  limit: number,
+  offset: number,
+  weeksBack: number
+): Promise<PaginatedArticlesResponse> {
+  const supabase = await createSupabaseServerClient();
+
+  // Compute date window based on weeksBack
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7 * Math.max(1, weeksBack));
+  startDate.setHours(0, 0, 0, 0);
+  const startISO = startDate.toISOString();
+
+  // First: get an approximate count for fast UI decisions
+  const { count: totalEligibleApprox, error: countError } = await supabase
+    .from("gen_articles")
+    .select("article_id", { count: "estimated", head: true })
+    .eq("tag", "CLUSTER")
+    .gte("date", startISO);
+
+  if (countError) {
+    logger.warn('fetchArticles', 'Supabase WARN in getGeneratedArticlesPaginated count', { error: countError });
+  }
+
+  // Then: fetch the current page of items with stable ordering
+  const { data: pageData, error: pageError } = await supabase
+    .from("gen_articles")
+    .select(`
+      article_id::text,
+      date,
+      title,
+      content,
+      fingerprint,
+      tag
+    `)
+    .eq("tag", "CLUSTER")
+    .gte("date", startISO)
+    .order("date", { ascending: false })
+    .order("article_id", { ascending: false })
+    .range(offset, Math.max(offset + limit - 1, offset)) as {
+      data: Article[] | null;
+      error: PostgrestError | null;
+    };
+
+  if (pageError) {
+    logger.error('fetchArticles', 'Supabase ERROR in getGeneratedArticlesPaginated page', { error: pageError });
+    return { items: [], totalEligibleApprox: totalEligibleApprox || 0, limit, offset, weeksBackUsed: weeksBack };
+  }
+
+  if (!pageData) {
+    logger.warn('fetchArticles', 'No articles found in paginated supabase query');
+    return { items: [], totalEligibleApprox: totalEligibleApprox || 0, limit, offset, weeksBackUsed: weeksBack };
+  }
+
+  // Transform the data into our Article type and add citation counts lazily (count only here)
+  const typedArticles: Article[] = pageData.map((item) => {
+    return {
+      article_id: item.article_id,
+      date: new Date(item.date),
+      title: String(item.title),
+      content: String(item.content),
+      fingerprint: String(item.fingerprint),
+      tag: String(item.tag),
+      citations: []
+    };
+  });
+
+  return {
+    items: typedArticles,
+    totalEligibleApprox: totalEligibleApprox || 0,
+    limit,
+    offset,
+    weeksBackUsed: weeksBack,
+  };
 }
 
 export async function getGeneratedArticle(articleId: string): Promise<Article | null> {
