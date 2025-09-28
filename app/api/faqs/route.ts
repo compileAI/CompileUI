@@ -19,8 +19,18 @@ export async function GET(request: NextRequest) {
 
     const { data: faqsData, error } = await supabase
       .from('faqs')
-      .select('*')
-      .eq('gen_article_id', articleId);
+      .select(`
+        id,
+        gen_article_id::text,
+        question,
+        answer,
+        created_at,
+        question_short
+      `)
+      .eq('gen_article_id', articleId) as {
+        data: FAQ[] | null;
+        error: any;
+      };
 
     if (error) {
       logger.error('API /api/faqs', `Error fetching FAQs for article ${articleId}`, { error });

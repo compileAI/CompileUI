@@ -12,6 +12,7 @@ export interface Article { // This is GenArticle
   fingerprint: string;
   tag: string;
   citations: Citation[];
+  citationCount?: number; // Optional citation count for display
 }
 
 // Raw database response structure for articles with nested citations from Supabase joins

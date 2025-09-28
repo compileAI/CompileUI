@@ -115,7 +115,7 @@ export default function ArticleTile({ article, size }: ArticleTileProps) {
       {/* Footer with citations count */}
       <div className={`${size != "hero" ? "mt-1 pt-1" : "mt-3 pt-2"} border-t border-border flex-shrink-0`}>
         <span className="text-xs text-muted-foreground">
-          {article.citations?.length || 0} source{(article.citations?.length || 0) !== 1 ? 's' : ''}
+          {article.citationCount || 0} source{(article.citationCount || 0) !== 1 ? 's' : ''}
         </span>
       </div>
     </article>
