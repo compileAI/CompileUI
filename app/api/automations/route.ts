@@ -21,6 +21,12 @@ interface DatabaseAutomationContent {
   content: string;
   created_at: string;
   user_id: string | null;
+  // New GenArticle fields
+  fingerprint: string;
+  article_id: string;
+  tag: string;
+  date: string;
+  cluster_id?: string | null;
 }
 
 // Helper function to fetch today's content for multiple automations
@@ -38,10 +44,24 @@ async function fetchAutomationContent(
   const contentMap: Record<number, AutomationContent | null> = {};
 
   try {
-    // Fetch content for all card numbers in one query
+    // Fetch content for all card numbers with citations
+    // Use a subquery to get the most recent content per card_number per user per day
     const query = supabase
       .from('automation_content')
-      .select('*')
+      .select(`
+        *,
+        automation_citations (
+          snippet,
+          source_article_id,
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
+      `)
       .in('card_number', cardNumbers)
       .gte('created_at', todayStart.toISOString())
       .lt('created_at', todayEnd.toISOString())
@@ -70,9 +90,28 @@ async function fetchAutomationContent(
       contentMap[cardNumber] = null;
     });
 
-    // Populate with found content (convert id fields to strings)
+    // Populate with found content (convert id fields to strings and process citations)
+    // Group by card_number and take only the most recent one for each card
     if (contentArray) {
-      contentArray.forEach((content: DatabaseAutomationContent) => {
+      const groupedContent = new Map<number, any>();
+      
+      // Group content by card_number, keeping only the most recent (already ordered by created_at desc)
+      contentArray.forEach((content: any) => {
+        if (!groupedContent.has(content.card_number)) {
+          groupedContent.set(content.card_number, content);
+        }
+      });
+      
+      // Process the most recent content for each card
+      groupedContent.forEach((content: any) => {
+        // Process citations from the nested structure
+        const citations = content.automation_citations?.map((citation: any) => ({
+          sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
+          articleTitle: citation.source_articles?.title || 'Untitled',
+          snippet: citation.snippet,
+          url: citation.source_articles?.url || null
+        })) || [];
+
         contentMap[content.card_number] = {
           id: content.id.toString(),
           automation_id: content.automation_id.toString(),
@@ -80,7 +119,14 @@ async function fetchAutomationContent(
           card_number: content.card_number,
           title: content.title,
           content: content.content,
-          created_at: content.created_at
+          created_at: content.created_at,
+          // New GenArticle fields
+          fingerprint: content.fingerprint || '',
+          article_id: content.article_id || '',
+          citations: citations,
+          tag: content.tag || '',
+          date: content.date || content.created_at,
+          cluster_id: content.cluster_id || null
         };
       });
     }
@@ -127,7 +173,8 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
       // Convert database format to our types (id as string)
       const typedDemoAutomations: Automation[] = (demoAutomations || []).map(automation => ({
         ...automation,
-        id: automation.id.toString()
+        id: automation.id.toString(),
+        description: automation.params?.name || `Automation ${automation.card_number + 1}` // Use name as description
       }));
 
       // Fetch content for all demo automations
@@ -165,7 +212,8 @@ export async function GET(): Promise<NextResponse<AutomationsApiResponse>> {
     // Convert database format to our types (id as string)
     const typedAutomations: Automation[] = (automations || []).map(automation => ({
       ...automation,
-      id: automation.id.toString()
+      id: automation.id.toString(),
+      description: automation.params?.name || `Automation ${automation.card_number + 1}` // Use name as description
     }));
 
     // Fetch content for all user automations

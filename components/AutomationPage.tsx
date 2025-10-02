@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAutomations } from "@/hooks/useAutomations";
 import AutomationForm from "./AutomationForm";
@@ -21,6 +21,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
   // Content is now embedded in the automation object
   const [automationName, setAutomationName] = useState("");
   const [originalAutomationName, setOriginalAutomationName] = useState("");
+  const [isCitationsOpen, setIsCitationsOpen] = useState(false);
   
   const { 
     automations, 
@@ -291,10 +292,68 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                       </div>
                     ) : (
                       <div>
-                        {/* Title */}
-                        <h2 className="text-2xl font-bold text-foreground mb-6 leading-tight">
-                          {content.title}
-                        </h2>
+                        {/* Title with Citations Dropdown */}
+                        <div className="flex justify-between items-start mb-6">
+                          <h2 className="text-2xl font-bold text-foreground flex-1 mr-4 leading-tight">
+                            {content.title}
+                          </h2>
+                          {/* Citations Dropdown */}
+                          {content.citations && content.citations.length > 0 && (
+                            <div className="relative">
+                              {/* Citations Dropdown Content */}
+                              {isCitationsOpen && (
+                                <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[300px] overflow-y-auto z-50">
+                                  <ul className="space-y-2">
+                                    {content.citations.map((citation, index) => (
+                                      <li key={index} className="text-sm">
+                                        <span className="font-medium">{citation.sourceName}: </span>
+                                        {citation.url ? (
+                                          <a 
+                                            href={citation.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                                          >
+                                            {citation.articleTitle || 'Untitled'}
+                                          </a>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {citation.articleTitle || 'Untitled'}
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsCitationsOpen(!isCitationsOpen)}
+                                className="flex items-center gap-2 bg-card shadow-sm shrink-0"
+                              >
+                                Citations ({content.citations.length})
+                                {isCitationsOpen ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronUp className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Metadata */}
+                        <div className="flex items-center gap-4 mb-6 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span>Generated: {new Date(content.date || content.created_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long", 
+                              day: "numeric"
+                            })}</span>
+                          </div>
+                        </div>
 
                         {/* Content */}
                         <div className="prose prose-base prose-neutral dark:prose-invert max-w-none">
@@ -302,6 +361,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
                             <MarkdownWithLatex>{content.content}</MarkdownWithLatex>
                           </div>
                         </div>
+
                       </div>
                     )}
                   </div>
@@ -325,6 +385,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
           </div>
         </div>
       </div>
+
     </>
   );
 } 

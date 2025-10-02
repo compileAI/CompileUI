@@ -35,27 +35,32 @@ export async function GET(
     if (userError || !user) {
       console.log('No authenticated user, returning demo content');
       
-      // Fetch demo content using NULL user_id (demo content)
+      // Fetch demo content using NULL user_id (demo content) with citations
       const { data: demoContent, error: demoContentError } = await supabase
         .from('automation_content')
-        .select('*')
+        .select(`
+          *,
+          automation_citations (
+            snippet,
+            source_article_id,
+            source_articles (
+              title,
+              url,
+              master_sources (
+                name
+              )
+            )
+          )
+        `)
         .is('user_id', null)
         .eq('card_number', cardNumber)
         .gte('created_at', todayStart.toISOString())
         .lt('created_at', todayEnd.toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (demoContentError) {
-        if (demoContentError.code === 'PGRST116') {
-          // No demo content found for today
-          return NextResponse.json({
-            success: true,
-            content: null
-          });
-        }
-        
         console.error('Error fetching demo content:', demoContentError);
         return NextResponse.json(
           { success: false, error: 'Failed to fetch demo content' },
@@ -63,11 +68,37 @@ export async function GET(
         );
       }
 
-      // Convert database format to our types (id as string)
+      if (!demoContent) {
+        // No demo content found for today
+        return NextResponse.json({
+          success: true,
+          content: null
+        });
+      }
+
+      // Convert database format to our types (id as string) and process citations
+      const citations = demoContent.automation_citations?.map((citation: any) => ({
+        sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
+        articleTitle: citation.source_articles?.title || 'Untitled',
+        snippet: citation.snippet,
+        url: citation.source_articles?.url || null
+      })) || [];
+
       const typedDemoContent = {
-        ...demoContent,
         id: demoContent.id.toString(),
-        automation_id: demoContent.automation_id.toString()
+        automation_id: demoContent.automation_id.toString(),
+        user_id: demoContent.user_id || '',
+        card_number: demoContent.card_number,
+        title: demoContent.title,
+        content: demoContent.content,
+        created_at: demoContent.created_at,
+        // New GenArticle fields
+        fingerprint: demoContent.fingerprint || '',
+        article_id: demoContent.article_id || '',
+        citations: citations,
+        tag: demoContent.tag || '',
+        date: demoContent.date || demoContent.created_at,
+        cluster_id: demoContent.cluster_id || null
       };
 
       return NextResponse.json({
@@ -76,27 +107,32 @@ export async function GET(
       });
     }
 
-    // Fetch today's automation content for this card (authenticated user)
+    // Fetch today's automation content for this card (authenticated user) with citations
     const { data: content, error: contentError } = await supabase
       .from('automation_content')
-      .select('*')
+      .select(`
+        *,
+        automation_citations (
+          snippet,
+          source_article_id,
+          source_articles (
+            title,
+            url,
+            master_sources (
+              name
+            )
+          )
+        )
+      `)
       .eq('user_id', user.id)
       .eq('card_number', cardNumber)
       .gte('created_at', todayStart.toISOString())
       .lt('created_at', todayEnd.toISOString())
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (contentError) {
-      if (contentError.code === 'PGRST116') {
-        // No content found for today
-        return NextResponse.json({
-          success: true,
-          content: null
-        });
-      }
-      
       if (contentError.code === '42P01') {
         // Table doesn't exist yet - this is expected during development
         console.log('automation_content table does not exist yet, returning null content');
@@ -113,11 +149,37 @@ export async function GET(
       );
     }
 
-    // Convert database format to our types (id as string)
+    if (!content) {
+      // No content found for today
+      return NextResponse.json({
+        success: true,
+        content: null
+      });
+    }
+
+    // Convert database format to our types (id as string) and process citations
+    const citations = content.automation_citations?.map((citation: any) => ({
+      sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
+      articleTitle: citation.source_articles?.title || 'Untitled',
+      snippet: citation.snippet,
+      url: citation.source_articles?.url || null
+    })) || [];
+
     const typedContent = {
-      ...content,
       id: content.id.toString(),
-      automation_id: content.automation_id.toString()
+      automation_id: content.automation_id.toString(),
+      user_id: content.user_id || '',
+      card_number: content.card_number,
+      title: content.title,
+      content: content.content,
+      created_at: content.created_at,
+      // New GenArticle fields
+      fingerprint: content.fingerprint || '',
+      article_id: content.article_id || '',
+      citations: citations,
+      tag: content.tag || '',
+      date: content.date || content.created_at,
+      cluster_id: content.cluster_id || null
     };
 
     return NextResponse.json({
