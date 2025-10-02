@@ -74,6 +74,7 @@ const sanitizeInput = {
     return result;
   },
 
+
   // Validate chat history
   validateChatHistory: (history: unknown): ChatMessage[] => {
     if (!Array.isArray(history)) return [];
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
     const userMessageId = `msg_${Date.now()}_user`;
 
     // Save user message asynchronously (if authenticated)
-    if (currentUser) {
+    if (currentUser && validatedArticleContext) {
       saveChatMessageAsync({
         user_id: currentUser.sub,
         article_id: validatedArticleContext.article_id,
@@ -203,7 +204,8 @@ export async function POST(request: NextRequest) {
 
     // Fetch source articles (same logic as original)
     let sourceArticlesContextString = "";
-    logger.info('API /api/chat/ws', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
+    if (validatedArticleContext) {
+      logger.info('API /api/chat/ws', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
     try {
       const { data: sourceArticlesData, error: sourceArticlesError } = await supabase
         .from('citations_ref')
@@ -265,10 +267,11 @@ export async function POST(request: NextRequest) {
       console.error('[API /api/chat/ws] Database operation error for source articles:', dbError);
       sourceArticlesContextString = "\n\nThere was an issue retrieving source article information.\n";
     }
+    }
 
     // Create system message with validated and sanitized context
     let systemMessage = "";
-    if (validatedArticleContext.title && validatedArticleContext.content) {
+    if (validatedArticleContext && validatedArticleContext.title && validatedArticleContext.content) {
       let faqContextString = "";
       if (sanitizedFaqContext) {
         faqContextString = `
@@ -410,7 +413,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
           );
 
           // Save assistant response asynchronously (if authenticated)
-          if (currentUser && fullResponse) {
+          if (currentUser && fullResponse && validatedArticleContext) {
             const assistantMessageId = `msg_${Date.now()}_assistant`;
             saveChatMessageAsync({
               user_id: currentUser.sub,

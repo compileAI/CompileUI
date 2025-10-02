@@ -75,6 +75,7 @@ const sanitizeInput = {
     return result;
   },
 
+
   // Validate chat history
   validateChatHistory: (history: unknown): ChatMessage[] => {
     if (!Array.isArray(history)) return [];
@@ -248,7 +249,7 @@ export async function POST(req: Request) {
         const userMessageId = `msg_${Date.now()}_user`;
 
         // Save user message asynchronously (only if authenticated AND synced)
-        if (currentUser && userSynced) {
+        if (currentUser && userSynced && validatedArticleContext) {
             saveChatMessageAsync({
                 user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,
@@ -261,7 +262,8 @@ export async function POST(req: Request) {
         }
 
         let sourceArticlesContextString = "";
-        logger.info('API /api/chat', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
+        if (validatedArticleContext) {
+            logger.info('API /api/chat', `Attempting to fetch source articles for gen_article_id: ${validatedArticleContext.article_id}`);
         try {
             // This implicitly joins the citations_ref and source_articles tables since Supabase knows the foreign key relationship.
             // We can then filter this to be only articles corresponding to the gen_article_id.
@@ -338,13 +340,14 @@ export async function POST(req: Request) {
             logger.error('API /api/chat', 'Database operation error for source articles', { error: dbError instanceof Error ? dbError.message : String(dbError) });
             sourceArticlesContextString = "\n\nThere was an issue retrieving source article information.\n";
         }
+        }
 
         // Use Gemini 2.5 Flash with Google Search grounding using new @google/genai library
         const model = "gemini-2.5-flash-preview-05-20";
 
         // Create system message with validated and sanitized context
         let systemMessage = "";
-        if (validatedArticleContext.title && validatedArticleContext.content) {
+        if (validatedArticleContext && validatedArticleContext.title && validatedArticleContext.content) {
             let faqContextString = "";
             if (sanitizedFaqContext) {
                 faqContextString = `
@@ -453,7 +456,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
         const assistantMessageId = `msg_${Date.now()}_assistant`;
 
         // Save assistant response asynchronously (only if authenticated AND synced)
-        if (currentUser && userSynced) {
+        if (currentUser && userSynced && validatedArticleContext) {
             saveChatMessageAsync({
                 user_id: currentUser.sub,
                 article_id: validatedArticleContext.article_id,
