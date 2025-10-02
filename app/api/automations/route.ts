@@ -12,7 +12,20 @@ import {
   AutomationContent
 } from '@/types';
 
-// Interface for database automation content record
+// Interface for nested citation structure from database
+interface DatabaseCitation {
+  snippet: string;
+  source_article_id: string;
+  source_articles?: {
+    title: string;
+    url: string;
+    master_sources?: {
+      name: string;
+    };
+  };
+}
+
+// Interface for automation content from database
 interface DatabaseAutomationContent {
   id: string | number;
   automation_id: string | number;
@@ -21,11 +34,12 @@ interface DatabaseAutomationContent {
   content: string;
   created_at: string;
   user_id: string | null;
+  automation_citations?: DatabaseCitation[];
   // New GenArticle fields
-  fingerprint: string;
-  article_id: string;
-  tag: string;
-  date: string;
+  fingerprint?: string;
+  article_id?: string;
+  tag?: string;
+  date?: string;
   cluster_id?: string | null;
 }
 
@@ -46,6 +60,7 @@ async function fetchAutomationContent(
   try {
     // Fetch content for all card numbers with citations
     // Use a subquery to get the most recent content per card_number per user per day
+    // Fixed: Only return the most recent automation content per card per user per day
     const query = supabase
       .from('automation_content')
       .select(`
@@ -93,19 +108,19 @@ async function fetchAutomationContent(
     // Populate with found content (convert id fields to strings and process citations)
     // Group by card_number and take only the most recent one for each card
     if (contentArray) {
-      const groupedContent = new Map<number, any>();
+      const groupedContent = new Map<number, DatabaseAutomationContent>();
       
       // Group content by card_number, keeping only the most recent (already ordered by created_at desc)
-      contentArray.forEach((content: any) => {
+      contentArray.forEach((content: DatabaseAutomationContent) => {
         if (!groupedContent.has(content.card_number)) {
           groupedContent.set(content.card_number, content);
         }
       });
       
       // Process the most recent content for each card
-      groupedContent.forEach((content: any) => {
+      groupedContent.forEach((content: DatabaseAutomationContent) => {
         // Process citations from the nested structure
-        const citations = content.automation_citations?.map((citation: any) => ({
+        const citations = content.automation_citations?.map((citation: DatabaseCitation) => ({
           sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
           articleTitle: citation.source_articles?.title || 'Untitled',
           snippet: citation.snippet,
