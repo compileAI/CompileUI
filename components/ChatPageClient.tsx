@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Article, ChatMessage } from "../types";
+import { Article, ChatMessage, Citation } from "../types";
 import MarkdownWithLatex from "@/components/ui/markdown-with-latex";
 import { ChevronUp, ChevronDown, MessageCircle, X, ArrowLeft } from "lucide-react";
 import RecommendedArticles from "./RecommendedArticles";
@@ -22,11 +22,6 @@ interface ChatPageClientProps {
   initialMessage?: string;
 }
 
-interface Citation {
-  sourceName: string;
-  articleTitle: string;
-  url: string | null;
-}
 
 export default function ChatPageClient({ article, initialMessage }: ChatPageClientProps) {
   const router = useRouter();

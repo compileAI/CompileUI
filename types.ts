@@ -1,6 +1,7 @@
 export interface Citation {
   sourceName: string;
-  articleTitle: string;
+  articleTitle?: string;
+  snippet?: string;
   url: string | null;
 }
 
@@ -135,6 +136,7 @@ export interface Automation {
   card_number: number; // smallint
   active: boolean;
   updated_at: string;
+  description?: string; // For chat context
 }
 
 export interface AutomationWithContent extends Automation {
@@ -149,6 +151,13 @@ export interface AutomationContent {
   title: string;
   content: string;
   created_at: string;
+  // New GenArticle fields
+  fingerprint: string;
+  article_id: string;
+  citations: Citation[];
+  tag: string;
+  date: string;
+  cluster_id?: string | null;
 }
 
 // API request/response types for automations
