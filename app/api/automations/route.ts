@@ -46,6 +46,7 @@ async function fetchAutomationContent(
   try {
     // Fetch content for all card numbers with citations
     // Use a subquery to get the most recent content per card_number per user per day
+    // Fixed: Only return the most recent automation content per card per user per day
     const query = supabase
       .from('automation_content')
       .select(`
