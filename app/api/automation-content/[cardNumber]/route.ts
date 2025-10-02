@@ -3,6 +3,37 @@ import { getApiUser } from '@/lib/auth0User';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { AutomationContentApiResponse } from '@/types';
 
+// Interface for nested citation structure from database
+interface DatabaseCitation {
+  snippet: string;
+  source_article_id: string;
+  source_articles?: {
+    title: string;
+    url: string;
+    master_sources?: {
+      name: string;
+    };
+  };
+}
+
+// Interface for automation content from database
+interface DatabaseAutomationContent {
+  id: string | number;
+  automation_id: string | number;
+  card_number: number;
+  title: string;
+  content: string;
+  created_at: string;
+  user_id: string | null;
+  automation_citations?: DatabaseCitation[];
+  // New GenArticle fields
+  fingerprint?: string;
+  article_id?: string;
+  tag?: string;
+  date?: string;
+  cluster_id?: string | null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ cardNumber: string }> }
@@ -77,7 +108,7 @@ export async function GET(
       }
 
       // Convert database format to our types (id as string) and process citations
-      const citations = demoContent.automation_citations?.map((citation: any) => ({
+      const citations = (demoContent as DatabaseAutomationContent).automation_citations?.map((citation: DatabaseCitation) => ({
         sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
         articleTitle: citation.source_articles?.title || 'Untitled',
         snippet: citation.snippet,
@@ -158,7 +189,7 @@ export async function GET(
     }
 
     // Convert database format to our types (id as string) and process citations
-    const citations = content.automation_citations?.map((citation: any) => ({
+    const citations = (content as DatabaseAutomationContent).automation_citations?.map((citation: DatabaseCitation) => ({
       sourceName: citation.source_articles?.master_sources?.name || 'Unknown Source',
       articleTitle: citation.source_articles?.title || 'Untitled',
       snippet: citation.snippet,
