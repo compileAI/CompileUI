@@ -283,9 +283,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Automatio
     }
 
     // Validate automation params
-    if (!body.params.retrieval_prompt || !body.params.content_prompt || !body.params.style_prompt) {
+    if (!body.params.user_prompt) {
       return NextResponse.json(
-        { success: false, error: 'All prompt fields are required' },
+        { success: false, error: 'Automation prompt is required' },
         { status: 400 }
       );
     }
