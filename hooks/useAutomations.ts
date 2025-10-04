@@ -28,9 +28,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find the most important AI and technology news from today",
-      content_prompt: "Summarize the key developments in AI and tech with actionable insights",
-      style_prompt: "Write in a clear, professional tone with bullet points for key takeaways",
+      user_prompt: "Find the most important AI and technology news from today and summarize the key developments with actionable insights in a clear, professional tone with bullet points for key takeaways",
       name: "Daily Tech News"
     },
     active: true
@@ -38,9 +36,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find startup funding and venture capital news",
-      content_prompt: "Highlight the most significant funding rounds and their business implications",
-      style_prompt: "Focus on market trends and investment patterns with concrete numbers",
+      user_prompt: "Find startup funding and venture capital news and highlight the most significant funding rounds and their business implications, focusing on market trends and investment patterns with concrete numbers",
       name: "Investment Deals"
     },
     active: true
@@ -48,9 +44,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find breaking news in artificial intelligence research and breakthroughs",
-      content_prompt: "Explain the latest AI research developments and their potential impact",
-      style_prompt: "Use accessible language to explain complex concepts with real-world examples",
+      user_prompt: "Find breaking news in artificial intelligence research and breakthroughs and explain the latest AI research developments and their potential impact using accessible language with real-world examples",
       name: "AI Research"
     },
     active: true
@@ -58,9 +52,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find news about AI regulation, policy, and government initiatives",
-      content_prompt: "Summarize regulatory developments and policy changes affecting AI",
-      style_prompt: "Focus on compliance implications and business impact with clear timelines",
+      user_prompt: "Find news about AI regulation, policy, and government initiatives and summarize regulatory developments and policy changes affecting AI, focusing on compliance implications and business impact with clear timelines",
       name: "AI Policy"
     },
     active: true
@@ -68,9 +60,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find news about big tech companies and their AI strategies",
-      content_prompt: "Analyze major tech company moves and strategic decisions in AI",
-      style_prompt: "Highlight competitive positioning and market implications with strategic insights",
+      user_prompt: "Find news about big tech companies and their AI strategies and analyze major tech company moves and strategic decisions in AI, highlighting competitive positioning and market implications with strategic insights",
       name: "Tech Giants"
     },
     active: true
@@ -78,9 +68,7 @@ const DEFAULT_AUTOMATIONS: Omit<CreateAutomationRequest, 'card_number'>[] = [
   {
     type: 'SEMANTIC_SUMMARY',
     params: {
-      retrieval_prompt: "Find news about AI tools, developer platforms, and open source projects",
-      content_prompt: "Cover the latest developer tools and platforms in the AI ecosystem",
-      style_prompt: "Write for technical audiences with practical implementation details",
+      user_prompt: "Find news about AI tools, developer platforms, and open source projects and cover the latest developer tools and platforms in the AI ecosystem, writing for technical audiences with practical implementation details",
       name: "Developer Tools"
     },
     active: true

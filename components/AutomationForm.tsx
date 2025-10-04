@@ -11,16 +11,14 @@ import toast from 'react-hot-toast';
 
 interface AutomationFormProps {
   automation: Automation | null;
-  onSave: (params: { retrieval_prompt: string; content_prompt: string; style_prompt: string; name: string }) => Promise<void>;
+  onSave: (params: { user_prompt: string; name: string }) => Promise<void>;
   size: "hero" | "small";
   isDemo?: boolean;
   titleChanged?: boolean;
 }
 
 interface FormData {
-  retrieval_prompt: string;
-  content_prompt: string;
-  style_prompt: string;
+  user_prompt: string;
   name: string;
 }
 
@@ -29,9 +27,7 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
   
   const form = useForm<FormData>({
     defaultValues: {
-      retrieval_prompt: automation?.params?.retrieval_prompt || "",
-      content_prompt: automation?.params?.content_prompt || "",
-      style_prompt: automation?.params?.style_prompt || "",
+      user_prompt: automation?.params?.user_prompt || "",
       name: ""
     }
   });
@@ -44,8 +40,8 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
   const watchedValues = watch();
 
   const onSubmit = async (data: FormData) => {
-    if (!data.retrieval_prompt || !data.content_prompt || !data.style_prompt) {
-      toast.error('All prompt fields are required');
+    if (!data.user_prompt) {
+      toast.error('Automation prompt is required');
       return;
     }
 
@@ -69,78 +65,28 @@ export default function AutomationForm({ automation, onSave, size, isDemo = fals
   return (
     <div className="h-full flex flex-col">
       <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4">
-        {/* Retrieval Prompt */}
+        {/* Automation Prompt */}
         <div className="space-y-2">
-          <Label htmlFor="retrieval_prompt" className="text-base font-medium">
-            Retrieval Prompt
+          <Label htmlFor="user_prompt" className="text-base font-medium">
+            Automation Prompt
           </Label>
           <div className="relative">
             <Textarea
-              id="retrieval_prompt"
-              placeholder="What information should be searched for? e.g., 'Find the latest news about AI and technology'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
-              {...register("retrieval_prompt", { 
-                required: "Retrieval prompt is required",
+              id="user_prompt"
+              placeholder="Describe what you want this automation to do. e.g., 'Find the latest AI news and summarize key developments in a professional tone with bullet points'"
+              className={`${isCompact ? 'min-h-[120px]' : 'min-h-[160px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
+              {...register("user_prompt", { 
+                required: "Automation prompt is required",
                 maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
               })}
               readOnly={isDemo}
             />
-            <span className={`absolute bottom-2 right-3 text-xs ${getCharacterCount(watchedValues.retrieval_prompt) > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
-              {getCharacterCount(watchedValues.retrieval_prompt)}/{maxChars}
+            <span className={`absolute bottom-2 right-3 text-xs ${getCharacterCount(watchedValues.user_prompt) > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {getCharacterCount(watchedValues.user_prompt)}/{maxChars}
             </span>
           </div>
-          {errors.retrieval_prompt && (
-            <span className="text-xs text-destructive">{errors.retrieval_prompt.message}</span>
-          )}
-        </div>
-
-        {/* Content Prompt */}
-        <div className="space-y-2">
-          <Label htmlFor="content_prompt" className="text-base font-medium">
-            Content Prompt
-          </Label>
-          <div className="relative">
-            <Textarea
-              id="content_prompt"
-              placeholder="How should the content be formatted and presented? e.g., 'Summarize the key insights with bullet points'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
-              {...register("content_prompt", { 
-                required: "Content prompt is required",
-                maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
-              })}
-              readOnly={isDemo}
-            />
-            <span className={`absolute bottom-2 right-3 text-xs ${getCharacterCount(watchedValues.content_prompt) > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
-              {getCharacterCount(watchedValues.content_prompt)}/{maxChars}
-            </span>
-          </div>
-          {errors.content_prompt && (
-            <span className="text-xs text-destructive">{errors.content_prompt.message}</span>
-          )}
-        </div>
-
-        {/* Style Prompt */}
-        <div className="space-y-2">
-          <Label htmlFor="style_prompt" className="text-base font-medium">
-            Style Prompt
-          </Label>
-          <div className="relative">
-            <Textarea
-              id="style_prompt"
-              placeholder="What tone and style should be used? e.g., 'Professional tone with bullet points'"
-              className={`${isCompact ? 'min-h-[60px]' : 'min-h-[80px]'} text-sm pr-16 ${isDemo ? 'bg-muted cursor-not-allowed' : ''}`}
-              {...register("style_prompt", { 
-                required: "Style prompt is required",
-                maxLength: { value: maxChars, message: `Maximum ${maxChars} characters` }
-              })}
-              readOnly={isDemo}
-            />
-            <span className={`absolute bottom-2 right-3 text-xs ${getCharacterCount(watchedValues.style_prompt) > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
-              {getCharacterCount(watchedValues.style_prompt)}/{maxChars}
-            </span>
-          </div>
-          {errors.style_prompt && (
-            <span className="text-xs text-destructive">{errors.style_prompt.message}</span>
+          {errors.user_prompt && (
+            <span className="text-xs text-destructive">{errors.user_prompt.message}</span>
           )}
         </div>
 

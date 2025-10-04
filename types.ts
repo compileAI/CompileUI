@@ -121,10 +121,8 @@ export interface FAQ {
 export type AutomationType = 'SEMANTIC_SUMMARY';
 
 export interface AutomationParams {
-  retrieval_prompt: string;
-  content_prompt: string;
-  style_prompt: string;
-  name: string; // Add name to params
+  user_prompt: string;
+  name: string;
 }
 
 export interface Automation {

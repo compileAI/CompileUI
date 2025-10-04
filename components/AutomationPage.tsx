@@ -82,7 +82,7 @@ export default function AutomationPage({ cardNumber }: AutomationPageProps) {
 
   const handleAutomationUpdate = async (
     _: number, 
-    params: { retrieval_prompt: string; content_prompt: string; style_prompt: string; name: string }
+    params: { user_prompt: string; name: string }
   ) => {
     // Redirect to auth if user is not authenticated
     if (!user) {
