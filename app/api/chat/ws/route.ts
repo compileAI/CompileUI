@@ -375,7 +375,7 @@ Remember: **Answer grounded in the article first, supplement with verified exter
 
           // Generate response from Gemini (fallback to regular generation for now)
           const response = await genAI.models.generateContent({
-            model: "gemini-2.5-flash-preview-05-20",
+            model: "gemini-2.5-flash-lite",
             contents: contents,
             config: {
               tools: [{ googleSearch: {} }], // Enable Google Search grounding
